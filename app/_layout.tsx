@@ -5,6 +5,7 @@ export default function RootLayout() {
   return (
     <Stack>
       {/* First Example - All pages we want to use go in here */}
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
     </Stack>
   );
