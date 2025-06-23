@@ -7,6 +7,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { Colors, Radius, FontSizes } from "../styles/theme";
+import IconSearchFriend from "@/assets/icons/IconSearchFriend";
 
 export function ButtonPrimary({
   text,
@@ -98,6 +99,17 @@ export function ButtonSmallSecondary({
     </Pressable>
   );
 }
+export function ButtonSearchFriend({
+  ...props
+}: PressableProps) {
+  return (
+    <Pressable {...props}>
+      <View style={styles.buttonSearchFriend}>
+        <IconSearchFriend />
+      </View>
+    </Pressable>
+  );
+}
 const styles = StyleSheet.create({
   buttonPrimary: {
     backgroundColor: Colors.primaryLimo,
@@ -180,5 +192,18 @@ const styles = StyleSheet.create({
   textSmallSecondaryButton: {
     fontSize: FontSizes.TextMediumFs,
     color: Colors.darkGreen,
+  },
+  buttonSearchFriend: {
+    backgroundColor: Colors.primaryLimo,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 8,
+    height: 56,
+    width: 80,
+    alignSelf: "center",
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderTopRightRadius: 50,
+    borderBottomRightRadius: 50,
   },
 });
