@@ -6,7 +6,6 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { Colors, FontSizes } from "../styles/theme";
-import IconSearchFriend from "@/assets/icons/IconSearchFriend";
 import { ButtonSearchFriend } from "./Buttons";
 
 // 1. Universal Search Input
