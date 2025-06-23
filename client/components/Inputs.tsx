@@ -5,7 +5,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { Colors } from "../styles/theme";
+import { Colors, FontSizes } from "../styles/theme";
 export default function Input(props: TextInputProps) {
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 348;
@@ -39,6 +39,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.primaryLimo,
     width: "100%",
     paddingHorizontal: 32,
-    fontSize: 16,
+    fontSize: FontSizes.TextLargeFs,
   },
 });
