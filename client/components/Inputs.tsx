@@ -6,7 +6,8 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { Colors, FontSizes } from "../styles/theme";
-export default function Input(props: TextInputProps) {
+
+export function SearchInput(props: TextInputProps) {
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 348;
 
