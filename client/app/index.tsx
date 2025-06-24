@@ -7,6 +7,8 @@ import { ButtonPrimary } from "@/components/Buttons";
 export default function WelcomeScreen() {
   const router = useRouter();
 
+
+export default function Index() {
   return (
     <View
       style={{
