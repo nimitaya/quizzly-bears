@@ -8,18 +8,36 @@ import quizQuestions from "@/utilities/quiz-logic/data";
 import type { QuizQuestion } from "@/utilities/quiz-logic/data";
 
 const QuizLogic = () => {
-  const [currentQuestionData, setCurrentQuestionData] = useState<QuizQuestion | null>(null);
+  // Timer duration/ delays TODO
+  const READ_TIMER_DURATION = 2000;
+  const ANSWER_TIMER_DURATION = 10000;
+  const NEXT_QUESTION_DELAY = 3000;
+  // To reset Timers
+  const readTimeout = useRef<number | null>(null);
+  const answerTimeout = useRef<number | null>(null);
+  // ====== State Management =====
+  const [currentQuestionData, setCurrentQuestionData] =
+    useState<QuizQuestion | null>(null);
   const [currQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [chosenAnswer, setChosenAnswer] = useState<string | null>(null);
-  const [isAnswerSelected, setIsAnswerSelected] = useState(false);
-  const [isAnswerLocked, setIsAnswerLocked] = useState(false);
+  const [answerState, setAnswerState] = useState({
+    chosenAnswer: null as string | null,
+    isSelected: false,
+    isSubmitted: false,
+    isLocked: false,
+  });
   const [readTimer, setReadTimer] = useState(false);
-  const [score, setScore] = useState(0);
+  const [remainingTime, setRemainingTime] = useState(
+    ANSWER_TIMER_DURATION / 1000
+  );
+  const [pointsState, setPointsState] = useState({
+    score: 0,
+    timePoints: 0,
+    total: 0,
+  })
   const [showResult, setShowResult] = useState(false);
   // solo or group play TODO temporary
-  const [playStyle, setPlayStyle] = useState("solo"); 
-  // To reset the Answer Timer if user answers before timeout
-  const answerTimeout = useRef<number | null>(null);
+  type PlayStyle = "solo" | "group";
+  const [playStyle, setPlayStyle] = useState("solo");
 
   // ===== PLACEHOLDER FOR FETCHING FROM CACHE TODO =====
   const fetchQuestionsFromCache = async (): Promise<QuizQuestion[] | null> => {
@@ -44,12 +62,18 @@ const QuizLogic = () => {
         questions = quizQuestions;
       }
       if (currQuestionIndex < questions.length) {
+        // Reset
         setCurrentQuestionData(questions[currQuestionIndex]);
-        setChosenAnswer(null);
-        setIsAnswerSelected(false);
-        setIsAnswerLocked(false);
+
+        setAnswerState(() => ({
+          chosenAnswer: null,
+          isSelected: false,
+          isSubmitted: false,
+          isLocked: false,
+        }));
+
         // Start the timer for the question
-        timingQuestions(); 
+        timingQuestions();
       } else {
         setShowResult(true);
       }
@@ -59,42 +83,74 @@ const QuizLogic = () => {
   };
 
   const timingQuestions = () => {
-    setTimeout(() => {
-          // Set read timer to true after 2 seconds to show the answers
-          setReadTimer(true);
-          console.log("Answer Timer started");
-          // Start - you have 10 seconds to choose an answer
-          answerTimeout.current = setTimeout(() => {
-            setIsAnswerLocked(true);
-            handleAnswerSubmit();
-            console.log("Answer Timer finished");
-            if (playStyle === "group") {
-              handleNextQuestion();
-            }
-            // 10 seconds to provide an answer
-          }, 10000);
-        }, 2000);
-        // TODO Seconds
-  }
+    readTimeout.current = setTimeout(() => {
+      // Set read timer to true after 2 seconds to show the answers
+      setReadTimer(true);
+      console.log("Answer Timer started");
+      // Start - you have 10 seconds to choose an answer
+      answerTimeout.current = setTimeout(() => {
+        setAnswerState((prevState) => ({ ...prevState, isLocked: true }));
+        handleAnswerCheck();
+        console.log("Answer Timer finished");
+        if (playStyle === "group") {
+          handleNextQuestion();
+        }
+      }, ANSWER_TIMER_DURATION);
+    }, READ_TIMER_DURATION);
+  };
 
   // ----- Handle ANSWER SELECTION -----
   const handleAnswerSelect = (selectedOption: string) => {
-    if (isAnswerLocked) return;
+    if (answerState.isLocked) return;
     // Prevent further actions if answer is locked
 
-    setIsAnswerSelected(true);
-    setChosenAnswer(selectedOption);
-    console.log("Chosen Answer:", chosenAnswer);
+    setAnswerState((prevState) => ({
+      ...prevState,
+      chosenAnswer: selectedOption,
+      isSelected: true,
+    }));
+    console.log("Chosen Answer:", answerState.chosenAnswer);
+  };
+
+  // ----- Handle SELECTION STATE for Quizbuttons -----
+  const handleSelection = (option: string) => {
+    if (
+      answerState.chosenAnswer === option &&
+      !answerState.isSubmitted &&
+      !answerState.isLocked
+    ) {
+      return true;
+    } else if (!answerState.isSubmitted && answerState.isLocked) {
+      return false;
+    } else if (
+      answerState.chosenAnswer === option &&
+      answerState.isSubmitted &&
+      answerState.isLocked
+    ) {
+      return true;
+    } else {
+      return false;
+    }
   };
 
   // ----- Handle ANSWER SUBMISSION -----
   const handleAnswerSubmit = () => {
-    setIsAnswerLocked(true);
-    const isCorrect = chosenAnswer === currentQuestionData?.answer;
+    setAnswerState((prevState) => ({
+      ...prevState,
+      isSubmitted: true,
+      isLocked: true,
+    }));
+    handleAnswerCheck();
+  };
+
+  // ----- Handle ANSWER CHECK -----
+  const handleAnswerCheck = () => {
+    const isCorrect = answerState.chosenAnswer === currentQuestionData?.answer;
     if (isCorrect) {
-      // Increment score for correct answer TODO correct points according to difficulty + Add to cache
-      setScore((prevScore) => prevScore + 1);
-      console.log("Current Score:", score);
+      // Increment points for correct answer TODO correct points according to difficulty + Add to cache
+      setPointsState((prevPoints) => ({...prevPoints, score: prevPoints.score + 1, timePoints: prevPoints.timePoints + remainingTime}));
+      console.log("Current Score:", pointsState.score);
+      console.log("Timer at:", remainingTime);
     }
     // Logic for SOLO Play
     if (currQuestionIndex < quizQuestions.length - 1 && playStyle === "solo") {
@@ -103,26 +159,38 @@ const QuizLogic = () => {
         clearTimeout(answerTimeout.current);
         answerTimeout.current = null;
       }
-    } else if (currQuestionIndex < quizQuestions.length - 1 && playStyle === "group") {
+      if (readTimeout.current) {
+        clearTimeout(readTimeout.current);
+        readTimeout.current = null;
+      }
+    } else if (
+      currQuestionIndex < quizQuestions.length - 1 &&
+      playStyle === "group"
+    ) {
       // Wait for other players to answer
       return;
-    } 
+    }
   };
 
   // ----- Handle NEXT QUESTION -----
   const handleNextQuestion = () => {
+    if (answerTimeout.current) {
+        clearTimeout(answerTimeout.current);
+        answerTimeout.current = null;
+      }
     if (currQuestionIndex < quizQuestions.length - 1 && playStyle === "solo") {
       // Logic for Solo Play
-        setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
-        setReadTimer(false);
-      
-    } else if (currQuestionIndex < quizQuestions.length - 1 && playStyle === "group") {
+      setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
+      setReadTimer(false);
+    } else if (
+      currQuestionIndex < quizQuestions.length - 1 &&
+      playStyle === "group"
+    ) {
       // Logic for Group Play
       setTimeout(() => {
         setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
         setReadTimer(false);
-        // Wait for 3 seconds TODO before showing next question
-      }, 3000);
+      }, NEXT_QUESTION_DELAY);
     } else {
       setShowResult(true);
     }
@@ -133,19 +201,40 @@ const QuizLogic = () => {
     loadQuestions();
     // clear the timeout if the component unmounts or new question is loaded
     return () => {
-    if (answerTimeout.current) {
-      clearTimeout(answerTimeout.current);
-      answerTimeout.current = null;
-    }
-  };
+      if (answerTimeout.current) {
+        clearTimeout(answerTimeout.current);
+        answerTimeout.current = null;
+      }
+    };
   }, [currQuestionIndex]);
+
+  // ===== Show Countdown Timer =====
+  useEffect(() => {
+    if (readTimer && !answerState.isLocked) {
+      const interval = setInterval(() => {
+        setRemainingTime((prev) => {
+          if (prev === 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => {
+        setRemainingTime(ANSWER_TIMER_DURATION / 1000);
+        clearInterval(interval);
+      };
+    }
+  }, [readTimer, answerState.isLocked]);
 
   return (
     <>
       {showResult ? (
         // TODO: Show correct restulst Page
         <View style={styles.container}>
-          <Text>Ergebnis: {score}</Text>
+          <Text>Ergebnis: {pointsState.timePoints + pointsState.score}</Text>
+          <Text>Score: {pointsState.score}</Text>
+          <Text>Time Points: {pointsState.timePoints}</Text>
           <TouchableHighlight onPress={() => console.log("Restart Quiz")}>
             <View>
               <Text>Quiz Neu Starten</Text>
@@ -158,11 +247,12 @@ const QuizLogic = () => {
             <Text>Frage: {currQuestionIndex + 1}/10</Text>
             <Text>{currentQuestionData?.question}</Text>
           </View>
-          {/* Show only after readTimer = 0 */}
+          {/* Show only if readTimer true */}
           {readTimer && (
             <View>
               <View>
                 <Text>Timer Anzeige TODO</Text>
+                <Text>Time left: {remainingTime}s</Text>
               </View>
               <View style={styles.answerContainer}>
                 {/* show one quiz button for each option */}
@@ -171,19 +261,25 @@ const QuizLogic = () => {
                     <QuizButton
                       key={index}
                       text={option}
-                      selected={chosenAnswer === option ? true : false}
-                      checked={isAnswerLocked}
+                      selected={handleSelection(option)}
+                      checked={
+                        (answerState.isLocked &&
+                          currentQuestionData.answer === option) ||
+                        (answerState.isLocked &&
+                          answerState.isSubmitted &&
+                          answerState.chosenAnswer === option)
+                      }
                       isCorrect={currentQuestionData.answer === option}
                       onPress={() => handleAnswerSelect(option)}
                     />
                   ))}
               </View>
               <View>
-                {isAnswerLocked && playStyle === "solo" ? (
+                {answerState.isLocked && playStyle === "solo" ? (
                   <ButtonPrimary text="Next" onPress={handleNextQuestion} />
-                ) : isAnswerLocked && playStyle === "group" ? (
+                ) : answerState.isLocked && playStyle === "group" ? (
                   <ButtonPrimaryDisabled text="Waiting for other bears..." />
-                ) : isAnswerSelected ? (
+                ) : answerState.isSelected ? (
                   <ButtonPrimary text="Answer" onPress={handleAnswerSubmit} />
                 ) : (
                   <ButtonPrimaryDisabled text="Answer" />
@@ -209,7 +305,3 @@ const styles = StyleSheet.create({
 });
 
 export default QuizLogic;
-
-// IMPORTANT
-// Zeit messen bis Antwort gegeben
-// (Punkte Cachen)
