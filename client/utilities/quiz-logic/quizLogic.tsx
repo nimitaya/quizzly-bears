@@ -7,9 +7,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import quizQuestions from "@/utilities/quiz-logic/data";
 import type { QuizQuestion } from "@/utilities/quiz-logic/data";
 
-const quizLogic = () => {
-  const [currentQuestionData, setCurrentQuestionData] =
-    useState<QuizQuestion | null>(null);
+const QuizLogic = () => {
+  const [currentQuestionData, setCurrentQuestionData] = useState<QuizQuestion | null>(null);
   const [currQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [chosenAnswer, setChosenAnswer] = useState<string | null>(null);
   const [isAnswerSelected, setIsAnswerSelected] = useState(false);
@@ -17,7 +16,8 @@ const quizLogic = () => {
   const [readTimer, setReadTimer] = useState(false);
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
-  const [playStyle, setPlayStyle] = useState("solo"); // solo or group play TODO temporary
+  // solo or group play TODO temporary
+  const [playStyle, setPlayStyle] = useState("solo"); 
   // To reset the Answer Timer if user answers before timeout
   const answerTimeout = useRef<number | null>(null);
 
@@ -37,35 +37,45 @@ const quizLogic = () => {
 
   // ----- LOAD current question data -----
   const loadQuestions = async () => {
-    let questions = await fetchQuestionsFromCache();
-    if (!questions) {
-      // Fallback to dummy data if cache is empty
-      questions = quizQuestions;
-    }
-    if (currQuestionIndex < questions.length) {
-      setCurrentQuestionData(questions[currQuestionIndex]);
-      setChosenAnswer(null);
-      setIsAnswerSelected(false);
-      setIsAnswerLocked(false);
-      setTimeout(() => {
-        // Set read timer to true to show the answers
-        setReadTimer(true);
-        console.log("Answer Timer started");
-
-        answerTimeout.current = setTimeout(() => {
-          setIsAnswerLocked(true);
-          handleAnswerSubmit();
-          console.log("Answer Timer finished");
-          if (playStyle === "group") {
-            handleNextQuestion();
-          }
-          // 10 seconds to provide an answer
-        }, 5000);
-      }, 2000);
-    } else {
-      setShowResult(true);
+    try {
+      let questions = await fetchQuestionsFromCache();
+      if (!questions) {
+        // Fallback to dummy data if cache is empty
+        questions = quizQuestions;
+      }
+      if (currQuestionIndex < questions.length) {
+        setCurrentQuestionData(questions[currQuestionIndex]);
+        setChosenAnswer(null);
+        setIsAnswerSelected(false);
+        setIsAnswerLocked(false);
+        // Start the timer for the question
+        timingQuestions(); 
+      } else {
+        setShowResult(true);
+      }
+    } catch (error) {
+      console.error("Error loading questions:", error);
     }
   };
+
+  const timingQuestions = () => {
+    setTimeout(() => {
+          // Set read timer to true after 2 seconds to show the answers
+          setReadTimer(true);
+          console.log("Answer Timer started");
+          // Start - you have 10 seconds to choose an answer
+          answerTimeout.current = setTimeout(() => {
+            setIsAnswerLocked(true);
+            handleAnswerSubmit();
+            console.log("Answer Timer finished");
+            if (playStyle === "group") {
+              handleNextQuestion();
+            }
+            // 10 seconds to provide an answer
+          }, 10000);
+        }, 2000);
+        // TODO Seconds
+  }
 
   // ----- Handle ANSWER SELECTION -----
   const handleAnswerSelect = (selectedOption: string) => {
@@ -82,11 +92,10 @@ const quizLogic = () => {
     setIsAnswerLocked(true);
     const isCorrect = chosenAnswer === currentQuestionData?.answer;
     if (isCorrect) {
-      // Increment score for correct answer TODO correct points according to difficulty
+      // Increment score for correct answer TODO correct points according to difficulty + Add to cache
       setScore((prevScore) => prevScore + 1);
       console.log("Current Score:", score);
     }
-
     // Logic for SOLO Play
     if (currQuestionIndex < quizQuestions.length - 1 && playStyle === "solo") {
       // Clear the timeout if answer is submitted early
@@ -94,37 +103,41 @@ const quizLogic = () => {
         clearTimeout(answerTimeout.current);
         answerTimeout.current = null;
       }
-    } else if (playStyle === "group") {
+    } else if (currQuestionIndex < quizQuestions.length - 1 && playStyle === "group") {
       // Wait for other players to answer
-      return; 
-    } else {
-      // Save score to cache or handle end of quiz logic
-      setShowResult(true);
-    }
+      return;
+    } 
   };
 
   // ----- Handle NEXT QUESTION -----
   const handleNextQuestion = () => {
-    if (playStyle === "solo") {
+    if (currQuestionIndex < quizQuestions.length - 1 && playStyle === "solo") {
       // Logic for Solo Play
-      if (currQuestionIndex < quizQuestions.length - 1) {
         setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
         setReadTimer(false);
-      }
-    }
-    if (playStyle === "group") {
+      
+    } else if (currQuestionIndex < quizQuestions.length - 1 && playStyle === "group") {
       // Logic for Group Play
       setTimeout(() => {
         setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
         setReadTimer(false);
-        // Wait for x seconds before showing next question
-      }, 2000);
+        // Wait for 3 seconds TODO before showing next question
+      }, 3000);
+    } else {
+      setShowResult(true);
     }
   };
 
-  // ----- INITIALIZE questions loading on mount and when index changes -----
+  // ===== INITIALIZE questions loading on mount and when currQuestionIndex changes =====
   useEffect(() => {
     loadQuestions();
+    // clear the timeout if the component unmounts or new question is loaded
+    return () => {
+    if (answerTimeout.current) {
+      clearTimeout(answerTimeout.current);
+      answerTimeout.current = null;
+    }
+  };
   }, [currQuestionIndex]);
 
   return (
@@ -195,7 +208,7 @@ const styles = StyleSheet.create({
   },
 });
 
-export default quizLogic;
+export default QuizLogic;
 
 // IMPORTANT
 // Zeit messen bis Antwort gegeben
