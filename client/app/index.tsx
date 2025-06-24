@@ -1,10 +1,15 @@
-import { Text, View } from "react-native";
+
 import { useEffect } from "react";
+import { View, Text, Button } from "react-native";
+import { useRouter } from "expo-router";
+import { Colors } from "react-native/Libraries/NewAppScreen";
+import { FontSizes } from "@/styles/theme";
+import { ButtonPrimary } from "@/components/Buttons";
 
-// This can be the Loading Screen at the beginning of the app
 
-export default function Index() {
-  
+export default function WelcomeScreen() {
+  const router = useRouter();
+
   return (
     <View
       style={{
@@ -13,7 +18,14 @@ export default function Index() {
         alignItems: "center",
       }}
     >
-      <Text>Edit app/index.tsx to edit this screen.</Text>
+      <Text style={{ color: Colors.black, fontSize: FontSizes.H1Fs }}>
+        Quizzly Bears Guide
+      </Text>
+      <Text>AI-Generated Get unique quizzes created by AI!</Text>
+      <ButtonPrimary
+        text="Next"
+        onPress={() => router.replace("/PlayScreen")}
+      />
     </View>
   );
 }
