@@ -1,8 +1,11 @@
+
+import { useEffect } from "react";
 import { View, Text, Button } from "react-native";
 import { useRouter } from "expo-router";
 import { Colors } from "react-native/Libraries/NewAppScreen";
 import { FontSizes } from "@/styles/theme";
 import { ButtonPrimary } from "@/components/Buttons";
+
 
 export default function WelcomeScreen() {
   const router = useRouter();
