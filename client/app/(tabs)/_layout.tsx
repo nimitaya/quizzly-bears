@@ -1,94 +1,88 @@
 import { Tabs } from "expo-router";
-import { Image, ImageBackground, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import IconBearTab from "@/assets/icons/IconBearTab";
+import IconBearTabAktiv from "@/assets/icons/IconBearTabAktiv";
+import IconStatisticsTab from "@/assets/icons/IconStatisticsTab";
+import IconStatisticsTabAktiv from "@/assets/icons/IconStatisticsTabAktiv";
+import IconProfilTab from "@/assets/icons/IconProfilTab";
+import IconProfilTabAktiv from "@/assets/icons/IconProfilTabAktiv";
+import { Colors } from "@/styles/theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// Reusable Tab Icon Component, needs Props when used below in Layout Component
-// =================================
-// ======== Just an example ========
-// =================================
-// To style the tab icons, when focused with a background image
-const TabIcon = ({ focused, icon, title }: any) => {
-    // If focused, show the background image
-  if (focused) {
-    return (
-      <ImageBackground
-        source={"backgroundImage"} // Replace with background image source
-      >
-        <Image source={icon} tintColor="#151312" className="size-5" />
-        <Text >
-          {title}
-        </Text>
-      </ImageBackground>
-    );
-  }
+const TabIcon = ({ focused, Icon, ActiveIcon, title }: any) => (
+  <View style={{ alignItems: "center" }}>
+    {focused ? <ActiveIcon /> : <Icon />}
+  </View>
+);
 
-// If not focused, just show the icon
+const _Layout = () => {
+  const insets = useSafeAreaInsets();
   return (
-    <View >
-      <Image source={icon} tintColor="#A8B5DB" className="size-5" />
+    <View style={{ flex: 1, backgroundColor: Colors.bgGray }}>
+      <View
+        style={{ height: 4, backgroundColor: Colors.darkGreen, width: "100%" }}
+      />
+      <Tabs
+        screenOptions={{
+          tabBarShowLabel: false,
+          tabBarStyle: {
+            backgroundColor: Colors.bgGray,
+            borderTopWidth: 1,
+            borderTopColor: Colors.darkGreen,
+            elevation: 0,
+            shadowOpacity: 0,
+            height: 60 + insets.bottom,
+            paddingBottom: insets.bottom,
+            paddingTop: 16,
+          },
+        }}
+      >
+        <Tabs.Screen
+          name="StatisticsScreen"
+          options={{
+            title: "Statistics",
+            headerShown: false,
+            tabBarIcon: ({ focused }) => (
+              <TabIcon
+                focused={focused}
+                Icon={IconStatisticsTab}
+                ActiveIcon={IconStatisticsTabAktiv}
+                title="Statistics"
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="PlayScreen"
+          options={{
+            headerShown: false,
+            tabBarIcon: ({ focused }) => (
+              <TabIcon
+                focused={focused}
+                Icon={IconBearTab}
+                ActiveIcon={IconBearTabAktiv}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="ProfileScreen"
+          options={{
+            title: "Profile",
+            headerShown: false,
+            tabBarIcon: ({ focused }) => (
+              <TabIcon
+                focused={focused}
+                Icon={IconProfilTab}
+                ActiveIcon={IconProfilTabAktiv}
+                title="Profile"
+              />
+            ),
+          }}
+        />
+      </Tabs>
     </View>
   );
 };
 
-// The Layout Component itself for the Tabs 
-// =================================
-// ======== Just an example ========
-// =================================
-
-const _Layout = () => {
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarShowLabel: false,
-        tabBarItemStyle: {
-          width: "100%",
-          height: "100%",
-          justifyContent: "center",
-          alignItems: "center",
-        },
-        tabBarStyle: {
-          backgroundColor: "#0F0D23",
-          borderRadius: 50,
-          marginHorizontal: 20,
-          marginBottom: 50,
-          height: 52,
-          position: "absolute",
-          overflow: "hidden",
-          borderWidth: 1,
-          borderColor: "#0F0D23"
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="PlayScreen"
-        options={{
-          title: "Play",
-          headerShown: false,
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={"Bear"} title="Play" />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="StatisticsScreen"
-        options={{
-          title: "Statistics",
-          headerShown: false,
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={"s"} title="Statistics" />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="ProfileScreen"
-        options={{
-          title: "Profile",
-          headerShown: false,
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={"p"} title="Profile" />
-          ),
-        }}
-      />
-    </Tabs>
-  )
-}
-export default _Layout
+export default _Layout;
