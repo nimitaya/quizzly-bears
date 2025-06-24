@@ -32,9 +32,6 @@ export function QuizButton({
   if (checked) {
     borderColor = isCorrect ? Colors.primaryLimo : Colors.systemRed;
     borderWidth = 8;
-  } else if (selected) {
-    borderColor = Colors.primaryLimo;
-    borderWidth = 8;
   }
 
   return (
@@ -44,7 +41,7 @@ export function QuizButton({
           styles.button,
           {
             width: buttonWidth,
-            backgroundColor: selected ? Colors.primaryLimo : "transparent",
+            backgroundColor: selected ? Colors.disable : "transparent",
             borderColor,
             borderWidth,
           },
@@ -67,7 +64,7 @@ const styles = StyleSheet.create({
   button: {
     justifyContent: "center",
     alignItems: "center",
-    padding: 16,
+    padding: 8,
     height: 56,
     alignSelf: "center",
     borderRadius: Radius.r50,
