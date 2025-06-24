@@ -24,7 +24,7 @@ export default function WelcomeScreen() {
       <Text>AI-Generated Get unique quizzes created by AI!</Text>
       <ButtonPrimary
         text="Next"
-        onPress={() => router.replace("/PlayScreen")}
+        onPress={() => router.replace("/(tabs)/play")}
       />
     </View>
   );

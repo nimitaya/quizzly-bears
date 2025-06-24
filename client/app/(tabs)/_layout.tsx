@@ -38,7 +38,7 @@ const _Layout = () => {
         }}
       >
         <Tabs.Screen
-          name="StatisticsScreen"
+          name="statistics/index"
           options={{
             title: "Statistics",
             headerShown: false,
@@ -53,7 +53,7 @@ const _Layout = () => {
           }}
         />
         <Tabs.Screen
-          name="PlayScreen"
+          name="play/index"
           options={{
             headerShown: false,
             tabBarIcon: ({ focused }) => (
@@ -66,7 +66,7 @@ const _Layout = () => {
           }}
         />
         <Tabs.Screen
-          name="ProfileScreen"
+          name="profile/index"
           options={{
             title: "Profile",
             headerShown: false,
