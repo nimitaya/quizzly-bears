@@ -1,4 +1,5 @@
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
+import { Logo } from "@/components/Logos";
 import { Gaps } from "@/styles/theme";
 import { useRouter, router } from "expo-router";
 import { Text, View } from "react-native";
@@ -13,7 +14,7 @@ const PlayScreen = () => {
         gap: Gaps.g16,
       }}
     >
-      <Text>Home Screen</Text>
+      <Logo size="small" />
       <ButtonPrimary text="Go Play" />
       <Text>Top 10 Players</Text>
       <ButtonSecondary
