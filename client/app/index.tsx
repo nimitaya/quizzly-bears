@@ -1,11 +1,9 @@
-
 import { useEffect } from "react";
 import { View, Text, Button } from "react-native";
 import { useRouter } from "expo-router";
 import { Colors } from "@/styles/theme";
 import { FontSizes } from "@/styles/theme";
 import { ButtonPrimary } from "@/components/Buttons";
-
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -26,6 +24,6 @@ export default function WelcomeScreen() {
         text="Next"
         onPress={() => router.replace("/(tabs)/play")}
       />
-    </>
+    </View>
   );
 }
