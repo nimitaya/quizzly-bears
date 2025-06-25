@@ -1,8 +1,9 @@
-import { ButtonPrimary } from "@/components/Buttons";
+import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 import { Gaps } from "@/styles/theme";
-import { Link } from "expo-router";
+import { useRouter, router } from "expo-router";
 import { Text, View } from "react-native";
 const PlayScreen = () => {
+  const router = useRouter();
   return (
     <View
       style={{
@@ -15,6 +16,10 @@ const PlayScreen = () => {
       <Text>Home Screen</Text>
       <ButtonPrimary text="Go Play" />
       <Text>Top 10 Players</Text>
+      <ButtonSecondary
+        text="Play beginner"
+        onPress={() => router.push("/(tabs)/play/QuizScreen")}
+      />
     </View>
   );
 };
