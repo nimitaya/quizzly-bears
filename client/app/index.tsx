@@ -26,6 +26,6 @@ export default function WelcomeScreen() {
         text="Next"
         onPress={() => router.replace("/(tabs)/play")}
       />
-    </View>
+    </>
   );
 }
