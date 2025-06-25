@@ -14,6 +14,7 @@ export const generateQuizQuestion = async (
   usedQuestions: Set<string>
 ): Promise<QuizQuestion> => {
   try {
+    
     const randomSeed = Math.floor(Math.random() * 10000);
     const timestamp = Date.now();
     const questionTypes = [
@@ -25,34 +26,52 @@ export const generateQuizQuestion = async (
     const randomType =
       questionTypes[Math.floor(Math.random() * questionTypes.length)];
 
-    const prompt = `Du bist ein Generator für Bildungsquiz-Fragen. 
+      const prompt = `Du bist ein Generator für Bildungsquiz-Fragen.
 
-SPEZIFISCHE ANWEISUNGEN:
-- Erstelle EINE völlig NEUE UND EINZIGARTIGE Frage über ${category}
-- Schwierigkeitsgrad: ${difficulty}
-- Fragetyp: ${randomType}
-- Referenznummer: ${randomSeed}
-- Zeitstempel: ${timestamp}
-
-WICHTIG: Jede Frage muss ANDERS sein als alle vorherigen Fragen. Verwende verschiedene Konzepte, Zahlen, Beispiele und Ansätze.
-
-Du musst GENAU in diesem JSON-Format antworten:
-{
-  "question": "Deine völlig neue Frage hier",
-  "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-  "correctAnswer": 0,
-  "explanation": "Kurze Erklärung, warum diese Antwort richtig ist"
-}
-
-REGELN:
-- correctAnswer muss der Index (0, 1, 2, oder 3) der richtigen Antwort sein
-- Alle 4 Optionen müssen unterschiedlich und plausibel sein
-- Nur eine Option darf richtig sein
-- Generiere völlig originale und abwechslungsreiche Inhalte
-- Bei Mathematik verwende jedes Mal andere Zahlen
-- Bei Geschichte verwende verschiedene Ereignse/Personen
-- Die Erklärung sollte kurz und klar sein
-- Antworte NUR mit dem JSON, ohne zusätzlichen Text`;
+      SPEZIFISCHE ANWEISUNGEN:
+      - Erstelle EINE völlig NEUE UND EINZIGARTIGE Frage über ${category}
+      - Schwierigkeitsgrad: ${difficulty}
+      - Fragetyp: ${randomType}
+      - Referenznummer: ${randomSeed}
+      - Zeitstempel: ${timestamp}
+      
+      WICHTIG: Jede Frage muss ANDERS sein als alle vorherigen Fragen. Verwende verschiedene Konzepte, Zahlen, Beispiele und Ansätze.
+      
+      Du musst GENAU in diesem JSON-Format antworten:
+      {
+        "question": {
+          "de": "Deine völlig neue Frage hier auf Deutsch",
+          "en": "Your completely new question here in English"
+        },
+        "optionA": {
+          "isCorrect": true,
+          "de": "Option A auf Deutsch",
+          "en": "Option A in English"
+        },
+        "optionB": {
+          "isCorrect": false,
+          "de": "Option B auf Deutsch",
+          "en": "Option B in English"
+        },
+        "optionC": {
+          "isCorrect": false,
+          "de": "Option C auf Deutsch",
+          "en": "Option C in English"
+        },
+        "optionD": {
+          "isCorrect": false,
+          "de": "Option D auf Deutsch",
+          "en": "Option D in English"
+        }
+      }
+      
+      REGELN:
+      - Nur eine Option darf "isCorrect: true" sein
+      - Alle Optionen müssen unterschiedlich und plausibel sein
+      - Generiere völlig originale und abwechslungsreiche Inhalte
+      - Bei Mathematik verwende jedes Mal andere Zahlen
+      - Bei Geschichte verwende verschiedene Ereignisse/Personen
+      - Antworte NUR mit dem JSON, ohne zusätzlichen Text`;
 
     const response = await axios.post(
       GROQ_API_URL,
@@ -82,10 +101,12 @@ REGELN:
     responseContent = responseContent.replace(/```json\n?/g, "");
     responseContent = responseContent.replace(/```\n?/g, "");
     responseContent = responseContent.trim();
-
+    console.log("API Response:", response.data);
     const questionData = JSON.parse(responseContent);
 
-    const questionKey = questionData.question?.substring(0, 50).toLowerCase();
+    console.log("Parsed Question Data:", questionData); // Log the parsed response for debugging
+
+    const questionKey = questionData.question.de.substring(0, 50).toLowerCase(); // Access the 'de' property explicitly
     if (usedQuestions.has(questionKey)) {
       console.log("Doppelte Frage erkannt, generiere neue...");
       return await generateQuizQuestion(category, difficulty, usedQuestions);
@@ -93,18 +114,27 @@ REGELN:
 
     if (
       !questionData.question ||
-      !questionData.options ||
-      !Array.isArray(questionData.options) ||
-      questionData.options.length !== 4
+      typeof questionData.question.de !== "string" || // Ensure 'de' is a string
+      typeof questionData.question.en !== "string" || // Ensure 'en' is a string
+      !questionData.optionA ||
+      !questionData.optionB ||
+      !questionData.optionC ||
+      !questionData.optionD ||
+      typeof questionData.optionA.de !== "string" || // Ensure options have 'de' strings
+      typeof questionData.optionB.de !== "string" ||
+      typeof questionData.optionC.de !== "string" ||
+      typeof questionData.optionD.de !== "string"
     ) {
       throw new Error("Ungültiges Antwortformat");
     }
 
     return {
       question: questionData.question,
-      options: questionData.options,
+      optionA: questionData.optionA,
+      optionB: questionData.optionB,
+      optionC: questionData.optionC,
+      optionD: questionData.optionD,
       correctAnswer: questionData.correctAnswer || 0,
-      explanation: questionData.explanation || "Keine Erklärung verfügbar",
     };
   } catch (error) {
     console.error("Fehler beim Generieren der Frage:", error);
@@ -113,3 +143,4 @@ REGELN:
     );
   }
 };
+
