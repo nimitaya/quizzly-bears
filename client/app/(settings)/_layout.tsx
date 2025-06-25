@@ -6,7 +6,6 @@ const _layout = () => {
       <Stack.Screen name="FaqScreen" />
       <Stack.Screen name="FriendsScreen" />
       <Stack.Screen name="InvitationsScreen" />
-      <Stack.Screen name="Clerk" />
     </Stack>
   );
 };
