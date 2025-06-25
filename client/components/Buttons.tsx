@@ -6,7 +6,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { Colors, Radius, FontSizes } from "../styles/theme";
+import { Colors, Radius, FontSizes, Gaps } from "../styles/theme";
 import IconSearchFriend from "@/assets/icons/IconSearchFriend";
 
 export function ButtonPrimary({
@@ -41,14 +41,16 @@ export function ButtonPrimaryDisabled({
 }
 export function ButtonSecondary({
   text,
+  icon,
   ...props
-}: PressableProps & { text: string }) {
+}: PressableProps & { text: string; icon?: React.ReactNode }) {
   const { width } = useWindowDimensions();
   const buttonWidth = Math.min(348, width - 32);
 
   return (
     <Pressable {...props}>
       <View style={[styles.buttonSecondary, { width: buttonWidth }]}>
+        {icon && <View style={{ marginRight: 8 }}>{icon}</View>}
         <Text style={styles.textSecondaryButton}>{text}</Text>
       </View>
     </Pressable>
@@ -99,9 +101,7 @@ export function ButtonSmallSecondary({
     </Pressable>
   );
 }
-export function ButtonSearchFriend({
-  ...props
-}: PressableProps) {
+export function ButtonSearchFriend({ ...props }: PressableProps) {
   return (
     <Pressable {...props}>
       <View style={styles.buttonSearchFriend}>
@@ -140,10 +140,13 @@ const styles = StyleSheet.create({
   },
 
   buttonSecondary: {
+    flexDirection: "row",
     backgroundColor: Colors.white,
     justifyContent: "center",
     alignItems: "center",
-    padding: 16,
+    gap: Gaps.g8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     height: 56,
     alignSelf: "center",
     borderRadius: Radius.r50,

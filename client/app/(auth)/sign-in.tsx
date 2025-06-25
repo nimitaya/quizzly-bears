@@ -2,6 +2,8 @@ import { useSignIn } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import React from "react";
+import { Button, Alert } from "react-native";
+import { useOAuth } from "@clerk/clerk-expo";
 
 export default function Page() {
   const { signIn, setActive, isLoaded } = useSignIn();
@@ -38,6 +40,21 @@ export default function Page() {
     }
   };
 
+  const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
+
+  const handlePress = async () => {
+    try {
+      const { createdSessionId, setActive } = await startOAuthFlow();
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
+        Alert.alert("Success", "Signed in with Google!");
+      }
+    } catch (err: any) {
+      console.error("Google OAuth error:", err);
+      Alert.alert("Error", err.message || "Google sign-in failed");
+    }
+  };
+
   return (
     <View>
       <Text>Sign in</Text>
@@ -62,6 +79,7 @@ export default function Page() {
           <Text>Sign up</Text>
         </Link>
       </View>
+      <Button title="Sign in with Google" onPress={handlePress} />;
     </View>
   );
 }
