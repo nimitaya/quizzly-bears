@@ -9,7 +9,11 @@ export default function AuthRoutesLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerLeft: () => null }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
       <Stack.Screen name="sign-up" />
       <Stack.Screen name="sign-in" />
       <Stack.Screen name="LogInScreen" />
