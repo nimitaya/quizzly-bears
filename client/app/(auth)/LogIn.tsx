@@ -1,42 +1,46 @@
 import { useSignIn } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
-import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  StyleSheet,
+  Alert,
+} from "react-native";
 import React from "react";
-import { Button, Alert } from "react-native";
 import { useOAuth } from "@clerk/clerk-expo";
+import { Colors } from "@/styles/theme";
 
-export default function Page() {
+export default function LogIn() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const router = useRouter();
 
   const [emailAddress, setEmailAddress] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
 
   // Handle the submission of the sign-in form
   const onSignInPress = async () => {
     if (!isLoaded) return;
+    setLoading(true);
 
-    // Start the sign-in process using the email and password provided
     try {
       const signInAttempt = await signIn.create({
         identifier: emailAddress,
         password,
       });
 
-      // If sign-in process is complete, set the created session as active
-      // and redirect the user
       if (signInAttempt.status === "complete") {
         await setActive({ session: signInAttempt.createdSessionId });
-        router.replace("/");
+        router.replace("/(tabs)/play");
       } else {
-        // If the status isn't complete, check why. User might need to
-        // complete further steps.
         console.error(JSON.stringify(signInAttempt, null, 2));
       }
     } catch (err) {
-      // See https://clerk.com/docs/custom-flows/error-handling
-      // for more info on error handling
       console.error(JSON.stringify(err, null, 2));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -48,6 +52,7 @@ export default function Page() {
       if (createdSessionId && setActive) {
         await setActive({ session: createdSessionId });
         Alert.alert("Success", "Signed in with Google!");
+        router.replace("/(tabs)/play");
       }
     } catch (err: any) {
       console.error("Google OAuth error:", err);
@@ -56,30 +61,92 @@ export default function Page() {
   };
 
   return (
-    <View>
-      <Text>Sign in</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Sign in</Text>
       <TextInput
+        style={styles.input}
         autoCapitalize="none"
         value={emailAddress}
         placeholder="Enter email"
-        onChangeText={(emailAddress) => setEmailAddress(emailAddress)}
+        onChangeText={setEmailAddress}
       />
       <TextInput
+        style={styles.input}
         value={password}
         placeholder="Enter password"
         secureTextEntry={true}
-        onChangeText={(password) => setPassword(password)}
+        onChangeText={setPassword}
       />
-      <TouchableOpacity onPress={onSignInPress}>
-        <Text>Continue</Text>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={onSignInPress}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>
+          {loading ? "Signing in..." : "Continue"}
+        </Text>
       </TouchableOpacity>
-      <View style={{ display: "flex", flexDirection: "row", gap: 3 }}>
+
+      <View style={styles.linkContainer}>
         <Text>Don't have an account?</Text>
-        <Link href="/SignUp">
-          <Text>Sign up</Text>
+        <Link href="/(auth)/SignUp">
+          <Text style={styles.link}>Sign up</Text>
         </Link>
       </View>
-      <Button title="Sign in with Google" onPress={handlePress} />;
+
+      <TouchableOpacity
+        style={[styles.button, styles.googleButton]}
+        onPress={handlePress}
+      >
+        <Text style={styles.buttonText}>Sign in with Google</Text>
+      </TouchableOpacity>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    justifyContent: "center",
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+  },
+  input: {
+    height: 50,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    marginBottom: 15,
+    paddingHorizontal: 10,
+  },
+  button: {
+    backgroundColor: Colors.primaryLimo || "#007BFF",
+    height: 50,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    marginVertical: 10,
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  googleButton: {
+    marginTop: 15,
+    backgroundColor: "#4285F4",
+  },
+  linkContainer: {
+    flexDirection: "row",
+    gap: 5,
+    justifyContent: "center",
+    marginVertical: 10,
+  },
+  link: {
+    color: Colors.primaryLimo || "#007BFF",
+  },
+});

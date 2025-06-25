@@ -1,8 +1,11 @@
-import { View, Text, Image } from "react-native";
+import { View, StyleSheet, Image } from "react-native";
+import { Logo } from "@/components/Logos";
+import { Gaps } from "@/styles/theme";
+
 const Loading = () => {
   return (
-    <View>
-      <Text>Loading...</Text>
+    <View style={styles.container}>
+      <Logo size="big" />
       <Image
         source={{
           uri: "https://media.tenor.com/On7kvXhzml4AAAAj/loading-gif.gif",
@@ -14,3 +17,12 @@ const Loading = () => {
   );
 };
 export default Loading;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Gaps.g40,
+  },
+});
