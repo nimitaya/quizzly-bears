@@ -1,32 +1,83 @@
-import { useOAuth } from "@clerk/clerk-expo";
+import { useOAuth, useAuth } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { ButtonSecondary } from "@/components/Buttons";
-import { Alert } from "react-native";
+import { Alert, Platform, ActivityIndicator } from "react-native";
 import SimpleLineIcons from "@expo/vector-icons/SimpleLineIcons";
+import { useState, useEffect } from "react";
+import * as WebBrowser from "expo-web-browser";
+import { Colors } from "@/styles/theme";
 
-const FacebookInButton = () => {
+if (Platform.OS === "web") {
+  WebBrowser.maybeCompleteAuthSession();
+}
+
+const FacebookSignInButton = () => {
   const router = useRouter();
-  const { startOAuthFlow } = useOAuth({ strategy: "oauth_facebook" });
+  const { isLoaded: authLoaded } = useAuth();
+  const { startOAuthFlow } = useOAuth({
+    strategy: "oauth_google",
+    redirectUrl: Platform.OS === "web" ? window.location.origin : undefined,
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticating && Platform.OS !== "web") {
+      router.replace("../Loading");
+    }
+  }, [isAuthenticating]);
 
   const FacebookForm = async () => {
     try {
+      setIsLoading(true);
+      setIsAuthenticating(true);
+
       const { createdSessionId, setActive } = await startOAuthFlow();
+
       if (createdSessionId && setActive) {
         await setActive({ session: createdSessionId });
-        Alert.alert("Success", "Signed in with Facebook!");
+        router.replace("/(tabs)/play");
+      } else {
+        if (Platform.OS !== "web") {
+          router.back();
+        }
       }
     } catch (err: any) {
       console.error("Facebook OAuth error:", err);
+
+      if (Platform.OS !== "web") {
+        router.back();
+      }
+
       Alert.alert("Error", err.message || "Facebook sign-in failed");
+    } finally {
+      setIsLoading(false);
+      setIsAuthenticating(false);
     }
   };
-
+  if (!authLoaded) return null;
   return (
     <ButtonSecondary
-      text="Log in with Facebook"
-      icon={<SimpleLineIcons name="social-facebook" size={24} color="black" />}
+      text={
+        isLoading && Platform.OS === "web"
+          ? "Signing in..."
+          : "Log in with Facebook"
+      }
+      icon={
+        isLoading && Platform.OS === "web" ? (
+          <ActivityIndicator size="small" color={Colors.black} />
+        ) : (
+          <SimpleLineIcons
+            name="social-facebook"
+            size={24}
+            color={Colors.black}
+          />
+        )
+      }
       onPress={FacebookForm}
+      disabled={isLoading}
     />
   );
 };
-export default FacebookInButton;
+
+export default FacebookSignInButton;

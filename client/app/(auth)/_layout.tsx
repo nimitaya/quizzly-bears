@@ -14,8 +14,8 @@ export default function AuthRoutesLayout() {
         headerShown: false,
       }}
     >
-      <Stack.Screen name="sign-up" />
-      <Stack.Screen name="sign-in" />
+      <Stack.Screen name="SignUp" />
+      <Stack.Screen name="LogIn" />
       <Stack.Screen name="LogInScreen" />
     </Stack>
   );

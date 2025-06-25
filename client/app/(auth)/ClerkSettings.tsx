@@ -1,9 +1,9 @@
 import { SignedIn, SignedOut, useUser } from "@clerk/clerk-expo";
 import { Link } from "expo-router";
 import { Text, View } from "react-native";
-import { SignOutButton } from "@/app/(auth)/SignOutButton";
+import SignOutButton from "@/app/(auth)/SignOutButton";
 
-export default function ClerlSettings() {
+export default function ClerkSettings() {
   const { user } = useUser();
 
   return (
@@ -13,10 +13,10 @@ export default function ClerlSettings() {
         <SignOutButton />
       </SignedIn>
       <SignedOut>
-        <Link href="/(auth)/sign-in">
+        <Link href="/(auth)/LogIn">
           <Text>Sign in</Text>
         </Link>
-        <Link href="/(auth)/sign-up">
+        <Link href="/(auth)/SignUp">
           <Text>Sign up</Text>
         </Link>
       </SignedOut>
