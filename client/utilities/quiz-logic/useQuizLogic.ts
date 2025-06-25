@@ -4,12 +4,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import quizQuestions from "@/utilities/quiz-logic/data";
 import type { QuizQuestion } from "@/utilities/quiz-logic/data";
 
-  // ========================================================== TYPES ==========================================================
+// ========================================================== TYPES ==========================================================
 type AnswerState = {
-    chosenAnswer: string | null;
-    isSelected: boolean;
-    isSubmitted: boolean;
-    isLocked: boolean;
+  chosenAnswer: string | null;
+  isSelected: boolean;
+  isSubmitted: boolean;
+  isLocked: boolean;
 };
 type PointsState = {
   score: number;
@@ -51,7 +51,7 @@ export function useQuizLogic() {
   const [showResult, setShowResult] = useState<boolean>(false);
 
   // solo or group play TODO temporary
-  const [playStyle, setPlayStyle] = useState<PlayStyle>("group");
+  const [playStyle, setPlayStyle] = useState<PlayStyle>("solo");
 
   // ========================================================== FUNCTIONS ==========================================================
   // ===== PLACEHOLDER FOR FETCHING FROM CACHE TODO =====
@@ -129,7 +129,7 @@ export function useQuizLogic() {
   };
 
   // ----- Handle SELECTION STATE for Quizbuttons -----
-  const handleSelection = (option: string):boolean => {
+  const handleSelection = (option: string): boolean => {
     if (
       answerState.chosenAnswer === option &&
       !answerState.isSubmitted &&
@@ -181,7 +181,7 @@ export function useQuizLogic() {
         clearTimeout(readTimeout.current);
         readTimeout.current = null;
       }
-    } 
+    }
   };
 
   // ----- Handle NEXT QUESTION -----
@@ -206,11 +206,11 @@ export function useQuizLogic() {
     } else {
       setShowResult(true);
       setAnswerState(() => ({
-          chosenAnswer: null,
-          isSelected: false,
-          isSubmitted: false,
-          isLocked: false,
-        }));
+        chosenAnswer: null,
+        isSelected: false,
+        isSubmitted: false,
+        isLocked: false,
+      }));
     }
   };
 
