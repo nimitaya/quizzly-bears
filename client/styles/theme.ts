@@ -17,6 +17,8 @@ export const Gaps = {
   g24: 24,
   g32: 32,
   g40: 40,
+  g48: 48,
+  g80: 80,
 };
 
 export const Radius = {

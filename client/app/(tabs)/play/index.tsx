@@ -1,7 +1,7 @@
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
 import { Gaps } from "@/styles/theme";
-import { useRouter, router } from "expo-router";
+import { useRouter } from "expo-router";
 import { Text, View } from "react-native";
 const PlayScreen = () => {
   const router = useRouter();
