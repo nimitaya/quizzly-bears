@@ -10,21 +10,43 @@ import {
   SafeAreaView,
 } from "react-native";
 import { generateQuizQuestion } from "@/utilities/api/quizApi";
+import { Difficulty, Category } from "@/utilities/types";
 
 export interface QuizQuestion {
-  question: string;
-  options: string[];
-  correctAnswer: number;
-  explanation?: string;
+  question: {
+    de: string;
+    en: string;
+  };
+  optionA: {
+    isCorrect: boolean;
+    de: string;
+    en: string;
+  };
+  optionB: {
+    isCorrect: boolean;
+    de: string;
+    en: string;
+  };
+  optionC: {
+    isCorrect: boolean;
+    de: string;
+    en: string;
+  };
+  optionD: {
+    isCorrect: boolean;
+    de: string;
+    en: string;
+  };
+  correctAnswer?: number;
 }
 
 interface QuizComponentProps {
-  difficulty?: string;
-  category?: string;
+  difficulty?: Difficulty;
+  category?: Category;
 }
 
 const QuizComponent: React.FC<QuizComponentProps> = ({
-  difficulty = "leicht",
+  difficulty = "easy",
   category = "Sports",
 }) => {
   const [currentQuestion, setCurrentQuestion] = useState<QuizQuestion | null>(
@@ -55,16 +77,41 @@ const QuizComponent: React.FC<QuizComponentProps> = ({
     setShowResult(false);
 
     try {
-      const question = await generateQuizQuestion(
+      const rawQuestion = await generateQuizQuestion(
         category,
         difficulty,
         usedQuestions
       );
-      setCurrentQuestion(question);
+      console.log("Raw Question:", rawQuestion); // API Antwort in der Konsole ausgeben
 
-      // Gesamtzahl der beantworteten Fragen und Punktzahl beim Laden einer neuen Frage erhöhen
+      // Umwandlung der Frage in das QuizQuestion Format
+      const transformedQuestion: QuizQuestion = {
+        question: rawQuestion.question,
+        optionA: rawQuestion.optionA,
+        optionB: rawQuestion.optionB,
+        optionC: rawQuestion.optionC,
+        optionD: rawQuestion.optionD,
+        correctAnswer: ["optionA", "optionB", "optionC", "optionD"].findIndex(
+          (option) => {
+            const value = rawQuestion[option as keyof typeof rawQuestion];
+            return (
+              typeof value === "object" &&
+              "isCorrect" in value &&
+              value.isCorrect
+            );
+          }
+        ),
+      };
+
+      setCurrentQuestion(transformedQuestion);
+      setUsedQuestions(
+        (prev) =>
+          new Set([
+            ...prev,
+            rawQuestion.question.de.substring(0, 50).toLowerCase(),
+          ])
+      );
       setTotalQuestions((prev) => prev + 1);
-      setScore((prev) => prev + 1);
     } catch (error) {
       Alert.alert(
         "Fehler",
@@ -86,14 +133,26 @@ const QuizComponent: React.FC<QuizComponentProps> = ({
   const handleAnswerSelect = (answerIndex: number) => {
     if (showResult) return;
 
-    const selectedOption = currentQuestion?.options[answerIndex];
+    const selectedOption = currentQuestion
+      ? currentQuestion[
+          ["optionA", "optionB", "optionC", "optionD"][
+            answerIndex
+          ] as keyof QuizQuestion
+        ]
+      : undefined;
     console.log(
-      `Ausgewählte Option: ${answerIndex}, Inhalt: ${selectedOption}`
+      `Ausgewählte Option: ${answerIndex}, Inhalt: ${
+        typeof selectedOption === "object" && selectedOption.de
+          ? selectedOption.de
+          : "Keine Option verfügbar"
+      }`
     );
 
     // Füge die ausgewählte Option dem Array hinzu
     if (selectedOption) {
-      setSelectedAnswers((prev) => [...prev, selectedOption]);
+      if (typeof selectedOption === "string") {
+        setSelectedAnswers((prev) => [...prev, selectedOption]);
+      }
     }
 
     setSelectedAnswer(answerIndex);
@@ -140,76 +199,65 @@ const QuizComponent: React.FC<QuizComponentProps> = ({
         {/* Fragenanzeige */}
         {currentQuestion && !loading && (
           <View style={styles.questionContainer}>
-            <Text style={styles.questionText}>{currentQuestion.question}</Text>
-
+            <Text style={styles.questionText}>
+              {currentQuestion.question.de}
+            </Text>
             {/* Antwortoptionen */}
             <View style={styles.optionsContainer}>
-              {currentQuestion.options.map((option, index) => {
-                let buttonStyle = styles.optionButton;
-                let textStyle = styles.optionText;
+              {["optionA", "optionB", "optionC", "optionD"].map(
+                (optionKey, index) => {
+                  const option =
+                    currentQuestion[optionKey as keyof QuizQuestion];
+                  let buttonStyle = styles.optionButton;
+                  let textStyle = styles.optionText;
 
-                if (showResult) {
-                  if (index === currentQuestion.correctAnswer) {
+                  if (showResult) {
+                    if (index === currentQuestion.correctAnswer) {
+                      buttonStyle = StyleSheet.flatten({
+                        ...styles.optionButton,
+                        ...styles.correctOption,
+                      });
+                      textStyle = StyleSheet.flatten([
+                        styles.optionText,
+                        styles.correctOptionText,
+                      ]);
+                    } else if (index === selectedAnswer) {
+                      buttonStyle = StyleSheet.flatten({
+                        ...styles.optionButton,
+                        ...styles.incorrectOption,
+                      });
+                      textStyle = StyleSheet.flatten([
+                        styles.optionText,
+                        styles.incorrectOptionText,
+                      ]);
+                    }
+                  } else if (selectedAnswer === index) {
                     buttonStyle = StyleSheet.flatten({
                       ...styles.optionButton,
-                      ...styles.correctOption,
+                      ...styles.selectedOption,
                     });
-                    textStyle = StyleSheet.flatten([
-                      styles.optionText,
-                      styles.correctOptionText,
-                    ]);
-                  } else if (index === selectedAnswer) {
-                    buttonStyle = StyleSheet.flatten({
-                      ...styles.optionButton,
-                      ...styles.incorrectOption,
-                    });
-                    textStyle = StyleSheet.flatten([
-                      styles.optionText,
-                      styles.incorrectOptionText,
-                    ]);
                   }
-                } else if (selectedAnswer === index) {
-                  buttonStyle = StyleSheet.flatten({
-                    ...styles.optionButton,
-                    ...styles.selectedOption,
-                  });
+
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      style={buttonStyle}
+                      onPress={() => handleAnswerSelect(index)}
+                      disabled={showResult}
+                    >
+                      <Text style={styles.optionNumber}>{index + 1}</Text>
+                      <Text style={textStyle}>
+                        {typeof option === "object" &&
+                        typeof option.de === "string" &&
+                        option.de.trim() !== ""
+                          ? option.de
+                          : "Keine Option verfügbar"}
+                      </Text>
+                    </TouchableOpacity>
+                  );
                 }
-
-                return (
-                  <TouchableOpacity
-                    key={index}
-                    style={buttonStyle}
-                    onPress={() => handleAnswerSelect(index)}
-                    disabled={showResult}
-                  >
-                    <Text style={styles.optionNumber}>{index + 1}</Text>
-                    <Text style={textStyle}>{option}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+              )}
             </View>
-
-            {/* Ergebnisanzeige */}
-            {showResult && (
-              <View style={styles.resultContainer}>
-                <Text
-                  style={
-                    selectedAnswer === currentQuestion.correctAnswer
-                      ? styles.correctText
-                      : styles.incorrectText
-                  }
-                >
-                  {selectedAnswer === currentQuestion.correctAnswer
-                    ? "Richtig! 🎉"
-                    : "Falsch 😔"}
-                </Text>
-                {currentQuestion.explanation && (
-                  <Text style={styles.explanationText}>
-                    {currentQuestion.explanation}
-                  </Text>
-                )}
-              </View>
-            )}
           </View>
         )}
 
