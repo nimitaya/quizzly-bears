@@ -14,3 +14,6 @@ import type { QuizQuestion } from "@/utilities/quiz-logic/data";
       return null;
     }
   };
+
+// TODO create reusable Hook for cache interaction
+// implement in Quiz- and Points-Logik and more
