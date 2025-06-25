@@ -8,13 +8,12 @@ const QuizLogic = () => {
   const {
     currentQuestionData,
     currQuestionIndex,
+    gameState,
     answerState,
     readTimer,
     remainingTime,
     pointsState,
     showResult,
-    playStyle,
-    setPlayStyle,
     handleAnswerSelect,
     handleSelection,
     handleAnswerSubmit,
@@ -69,9 +68,9 @@ const QuizLogic = () => {
                   ))}
               </View>
               <View>
-                {answerState.isLocked && playStyle === "solo" ? (
+                {answerState.isLocked && gameState.playStyle === "solo" ? (
                   <ButtonPrimary text="Next" onPress={handleNextQuestion} />
-                ) : answerState.isLocked && playStyle === "group" ? (
+                ) : answerState.isLocked && gameState.playStyle === "group" ? (
                   <ButtonPrimaryDisabled text="Waiting for other bears..." />
                 ) : answerState.isSelected ? (
                   <ButtonPrimary text="Answer" onPress={handleAnswerSubmit} />
