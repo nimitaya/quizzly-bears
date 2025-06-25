@@ -121,12 +121,12 @@ export default function SignUpScreen() {
         <Text>Already have an account?</Text>
         <Link href="/(auth)/LogInScreen" asChild>
           <TouchableOpacity>
-            <Text style={styles.link}>Sign in</Text>
+            <Text style={styles.link}>Log in</Text>
           </TouchableOpacity>
         </Link>
       </View>
       <TouchableOpacity onPress={() => router.replace("/(tabs)/play")}>
-        <Text>Skip Signup </Text>
+        <Text>Skip for now </Text>
       </TouchableOpacity>
     </View>
   );
