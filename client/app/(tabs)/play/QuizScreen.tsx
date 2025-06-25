@@ -1,4 +1,3 @@
-
 import { View, Text, TouchableHighlight, StyleSheet } from "react-native";
 import { QuizButton } from "@/components/QuizButtons";
 import { ButtonPrimary, ButtonPrimaryDisabled } from "@/components/Buttons";
@@ -38,7 +37,7 @@ const QuizLogic = () => {
       ) : (
         <View style={styles.container}>
           <View>
-            <Text>Frage: {currQuestionIndex + 1}/10</Text>
+            <Text>{currQuestionIndex + 1}/10</Text>
             <Text>{currentQuestionData?.question}</Text>
           </View>
           {/* Show only if readTimer true */}
