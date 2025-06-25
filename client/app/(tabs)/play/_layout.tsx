@@ -4,7 +4,7 @@ export default function PlayLayout() {
   return (
     <Stack
       screenOptions={{
-        headerShown: false, // или true, если нужен хедер
+        headerShown: false,
       }}
     />
   );
