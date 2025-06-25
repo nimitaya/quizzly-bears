@@ -169,12 +169,8 @@ const styles = StyleSheet.create({
   answerSection: {
     flexGrow: 1,
   },
-  buttonsWrapper: {
-    marginTop: Gaps.g24,
-  },
-  answerContainer: {
-    gap: Gaps.g8,
-  },
+  buttonsWrapper: {},
+  answerContainer: {},
   questionAnswerContainer: {
     gap: Gaps.g16,
   },
