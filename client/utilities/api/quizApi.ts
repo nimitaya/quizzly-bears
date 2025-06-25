@@ -36,6 +36,8 @@ export const generateQuizQuestion = async (
       - Zeitstempel: ${timestamp}
       
       WICHTIG: Jede Frage muss ANDERS sein als alle vorherigen Fragen. Verwende verschiedene Konzepte, Zahlen, Beispiele und Ansätze.
+      - Die Frage darf maximal 30 Zeichen lang sein.
+      - Die Antwortoptionen müssen klar und eindeutig sein. Weniger als 20 Zeichen pro Option.
       
       Du musst GENAU in diesem JSON-Format antworten:
       {
