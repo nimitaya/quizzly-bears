@@ -75,7 +75,7 @@ export default function Page() {
       </TouchableOpacity>
       <View style={{ display: "flex", flexDirection: "row", gap: 3 }}>
         <Text>Don't have an account?</Text>
-        <Link href="/sign-up">
+        <Link href="/SignUp">
           <Text>Sign up</Text>
         </Link>
       </View>

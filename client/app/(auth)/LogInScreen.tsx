@@ -9,11 +9,11 @@ import { useRouter } from "expo-router";
 const LogInScreen = () => {
   const router = useRouter();
   const EmailLogIn = () => {
-    router.replace("/(auth)/sign-in");
+    router.replace("/(auth)/LogIn");
   };
 
   const SignUp = () => {
-    router.replace("/(auth)/sign-up");
+    router.replace("/(auth)/SignUp");
   };
 
   const Skip = () => {
