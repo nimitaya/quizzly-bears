@@ -1,4 +1,3 @@
-
 import { ScrollView, View, Text, StyleSheet } from "react-native";
 import { QuizButton } from "@/components/QuizButtons";
 import {
