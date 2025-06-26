@@ -5,20 +5,35 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 type CustomAlertProps = {
   visible: boolean;
   onClose: () => void;
+  title?: string | null;
+  message: string;
+  cancelText?: string;
+  confirmText?: string;
+  onConfirm?: () => void;
 };
 
-const CustomAlert: React.FC<CustomAlertProps> = ({ visible, onClose }) => (
+const CustomAlert: React.FC<CustomAlertProps> = ({
+  visible,
+  onClose,
+  title,
+  message,
+  cancelText = "Cancel",
+  confirmText = "OK",
+  onConfirm = onClose,
+}) => (
   <Modal transparent visible={visible} animationType="fade">
     <View style={styles.overlay}>
       <View style={styles.alertBox}>
-        <Text style={styles.title}>Alert Title</Text>
-        <Text style={styles.message}>My Alert Msg</Text>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.message}>{message}</Text>
         <View style={styles.buttonRow}>
-          <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.okBtn} onPress={onClose}>
-            <Text style={styles.okText}>OK</Text>
+          {cancelText !== null && (
+            <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
+              <Text style={styles.cancelText}>{cancelText}</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.okBtn} onPress={onConfirm}>
+            <Text style={styles.okText}>{confirmText}</Text>
           </TouchableOpacity>
         </View>
       </View>
