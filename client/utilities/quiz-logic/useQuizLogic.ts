@@ -6,7 +6,7 @@ import {
   clearCachePoints,
   sendPointsToDatabase,
   checkCache,
-} from "@/utilities/quiz-logic/points";
+} from "@/utilities/quiz-logic/pointsUtils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 // Dummy data: TODO
 import quizQuestions from "@/utilities/quiz-logic/data";
