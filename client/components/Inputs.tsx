@@ -57,6 +57,7 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingHorizontal: 32,
     fontSize: FontSizes.TextLargeFs,
+    textAlign: "center",
   },
   containerSearchFriend: {
     width: "100%",
@@ -79,6 +80,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.primaryLimo,
     flex: 1,
     paddingHorizontal: 32,
+
     fontSize: FontSizes.TextLargeFs,
   },
 });

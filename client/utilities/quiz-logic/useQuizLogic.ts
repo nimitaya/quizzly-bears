@@ -18,6 +18,7 @@ type GameState = {
   category: string;
   playStyle: PlayStyle;
 };
+
 type AnswerState = {
   chosenAnswer: string | null;
   isSelected: boolean;
