@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Difficulty,
   calculatePoints,
@@ -11,6 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 // Dummy data: TODO
 import quizQuestions from "@/utilities/quiz-logic/data";
 import type { QuizQuestion } from "@/utilities/quiz-logic/data";
+import { loadCacheData, PlayStyle } from "./cacheUtils";
 
 // ========================================================== TYPES ==========================================================
 type GameState = {
@@ -33,11 +34,13 @@ type PointsState = {
   chosenCorrect: number;
   totalAnswers: number;
 };
-// solo or group play TODO temporary
-type PlayStyle = "solo" | "duel" | "group";
 
 // ========================================================== START OF HOOK ==========================================================
 export function useQuizLogic() {
+  const CACHE_KEY = {
+    questions: "aiQuestions",
+    quizSettings: "quizSpecs",
+  }
   // Timer duration/ delays TODO
   const READ_TIMER_DURATION = 2000;
   const ANSWER_TIMER_DURATION = 5000;
@@ -53,9 +56,8 @@ export function useQuizLogic() {
   const [currQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   // TODO setGameState
   const [gameState, setGameState] = useState<GameState>({
-    difficulty: "easy",
-    category: "jahreszeiten",
-    // solo or group play TODO temporary
+    difficulty: "medium",
+    category: "",
     playStyle: "solo",
   });
   const [answerState, setAnswerState] = useState<AnswerState>({
@@ -79,25 +81,26 @@ export function useQuizLogic() {
   const [showResult, setShowResult] = useState<boolean>(false);
 
   // ========================================================== FUNCTIONS ==========================================================
-  // ===== FETCHING Questions FROM CACHE TODO =====
-  const fetchQuestionsFromCache = async (): Promise<QuizQuestion[] | null> => {
+  // ===== FETCHING FROM CACHE TODO =====
+  const fetchFromCache = async (key: string) => {
     try {
-      const cached = await AsyncStorage.getItem("quizData");
-      if (cached) {
-        return JSON.parse(cached);
+      const cachedData = await loadCacheData(key);
+      if (cachedData) {
+        return cachedData
       }
       return null;
     } catch (error) {
-      console.error("Error fetching questions from cache:", error);
+      console.error(`Error fetching data with key ${key} from cache:`, error);
       return null;
     }
   };
 
+  // ===== Quiz functionality =====
   // ----- LOAD current question data -----
   const loadQuestions = async (): Promise<void> => {
     try {
       // fetch questions from cache
-      let questions = await fetchQuestionsFromCache();
+      let questions = await fetchFromCache(CACHE_KEY.questions);
       if (!questions) {
         // Fallback to dummy data if cache is empty
         questions = quizQuestions;
@@ -138,7 +141,7 @@ export function useQuizLogic() {
       answerTimeout.current = setTimeout(() => {
         setAnswerState((prevState) => ({ ...prevState, isLocked: true }));
         handleAnswerCheck();
-        if (gameState.playStyle === "group") {
+        if (gameState.playStyle === "group" || "duel") {
           handleNextQuestion();
         }
       }, ANSWER_TIMER_DURATION);
@@ -271,7 +274,7 @@ export function useQuizLogic() {
     // Logic for Group Play
     else if (
       currQuestionIndex < quizQuestions.length - 1 &&
-      gameState.playStyle === "group"
+      gameState.playStyle === "group" || "duel"
     ) {
       setTimeout(() => {
         setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
@@ -300,9 +303,21 @@ export function useQuizLogic() {
   };
 
   // ========================================================== USE EFFECTS ==========================================================
-  // CHECK if points are still IN CACHE IMPORTANT
   useEffect(() => {
-    checkCache();
+    checkCache(); // TODO
+    const fetchGameInfo = async () => {
+      try {
+        const cachedInfo = await fetchFromCache(CACHE_KEY.quizSettings)
+        if (cachedInfo) {
+          setGameState({difficulty: cachedInfo.quizCategory,
+          category: cachedInfo.quizCategory,
+          playStyle: cachedInfo.quizPlayStyle,})
+        }
+      } catch (error) {
+        console.error("Error loading questions:", error);
+      }
+    }
+    fetchGameInfo()
   },[])
 
   // ----- INITIALIZE questions loading on mount and when currQuestionIndex changes -----

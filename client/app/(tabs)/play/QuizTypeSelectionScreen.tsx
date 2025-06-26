@@ -5,13 +5,13 @@ import { Logo } from "@/components/Logos";
 import { Gaps } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { saveDataToCache, QuizSpecs } from "@/utilities/quiz-logic/cacheUtils";
+import { saveDataToCache, QuizSpecs, PlayStyle } from "@/utilities/quiz-logic/cacheUtils";
 
 const CACHE_KEY = "quizSpecs";
 
 const QuizTypeSelectionScreen = () => {
   const router = useRouter();
-  const [playStyle, setPlayStyle] = useState<string>("");
+  const [playStyle, setPlayStyle] = useState<PlayStyle>("solo");
 
   // ---------- FUNCTIONS ----------
   // send selected quiz info to cache
@@ -20,16 +20,16 @@ const QuizTypeSelectionScreen = () => {
       quizCategory: "",
       quizLevel: "",
       quizPlayStyle: playStyle,
-    };
+    };    
     try {
-      await saveDataToCache(CACHE_KEY, chosenSpecs);
+      await saveDataToCache(CACHE_KEY, chosenSpecs);      
     } catch (error) {
       console.error("Failed to save specs:", error);
     }
   };
 
   // set the selected Playstyle, call cache function and navigate to CategoryScreen
-  const handlePlayStyleChoice = (style: string) => {
+  const handlePlayStyleChoice = (style: PlayStyle) => {
     setPlayStyle(style);
     sendInformationToCache();
     router.push("/(tabs)/play/CategoryScreen");
