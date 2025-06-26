@@ -1,10 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // ---------- TYPES AND INTERFACES ----------
-export interface QuizData {
+export interface QuizSpecs {
   quizCategory: string,
   quizLevel: string,
-  quizQuestions: {}
+  quizPlayStyle: string
 }
 
 // ---------- LOAD CACHE DATA ----------

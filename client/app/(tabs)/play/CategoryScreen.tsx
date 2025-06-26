@@ -9,25 +9,27 @@ import { SearchInput } from "@/components/Inputs";
 import { RadioButton } from "@/components/RadioButton";
 import { useState } from "react";
 import { saveDataToCache } from "@/utilities/quiz-logic/cacheUtils";
-import { QuizData } from "@/utilities/quiz-logic/cacheUtils";
+import { QuizSpecs } from "@/utilities/quiz-logic/cacheUtils";
 
 const LEVELS = [
   { label: "Easy: Cub Curious", value: "easy" },
   { label: "Medium: Bearly Brainy", value: "medium" },
   { label: "Hard: Grizzly Guru", value: "hard" },
 ];
-const CACHE_KEY = "quizData";
+const CACHE_KEY = "quizSpecs";
 
 const CategoryScreen = () => {
   const router = useRouter();
   const [selectedLevel, setSelectedLevel] = useState("medium");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
 
-  const sendInformationToCache = async (level: string) => {
-    const chosenSpecs: QuizData = {
-      quizCategory: "selectedLevel",
+  // send selected quiz info to cache
+  const sendInformationToCache = async () => {
+    const chosenSpecs: QuizSpecs = {
+      quizCategory: selectedCategory,
       quizLevel: selectedLevel,
-      quizQuestions: {},
+      quizPlayStyle: "solo", 
+      // Assuming solo play style for now TODO
     };
     try {
       await saveDataToCache(CACHE_KEY, chosenSpecs);
@@ -35,6 +37,13 @@ const CategoryScreen = () => {
       console.error("Failed to save points:", error);
     }
   };
+
+  // set the selected category, call cache function and navigate to StartQuizScreen
+  const handleChosenCategory = (category: string) => {
+    setSelectedCategory(category);
+    sendInformationToCache()
+    router.push("/(tabs)/play/StartQuizScreen")
+  }
 
   return (
     <View style={styles.container}>
@@ -63,8 +72,8 @@ const CategoryScreen = () => {
           ))}
         </View>
         <View style={styles.searchToticBlock}>
-          <SearchInput placeholder="Your topic ..." />
-          <ButtonPrimary text="Search" />
+          <SearchInput placeholder="Your topic ..." value={selectedCategory} onChangeText={(text: string)=>setSelectedCategory(text)}/>
+          <ButtonPrimary text="Search" onPress={()=>handleChosenCategory(selectedCategory)}/>
         </View>
         <View style={{ marginVertical: Gaps.g32 }}>
           <Text style={{ fontSize: FontSizes.TextLargeFs }}>
@@ -74,14 +83,14 @@ const CategoryScreen = () => {
         <View style={styles.preparedToticContainer}>
           <ButtonSecondary
             text="History"
-            onPress={() => router.push("/(tabs)/play/StartQuizScreen")}
+            onPress={() => handleChosenCategory("History")}
           />
-          <ButtonSecondary text="Science" />
-          <ButtonSecondary text="Sports" />
-          <ButtonSecondary text="Geography" />
-          <ButtonSecondary text="Media" />
-          <ButtonSecondary text="Culture" />
-          <ButtonSecondary text="Daily life" />
+          <ButtonSecondary text="Science" onPress={() => handleChosenCategory("Science")}/>
+          <ButtonSecondary text="Sports" onPress={() => handleChosenCategory("Sports")}/>
+          <ButtonSecondary text="Geography" onPress={() => handleChosenCategory("Geography")}/>
+          <ButtonSecondary text="Media" onPress={() => handleChosenCategory("Media")}/>
+          <ButtonSecondary text="Culture" onPress={() => handleChosenCategory("Culture")}/>
+          <ButtonSecondary text="Daily life" onPress={() => handleChosenCategory("Daily life")}/>
         </View>
       </ScrollView>
     </View>
