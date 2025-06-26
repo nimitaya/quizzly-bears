@@ -1,6 +1,6 @@
 import axios from "axios";
 import Config from "react-native-config";
-import { QuizQuestion } from "../../components/QuizComponent";
+import { Category, Difficulty, QuizQuestion } from "../types"
 
 const GROQ_API_URL =
   Config.GROQ_API_URL || "https://api.groq.com/openai/v1/chat/completions";
@@ -9,8 +9,8 @@ const GROQ_API_KEY =
   "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";
 
 export const generateQuizQuestion = async (
-  category: string,
-  difficulty: string,
+  category: Category,
+  difficulty: Difficulty,
   usedQuestions: Set<string>
 ): Promise<QuizQuestion> => {
   try {
@@ -104,11 +104,12 @@ export const generateQuizQuestion = async (
     responseContent = responseContent.replace(/```\n?/g, "");
     responseContent = responseContent.trim();
     console.log("API Response:", response.data);
-    const questionData = JSON.parse(responseContent);
+
+    const questionData = JSON.parse(responseContent); //Json Response
 
     console.log("Parsed Question Data:", questionData); // Log the parsed response for debugging
 
-    const questionKey = questionData.question.de.substring(0, 50).toLowerCase(); // Access the 'de' property explicitly
+    const questionKey = questionData.question.de.substring(0, 50).toLowerCase(); //// Wir erstellen eine Variable, um zu prüfen, ob Fragen sich wiederholen
     if (usedQuestions.has(questionKey)) {
       console.log("Doppelte Frage erkannt, generiere neue...");
       return await generateQuizQuestion(category, difficulty, usedQuestions);
@@ -123,12 +124,16 @@ export const generateQuizQuestion = async (
       !questionData.optionC ||
       !questionData.optionD ||
       typeof questionData.optionA.de !== "string" || // Ensure options have 'de' strings
+      typeof questionData.optionA.en !== "string" || // Ensure options have 'en' strings
       typeof questionData.optionB.de !== "string" ||
+      typeof questionData.optionB.en !== "string" ||
       typeof questionData.optionC.de !== "string" ||
-      typeof questionData.optionD.de !== "string"
+      typeof questionData.optionC.en !== "string" ||
+      typeof questionData.optionD.de !== "string" ||
+      typeof questionData.optionD.en !== "string"
     ) {
       throw new Error("Ungültiges Antwortformat");
-    }
+}
 
     return {
       question: questionData.question,
