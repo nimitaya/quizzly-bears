@@ -16,7 +16,8 @@ import { Colors, FontSizes, Gaps } from "@/styles/theme";
 import { SearchInput } from "@/components/Inputs";
 import { ButtonPrimary, ButtonPrimaryDisabled } from "@/components/Buttons";
 import { useEffect } from "react";
-import NetInfo from "@react-native-community/netinfo";
+import CustomAlert from "@/components/CustomAlert";
+import NetworkAlertProvider from "@/components/NetworkAlertProvider";
 
 export default function SignUpScreen() {
   const { isLoaded, signUp, setActive } = useSignUp();
@@ -34,6 +35,7 @@ export default function SignUpScreen() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [isResendingCode, setIsResendingCode] = React.useState(false);
   const [loadingStartTime, setLoadingStartTime] = React.useState(0);
+  const [showExistsAlert, setShowExistsAlert] = React.useState(false);
 
   // Form validation
   const validateEmail = (email: string) => {
@@ -163,18 +165,13 @@ export default function SignUpScreen() {
   const handleExistingEmailError = () => {
     setError("This email is already registered");
     setIsEmailError(true);
+    setShowExistsAlert(true); // Show custom alert instead of Alert.alert
+  };
 
-    Alert.alert(
-      "Account Exists",
-      "An account with this email already exists.",
-      [
-        { text: "Try Another Email", style: "cancel" },
-        {
-          text: "Go to Login",
-          onPress: () => router.replace("/(auth)/LogInScreen"),
-        },
-      ]
-    );
+  // Create a handler to navigate to login when confirmed
+  const handleGoToLogin = () => {
+    setShowExistsAlert(false);
+    router.replace("/(auth)/LogInScreen");
   };
 
   const onVerifyPress = async () => {
@@ -254,59 +251,80 @@ export default function SignUpScreen() {
     }
   };
 
-  // Check network connectivity initially and on changes
-  useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      if (state.isConnected === false) {
-        // Show alert when no internet connection is detected
-        Alert.alert(
-          "No Internet Connection",
-          "Please check your network settings.",
-          [
-            {
-              text: "Go to Play",
-              onPress: () => {
-                // First dismiss the alert, then navigate
-                setTimeout(() => {
-                  router.replace("/(tabs)/play");
-                }, 100); // Small delay to ensure alert is dismissed first
-              },
-            },
-          ],
-          { cancelable: false }
-        );
-      }
-    });
-
-    // Initial check on component mount - use the same fix here too
-    NetInfo.fetch().then((state) => {
-      if (state.isConnected === false) {
-        Alert.alert(
-          "No Internet Connection",
-          "Please check your network settings.",
-          [
-            {
-              text: "Go to Play",
-              onPress: () => {
-                // First dismiss the alert, then navigate
-                setTimeout(() => {
-                  router.replace("/(tabs)/play");
-                }, 100); // Small delay to ensure alert is dismissed first
-              },
-            },
-          ],
-          { cancelable: false }
-        );
-      }
-    });
-
-    // Clean up subscription
-    return () => unsubscribe();
-  }, []);
-
   // Verification screen
   if (pendingVerification) {
     return (
+      <NetworkAlertProvider>
+        <KeyboardAvoidingView
+          style={styles.container}
+          behavior={
+            Platform.OS === "ios"
+              ? "padding"
+              : Platform.OS === "android"
+              ? "height"
+              : undefined
+          }
+        >
+          <Text style={styles.title}>Verify your email</Text>
+
+          <Text style={styles.subtitle}>
+            We've sent a verification code to{" "}
+          </Text>
+          <Text
+            style={{ ...styles.subtitle, fontWeight: "bold", marginTop: 0 }}
+          >
+            {emailAddress}
+          </Text>
+
+          <SearchInput
+            value={code}
+            placeholder="Enter verification code"
+            onChangeText={(newCode) => {
+              if (error !== "") {
+                setError("");
+              }
+              setCode(newCode);
+            }}
+            keyboardType="number-pad"
+            autoFocus
+          />
+
+          {error !== "" && <Text style={styles.errorText}>{error}</Text>}
+
+          <View style={{ marginTop: Gaps.g16, width: "100%" }}>
+            {code.length === 0 || isLoading ? (
+              <ButtonPrimaryDisabled
+                text={isLoading ? "Verifying..." : "Verify Email"}
+                disabled={true}
+              />
+            ) : (
+              <ButtonPrimary
+                text="Verify Email"
+                onPress={onVerifyPress}
+                disabled={false}
+              />
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={styles.resendButton}
+            onPress={resendVerificationCode}
+            disabled={isResendingCode}
+          >
+            {isResendingCode ? (
+              <ActivityIndicator size="small" color={Colors.black} />
+            ) : (
+              <Text style={styles.resendText}>Resend code</Text>
+            )}
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </NetworkAlertProvider>
+    );
+  }
+
+  // Sign up screen
+  return (
+    <NetworkAlertProvider>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={
@@ -317,167 +335,115 @@ export default function SignUpScreen() {
             : undefined
         }
       >
-        <Text style={styles.title}>Verify your email</Text>
+        <Text style={styles.title}>Sign up</Text>
+        <View style={styles.containerInput}>
+          <SearchInput
+            autoCapitalize="none"
+            value={emailAddress}
+            placeholder="Enter email"
+            onChangeText={(email) => {
+              setEmailAddress(email);
+              if (isEmailError) {
+                setIsEmailError(false);
+                setError("");
+              }
+            }}
+          />
+          <SearchInput
+            value={password}
+            placeholder="Enter password"
+            secureTextEntry={true}
+            onChangeText={(pwd) => {
+              setPassword(pwd);
 
-        <Text style={styles.subtitle}>We've sent a verification code to </Text>
-        <Text style={{ ...styles.subtitle, fontWeight: "bold", marginTop: 0 }}>
-          {emailAddress}
-        </Text>
+              if (error) {
+                setError("");
+              }
 
-        <SearchInput
-          value={code}
-          placeholder="Enter verification code"
-          onChangeText={(newCode) => {
-            if (error !== "") {
-              setError("");
-            }
-            setCode(newCode);
-          }}
-          keyboardType="number-pad"
-          autoFocus
-        />
+              if (isEmailError) {
+                setIsEmailError(false);
+              }
 
-        {error !== "" && <Text style={styles.errorText}>{error}</Text>}
+              if (repeatPassword.length > 0) {
+                setPasswordsMatch(pwd === repeatPassword);
+              }
+            }}
+          />
+          <SearchInput
+            value={repeatPassword}
+            placeholder="Repeat password"
+            secureTextEntry={true}
+            onChangeText={(text) => {
+              setRepeatPassword(text);
 
-        <View style={{ marginTop: Gaps.g16, width: "100%" }}>
-          {code.length === 0 || isLoading ? (
-            <ButtonPrimaryDisabled
-              text={isLoading ? "Verifying..." : "Verify Email"}
-              disabled={true}
-            />
-          ) : (
-            <ButtonPrimary
-              text="Verify Email"
-              onPress={onVerifyPress}
-              disabled={false}
-            />
+              if (error) {
+                setError("");
+              }
+
+              if (text.length > 0) {
+                setPasswordsMatch(text === password);
+              } else {
+                setPasswordsMatch(true);
+              }
+            }}
+          />
+
+          {!passwordsMatch && repeatPassword.length > 0 && (
+            <Text style={styles.errorText}>Passwords don't match</Text>
           )}
         </View>
-
-        <TouchableOpacity
-          style={styles.resendButton}
-          onPress={resendVerificationCode}
-          disabled={isResendingCode}
-        >
-          {isResendingCode ? (
-            <ActivityIndicator size="small" color={Colors.black} />
-          ) : (
-            <Text style={styles.resendText}>Resend code</Text>
-          )}
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
-    );
-  }
-
-  // Sign up screen
-  return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={
-        Platform.OS === "ios"
-          ? "padding"
-          : Platform.OS === "android"
-          ? "height"
-          : undefined
-      }
-    >
-      <Text style={styles.title}>Sign up</Text>
-      <View style={styles.containerInput}>
-        <SearchInput
-          autoCapitalize="none"
-          value={emailAddress}
-          placeholder="Enter email"
-          onChangeText={(email) => {
-            setEmailAddress(email);
-            if (isEmailError) {
-              setIsEmailError(false);
-              setError("");
-            }
-          }}
-        />
-        <SearchInput
-          value={password}
-          placeholder="Enter password"
-          secureTextEntry={true}
-          onChangeText={(pwd) => {
-            setPassword(pwd);
-
-            if (error) {
-              setError("");
-            }
-
-            if (isEmailError) {
-              setIsEmailError(false);
-            }
-
-            if (repeatPassword.length > 0) {
-              setPasswordsMatch(pwd === repeatPassword);
-            }
-          }}
-        />
-        <SearchInput
-          value={repeatPassword}
-          placeholder="Repeat password"
-          secureTextEntry={true}
-          onChangeText={(text) => {
-            setRepeatPassword(text);
-
-            if (error) {
-              setError("");
-            }
-
-            if (text.length > 0) {
-              setPasswordsMatch(text === password);
-            } else {
-              setPasswordsMatch(true);
-            }
-          }}
-        />
-
-        {!passwordsMatch && repeatPassword.length > 0 && (
-          <Text style={styles.errorText}>Passwords don't match</Text>
+        {error !== "" && error !== "Passwords don't match" && (
+          <Text style={styles.errorText}>{error}</Text>
         )}
-      </View>
-      {error !== "" && error !== "Passwords don't match" && (
-        <Text style={styles.errorText}>{error}</Text>
-      )}
-      <ButtonPrimary
-        text={isLoading ? "Creating Account..." : "Continue"}
-        onPress={() => {
-          if (isLoading) {
-            Alert.alert(
-              "Processing",
-              "Your request is being processed. Please wait..."
-            );
+        <ButtonPrimary
+          text={isLoading ? "Creating Account..." : "Continue"}
+          onPress={() => {
+            if (isLoading) {
+              Alert.alert(
+                "Processing",
+                "Your request is being processed. Please wait..."
+              );
 
-            if (new Date().getTime() - loadingStartTime > 10000) {
-              setIsLoading(false);
-              setError("Request timed out. Please try again.");
+              if (new Date().getTime() - loadingStartTime > 10000) {
+                setIsLoading(false);
+                setError("Request timed out. Please try again.");
+              }
+            } else {
+              setLoadingStartTime(new Date().getTime());
+              onSignUpPress();
             }
-          } else {
-            setLoadingStartTime(new Date().getTime());
-            onSignUpPress();
-          }
-        }}
-        style={{ marginTop: Gaps.g16 }}
-        disabled={isLoading}
-      />
+          }}
+          style={{ marginTop: Gaps.g16 }}
+          disabled={isLoading}
+        />
 
-      <View style={styles.linkContainer}>
-        <Text>Already have an account?</Text>
-        <Link href="/(auth)/LogInScreen" asChild>
-          <TouchableOpacity>
-            <Text style={styles.link}>Log in</Text>
-          </TouchableOpacity>
-        </Link>
-      </View>
-      <TouchableOpacity
-        onPress={() => router.replace("/(tabs)/play")}
-        style={styles.skipButton}
-      >
-        <Text style={styles.skipText}>Skip for now</Text>
-      </TouchableOpacity>
-    </KeyboardAvoidingView>
+        <View style={styles.linkContainer}>
+          <Text>Already have an account?</Text>
+          <Link href="/(auth)/LogInScreen" asChild>
+            <TouchableOpacity>
+              <Text style={styles.link}>Log in</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
+        <TouchableOpacity
+          onPress={() => router.replace("/(tabs)/play")}
+          style={styles.skipButton}
+        >
+          <Text style={styles.skipText}>Skip for now</Text>
+        </TouchableOpacity>
+
+        {/* Custom Alert for Account Exists */}
+        <CustomAlert
+          visible={showExistsAlert}
+          onClose={() => setShowExistsAlert(false)}
+          title="Account Exists"
+          message="An account with this email already exists."
+          cancelText="Try Another Email"
+          confirmText="Go to Login"
+          onConfirm={handleGoToLogin}
+        />
+      </KeyboardAvoidingView>
+    </NetworkAlertProvider>
   );
 }
 
