@@ -15,6 +15,8 @@ import { Link, useRouter } from "expo-router";
 import { Colors, FontSizes, Gaps } from "@/styles/theme";
 import { SearchInput } from "@/components/Inputs";
 import { ButtonPrimary, ButtonPrimaryDisabled } from "@/components/Buttons";
+import { useEffect } from "react";
+import NetInfo from "@react-native-community/netinfo";
 
 export default function SignUpScreen() {
   const { isLoaded, signUp, setActive } = useSignUp();
@@ -251,6 +253,56 @@ export default function SignUpScreen() {
       setIsResendingCode(false);
     }
   };
+
+  // Check network connectivity initially and on changes
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      if (state.isConnected === false) {
+        // Show alert when no internet connection is detected
+        Alert.alert(
+          "No Internet Connection",
+          "Please check your network settings.",
+          [
+            {
+              text: "Go to Play",
+              onPress: () => {
+                // First dismiss the alert, then navigate
+                setTimeout(() => {
+                  router.replace("/(tabs)/play");
+                }, 100); // Small delay to ensure alert is dismissed first
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+      }
+    });
+
+    // Initial check on component mount - use the same fix here too
+    NetInfo.fetch().then((state) => {
+      if (state.isConnected === false) {
+        Alert.alert(
+          "No Internet Connection",
+          "Please check your network settings.",
+          [
+            {
+              text: "Go to Play",
+              onPress: () => {
+                // First dismiss the alert, then navigate
+                setTimeout(() => {
+                  router.replace("/(tabs)/play");
+                }, 100); // Small delay to ensure alert is dismissed first
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+      }
+    });
+
+    // Clean up subscription
+    return () => unsubscribe();
+  }, []);
 
   // Verification screen
   if (pendingVerification) {
