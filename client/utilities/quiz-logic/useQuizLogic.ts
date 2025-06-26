@@ -1,10 +1,24 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  Difficulty,
+  calculatePoints,
+  cachePoints,
+  clearCachePoints,
+  sendPointsToDatabase,
+  checkCache,
+} from "@/utilities/quiz-logic/pointsUtils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-// Dummy data:
+// Dummy data: TODO
 import quizQuestions from "@/utilities/quiz-logic/data";
 import type { QuizQuestion } from "@/utilities/quiz-logic/data";
 
 // ========================================================== TYPES ==========================================================
+type GameState = {
+  difficulty: Difficulty;
+  category: string;
+  playStyle: PlayStyle;
+};
+
 type AnswerState = {
   chosenAnswer: string | null;
   isSelected: boolean;
@@ -14,11 +28,15 @@ type AnswerState = {
 type PointsState = {
   score: number;
   timePoints: number;
+  perfectGame: number;
   total: number;
+  chosenCorrect: number;
+  totalAnswers: number;
 };
 // solo or group play TODO temporary
 type PlayStyle = "solo" | "group";
 
+// ========================================================== START OF HOOK ==========================================================
 export function useQuizLogic() {
   // Timer duration/ delays TODO
   const READ_TIMER_DURATION = 2000;
@@ -33,6 +51,13 @@ export function useQuizLogic() {
   const [currentQuestionData, setCurrentQuestionData] =
     useState<QuizQuestion | null>(null);
   const [currQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
+  // TODO setGameState
+  const [gameState, setGameState] = useState<GameState>({
+    difficulty: "simple",
+    category: "jahreszeiten",
+    // solo or group play TODO temporary
+    playStyle: "solo",
+  });
   const [answerState, setAnswerState] = useState<AnswerState>({
     chosenAnswer: null,
     isSelected: false,
@@ -46,18 +71,18 @@ export function useQuizLogic() {
   const [pointsState, setPointsState] = useState<PointsState>({
     score: 0,
     timePoints: 0,
+    perfectGame: 0,
     total: 0,
+    chosenCorrect: 0,
+    totalAnswers: 0,
   });
   const [showResult, setShowResult] = useState<boolean>(false);
 
-  // solo or group play TODO temporary
-  const [playStyle, setPlayStyle] = useState<PlayStyle>("solo");
-
   // ========================================================== FUNCTIONS ==========================================================
-  // ===== PLACEHOLDER FOR FETCHING FROM CACHE TODO =====
+  // ===== FETCHING Questions FROM CACHE TODO =====
   const fetchQuestionsFromCache = async (): Promise<QuizQuestion[] | null> => {
     try {
-      const cached = await AsyncStorage.getItem("quizQuestions");
+      const cached = await AsyncStorage.getItem("quizData");
       if (cached) {
         return JSON.parse(cached);
       }
@@ -71,6 +96,7 @@ export function useQuizLogic() {
   // ----- LOAD current question data -----
   const loadQuestions = async (): Promise<void> => {
     try {
+      // fetch questions from cache
       let questions = await fetchQuestionsFromCache();
       if (!questions) {
         // Fallback to dummy data if cache is empty
@@ -79,7 +105,8 @@ export function useQuizLogic() {
       if (currQuestionIndex < questions.length) {
         // Reset
         setCurrentQuestionData(questions[currQuestionIndex]);
-        setAnswerState(() => ({
+        setAnswerState((prev) => ({
+          ...prev,
           chosenAnswer: null,
           isSelected: false,
           isSubmitted: false,
@@ -89,7 +116,8 @@ export function useQuizLogic() {
         timingQuestions();
       } else {
         setShowResult(true);
-        setAnswerState(() => ({
+        setAnswerState((prev) => ({
+          ...prev,
           chosenAnswer: null,
           isSelected: false,
           isSubmitted: false,
@@ -99,9 +127,9 @@ export function useQuizLogic() {
     } catch (error) {
       console.error("Error loading questions:", error);
     }
-  };
+  }
 
-  // set TIMING for questions
+  // ----- set TIMING for questions -----
   const timingQuestions = (): void => {
     readTimeout.current = setTimeout(() => {
       // Set read timer to true after 2 seconds to show the answers
@@ -110,7 +138,7 @@ export function useQuizLogic() {
       answerTimeout.current = setTimeout(() => {
         setAnswerState((prevState) => ({ ...prevState, isLocked: true }));
         handleAnswerCheck();
-        if (playStyle === "group") {
+        if (gameState.playStyle === "group") {
           handleNextQuestion();
         }
       }, ANSWER_TIMER_DURATION);
@@ -126,7 +154,7 @@ export function useQuizLogic() {
       chosenAnswer: selectedOption,
       isSelected: true,
     }));
-  };
+  }
 
   // ----- Handle SELECTION STATE for Quizbuttons -----
   const handleSelection = (option: string): boolean => {
@@ -147,7 +175,7 @@ export function useQuizLogic() {
     } else {
       return false;
     }
-  };
+  }
 
   // ----- Handle ANSWER SUBMISSION -----
   const handleAnswerSubmit = (): void => {
@@ -157,21 +185,49 @@ export function useQuizLogic() {
       isLocked: true,
     }));
     handleAnswerCheck();
-  };
+  }
 
   // ----- Handle ANSWER CHECK -----
   const handleAnswerCheck = (): void => {
     const isCorrect = answerState.chosenAnswer === currentQuestionData?.answer;
     if (isCorrect) {
-      // Increment points for correct answer TODO correct points according to difficulty + Add to cache
+      const newChosenCorrect = pointsState.chosenCorrect + 1;
+
+      let difficulty = gameState.difficulty;
+      let timeTaken = ANSWER_TIMER_DURATION / 1000 - remainingTime;
+      let isSolo = gameState.playStyle === "solo";
+      // TODO make maximum of questions dynamic
+      let totalQuestions = 10;
+      let allCorrect = newChosenCorrect === totalQuestions;
+      let correctAnswers = newChosenCorrect;
+
+      // calculate points accoirding to our rules
+      const gainedPoints = calculatePoints({
+        difficulty,
+        timeTaken,
+        isCorrect: isCorrect,
+        isSolo,
+        allCorrect,
+        totalQuestions,
+        correctAnswers,
+      });
+      // Early exit if null
+      if (!gainedPoints) return;
+      // Add correct points to state
       setPointsState((prevPoints) => ({
         ...prevPoints,
-        score: prevPoints.score + 1,
-        timePoints: prevPoints.timePoints + remainingTime,
+        score: prevPoints.score + gainedPoints?.basePoints,
+        timePoints: prevPoints.timePoints + gainedPoints?.timeBonus,
+        perfectGame: prevPoints.perfectGame + gainedPoints?.bonusAllCorrect,
+        total: prevPoints.total + gainedPoints?.totalPoints,
+        chosenCorrect: newChosenCorrect,
       }));
     }
     // Logic for SOLO Play
-    if (currQuestionIndex < quizQuestions.length - 1 && playStyle === "solo") {
+    if (
+      currQuestionIndex < quizQuestions.length - 1 &&
+      gameState.playStyle === "solo"
+    ) {
       // Clear the timeout if answer is submitted early
       if (answerTimeout.current) {
         clearTimeout(answerTimeout.current);
@@ -186,35 +242,69 @@ export function useQuizLogic() {
 
   // ----- Handle NEXT QUESTION -----
   const handleNextQuestion = (): void => {
+    const newTotalAnswers = pointsState.totalAnswers + 1;
+    // update totalAnswers
+    setPointsState((prevPoints) => ({
+      ...prevPoints,
+      totalAnswers: newTotalAnswers,
+    }));
+    // Cache current points & information
+    cachePoints({
+      gameCategory: gameState.category,
+      score: pointsState.total,
+      correctAnswers: pointsState.chosenCorrect,
+      totalAnswers: newTotalAnswers,
+    });
+    // Clear timer
     if (answerTimeout.current) {
       clearTimeout(answerTimeout.current);
       answerTimeout.current = null;
     }
-    if (currQuestionIndex < quizQuestions.length - 1 && playStyle === "solo") {
-      // Logic for Solo Play
+    // Logic for Solo Play
+    if (
+      currQuestionIndex < quizQuestions.length - 1 &&
+      gameState.playStyle === "solo"
+    ) {
       setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
       setReadTimer(false);
-    } else if (
+    }
+    // Logic for Group Play
+    else if (
       currQuestionIndex < quizQuestions.length - 1 &&
-      playStyle === "group"
+      gameState.playStyle === "group"
     ) {
-      // Logic for Group Play
       setTimeout(() => {
         setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
         setReadTimer(false);
       }, NEXT_QUESTION_DELAY);
-    } else {
+    }
+    // if last question done
+    else {
       setShowResult(true);
-      setAnswerState(() => ({
+      setAnswerState((prev) => ({
+        ...prev,
         chosenAnswer: null,
         isSelected: false,
         isSubmitted: false,
         isLocked: false,
       }));
+      endGame();
     }
+  }
+
+  const endGame = async () => {
+    // send to database
+    sendPointsToDatabase();
+    // clear cached data
+    clearCachePoints();
   };
 
   // ========================================================== USE EFFECTS ==========================================================
+  // CHECK if points are still IN CACHE IMPORTANT
+  useEffect(() => {
+    checkCache();
+  },[])
+
   // ----- INITIALIZE questions loading on mount and when currQuestionIndex changes -----
   useEffect(() => {
     loadQuestions();
@@ -250,12 +340,11 @@ export function useQuizLogic() {
     currentQuestionData,
     currQuestionIndex,
     answerState,
+    gameState,
+    pointsState,
     readTimer,
     remainingTime,
-    pointsState,
     showResult,
-    playStyle,
-    setPlayStyle,
     handleAnswerSelect,
     handleSelection,
     handleAnswerSubmit,
