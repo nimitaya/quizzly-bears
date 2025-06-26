@@ -1,8 +1,8 @@
-import { Text, View, TouchableOpacity } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import IconArrowBack from "@/assets/icons/IconArrowBack";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
-import { Colors, FontSizes, Gaps } from "@/styles/theme";
+import { Gaps } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import { StyleSheet } from "react-native";
 
@@ -23,7 +23,7 @@ const QuizTypeSelectionScreen = () => {
       <View style={styles.buttonContainer}>
         <ButtonPrimary
           text="Play alone"
-          onPress={() => router.push("/(tabs)/play/QuizScreen")}
+          onPress={() => router.push("/(tabs)/play/CategoryScreen")}
         />
         <ButtonPrimary
           text="Play a duel"
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: "absolute",
-    top: -8,
+    top: -4,
     left: 16,
     zIndex: 10,
   },
