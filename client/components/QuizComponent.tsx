@@ -10,40 +10,9 @@ import {
   SafeAreaView,
 } from "react-native";
 import { generateQuizQuestion } from "@/utilities/api/quizApi";
-import { Difficulty, Category } from "@/utilities/types";
+import { QuizComponentProps} from "@/utilities/types";
+import { QuizQuestion } from "@/utilities/types";
 
-export interface QuizQuestion {
-  question: {
-    de: string;
-    en: string;
-  };
-  optionA: {
-    isCorrect: boolean;
-    de: string;
-    en: string;
-  };
-  optionB: {
-    isCorrect: boolean;
-    de: string;
-    en: string;
-  };
-  optionC: {
-    isCorrect: boolean;
-    de: string;
-    en: string;
-  };
-  optionD: {
-    isCorrect: boolean;
-    de: string;
-    en: string;
-  };
-  correctAnswer?: number;
-}
-
-interface QuizComponentProps {
-  difficulty?: Difficulty;
-  category?: Category;
-}
 
 const QuizComponent: React.FC<QuizComponentProps> = ({
   difficulty = "easy",

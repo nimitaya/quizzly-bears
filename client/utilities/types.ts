@@ -1,7 +1,9 @@
 
 // Schwierigkeiten und Kategorien für Quizfragen
 // Diese werden in der App verwendet, um Fragen zu generieren und anzuzeigen.
-export type Difficulty = 'easy' | 'medium' | 'difficult';
+
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
 export type Category = 
   | 'Science'
   | 'History'
@@ -11,16 +13,36 @@ export type Category =
   | 'Culture'
   | 'Daily Life';
 
-// API Antworttyp für Quizfragen
-export interface GroqQuestionResponse {
-  question: string;
-  options?: string[];
-  correctAnswer?: string;
-}
+export interface QuizComponentProps {
+  difficulty?: Difficulty;
+  category?: Category;  
+}  
 
-// Type für die Quizfrage, die in der App verwendet wird
-export interface QuizScreenProps {
-  difficulty: Difficulty;
-  category: Category;
-  onComplete?: (score: number) => void;
-}
+  export interface QuizQuestion {
+    question: {
+      de: string;
+      en: string;
+    };
+    optionA: {
+      isCorrect: boolean;
+      de: string;
+      en: string;
+    };
+    optionB: {
+      isCorrect: boolean;
+      de: string;
+      en: string;
+    };
+    optionC: {
+      isCorrect: boolean;
+      de: string;
+      en: string;
+    };
+    optionD: {
+      isCorrect: boolean;
+      de: string;
+      en: string;
+    };
+    correctAnswer?: number;
+  }
+
