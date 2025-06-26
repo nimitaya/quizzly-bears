@@ -1,7 +1,7 @@
 import { loadCacheData, saveDataToCache, clearCacheData } from "@/utilities/quiz-logic/cacheUtils";
 
-// // ---------- TYPES AND INTERFACES ----------
-export type Difficulty = "simple" | "medium" | "hard";
+// ---------- TYPES AND INTERFACES ----------
+export type Difficulty = "easy" | "medium" | "hard";
 
 type GameInformation = {
   category: string;
@@ -49,7 +49,7 @@ export const calculatePoints = ({
 
   let basePoints = 0;
   switch (difficulty) {
-    case "simple":
+    case "easy":
       basePoints = 5;
       break;
     case "medium":
