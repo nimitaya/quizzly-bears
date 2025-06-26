@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useRouter } from "expo-router";
+import { useRouter, useSegments } from "expo-router";
 import NetInfo from "@react-native-community/netinfo";
 import CustomAlert from "./CustomAlert";
 
@@ -12,6 +12,16 @@ const NetworkAlertProvider: React.FC<NetworkAlertProviderProps> = ({
 }) => {
   const [showNoInternetAlert, setShowNoInternetAlert] = useState(false);
   const router = useRouter();
+  const segments = useSegments();
+  const currentRoute = "/" + segments.join("/");
+
+  // Define exempt routes
+  const EXEMPT_ROUTES = ["/(tabs)/play", "/(tabs)/offline-game"];
+
+  // Check if current route is exempt
+  const isExemptRoute = EXEMPT_ROUTES.some((route) =>
+    currentRoute.startsWith(route)
+  );
 
   // Handler to navigate
   const handleGoToPlay = () => {
@@ -29,28 +39,28 @@ const NetworkAlertProvider: React.FC<NetworkAlertProviderProps> = ({
   // Network connectivity check
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
-      if (state.isConnected === false) {
+      if (state.isConnected === false && !isExemptRoute) {
         setShowNoInternetAlert(true);
       }
     });
 
     // Initial check on component mount
     NetInfo.fetch().then((state) => {
-      if (state.isConnected === false) {
+      if (state.isConnected === false && !isExemptRoute) {
         setShowNoInternetAlert(true);
       }
     });
 
     // Clean up subscription
     return () => unsubscribe();
-  }, []);
+  }, [isExemptRoute, segments]); // Re-run when route changes
 
   return (
     <>
       {children}
 
       <CustomAlert
-        visible={showNoInternetAlert}
+        visible={showNoInternetAlert && !isExemptRoute}
         onClose={handleHome}
         message="I'm sorry, but you've lost your internet connection."
         cancelText="Home"

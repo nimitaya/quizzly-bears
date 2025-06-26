@@ -13,6 +13,7 @@ import {
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Colors } from "@/styles/theme";
 import { useCustomFonts } from "@/hooks/useCustomFonts";
+import NetworkAlertProvider from "@/components/NetworkAlertProvider";
 
 // Override with safe type casting
 const overrideDefaultFont = () => {
@@ -46,11 +47,13 @@ export default function RootLayout() {
 
   return (
     <ClerkProvider tokenCache={tokenCache}>
-      <SafeAreaProvider>
-        <View style={{ flex: 1, backgroundColor: Colors.bgGray }}>
-          <Slot />
-        </View>
-      </SafeAreaProvider>
+      <NetworkAlertProvider>
+        <SafeAreaProvider>
+          <View style={{ flex: 1, backgroundColor: Colors.bgGray }}>
+            <Slot />
+          </View>
+        </SafeAreaProvider>
+      </NetworkAlertProvider>
     </ClerkProvider>
   );
 }
