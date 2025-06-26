@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: "absolute",
-    top: -4,
+    top: -8,
     left: 16,
     zIndex: 10,
   },

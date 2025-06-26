@@ -18,7 +18,7 @@ const LEVELS = [
 
 const CategoryScreen = () => {
   const router = useRouter();
-  const [selectedLevel, setSelectedLevel] = useState("medium"); // по умолчанию medium
+  const [selectedLevel, setSelectedLevel] = useState("medium");
 
   return (
     <View style={styles.container}>
@@ -33,7 +33,7 @@ const CategoryScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={{ marginBottom: Gaps.g40 }}>
+        <View style={{ marginBottom: Gaps.g24 }}>
           <Logo size="small" />
         </View>
         <View style={styles.levelSelectionBlock}>
@@ -51,7 +51,7 @@ const CategoryScreen = () => {
           <ButtonPrimary text="Search" />
         </View>
         <View style={{ marginVertical: Gaps.g32 }}>
-          <Text style={{ fontSize: FontSizes.H3Fs }}>
+          <Text style={{ fontSize: FontSizes.TextLargeFs }}>
             or pick a prepared topic
           </Text>
         </View>
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: "absolute",
-    top: -4,
+    top: -8,
     left: 16,
     zIndex: 10,
   },
