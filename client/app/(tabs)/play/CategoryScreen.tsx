@@ -7,9 +7,8 @@ import { useRouter } from "expo-router";
 import { StyleSheet } from "react-native";
 import { SearchInput } from "@/components/Inputs";
 import { RadioButton } from "@/components/RadioButton";
-import { useState } from "react";
-import { saveDataToCache } from "@/utilities/quiz-logic/cacheUtils";
-import { QuizSpecs } from "@/utilities/quiz-logic/cacheUtils";
+import { useEffect, useState } from "react";
+import { saveDataToCache, QuizSpecs, loadCacheData } from "@/utilities/quiz-logic/cacheUtils";
 
 const LEVELS = [
   { label: "Easy: Cub Curious", value: "easy" },
@@ -22,19 +21,20 @@ const CategoryScreen = () => {
   const router = useRouter();
   const [selectedLevel, setSelectedLevel] = useState("medium");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [playStyle, setPlayStyle] = useState<string>("");
 
+  // ---------- FUNCTIONS ----------
   // send selected quiz info to cache
   const sendInformationToCache = async () => {
     const chosenSpecs: QuizSpecs = {
       quizCategory: selectedCategory,
       quizLevel: selectedLevel,
-      quizPlayStyle: "solo", 
-      // Assuming solo play style for now TODO
+      quizPlayStyle: playStyle, 
     };
     try {
       await saveDataToCache(CACHE_KEY, chosenSpecs);
     } catch (error) {
-      console.error("Failed to save points:", error);
+      console.error("Failed to save specs:", error);
     }
   };
 
@@ -45,6 +45,22 @@ const CategoryScreen = () => {
     router.push("/(tabs)/play/StartQuizScreen")
   }
 
+  // ---------- USE EFFECT ----------
+  useEffect(()=> {
+    // Fetch cached quiz specs to set the play style
+    const fetchCachedQuizSpecs = async () => {
+      try {
+        const cachedQuizSpecs = await loadCacheData(CACHE_KEY)
+        if (cachedQuizSpecs) {
+          setPlayStyle(cachedQuizSpecs.quizPlayStyle);
+        }
+      } catch (error) {
+        console.error("Failed to load data from cache:", error);
+      }
+    }
+    fetchCachedQuizSpecs()
+  })
+  // ----------------------------------------
   return (
     <View style={styles.container}>
       <TouchableOpacity
