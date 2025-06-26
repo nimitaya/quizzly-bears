@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   View,
   StyleSheet,
+  Alert,
 } from "react-native";
 import { useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
@@ -21,14 +22,35 @@ export default function SignUpScreen() {
   const [repeatPassword, setRepeatPassword] = React.useState("");
   const [passwordsMatch, setPasswordsMatch] = React.useState(true);
   const [pendingVerification, setPendingVerification] = React.useState(false);
-
   const [code, setCode] = React.useState("");
+  const [error, setError] = React.useState(""); // Add error state
+  const [isEmailError, setIsEmailError] = React.useState(false); // Add specific email error state
+
+  // Email validation function
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const validatePasswords = () => {
     return password === repeatPassword;
   };
 
   const onSignUpPress = async () => {
     if (!isLoaded) return;
+
+    // Reset previous errors
+    setError("");
+    setIsEmailError(false);
+
+    // Validate email format
+    if (!validateEmail(emailAddress)) {
+      setError("Please enter a valid email address");
+      setIsEmailError(true);
+      return;
+    }
+
+    // Validate passwords
     if (!validatePasswords()) {
       setPasswordsMatch(false);
       return;
@@ -42,8 +64,48 @@ export default function SignUpScreen() {
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
 
       setPendingVerification(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error(JSON.stringify(err, null, 2));
+
+      // Check for specific email-exists error
+      if (
+        err.errors &&
+        err.errors.some(
+          (e: { code?: string; message?: string }) =>
+            e.code === "form_identifier_exists" ||
+            e.message?.toLowerCase().includes("email already exists") ||
+            e.message?.toLowerCase().includes("email address is already in use")
+        )
+      ) {
+        setError("This email is already registered. Please log in instead.");
+        setIsEmailError(true);
+
+        // Optionally show an alert with navigation option
+        Alert.alert(
+          "Account Exists",
+          "An account with this email already exists.",
+          [
+            { text: "Try Another Email", style: "cancel" },
+            {
+              text: "Go to Login",
+              onPress: () => router.replace("/(auth)/LogInScreen"),
+            },
+          ]
+        );
+      }
+      // Handle CAPTCHA errors
+      else if (
+        err.errors &&
+        err.errors.some((e: any) => e.code === "captcha_invalid")
+      ) {
+        setError(
+          "Could not verify you're human. Try another authentication method."
+        );
+      }
+      // Handle other errors
+      else {
+        setError(err.errors?.[0]?.message || "Failed to create account.");
+      }
     }
   };
 
@@ -90,7 +152,15 @@ export default function SignUpScreen() {
           autoCapitalize="none"
           value={emailAddress}
           placeholder="Enter email"
-          onChangeText={(email) => setEmailAddress(email)}
+          onChangeText={(email) => {
+            setEmailAddress(email);
+            // Clear email error when user types
+            if (isEmailError) {
+              setIsEmailError(false);
+              setError("");
+            }
+          }}
+          // style={isEmailError ? styles.inputError : {}} // Add red border for email error
         />
         <SearchInput
           value={password}
@@ -111,6 +181,7 @@ export default function SignUpScreen() {
       {!passwordsMatch && (
         <Text style={styles.errorText}>Passwords don't match</Text>
       )}
+      {error !== "" && <Text style={styles.errorText}>{error}</Text>}
       <ButtonPrimary
         text="Continue"
         onPress={onSignUpPress}
@@ -125,8 +196,11 @@ export default function SignUpScreen() {
           </TouchableOpacity>
         </Link>
       </View>
-      <TouchableOpacity onPress={() => router.replace("/(tabs)/play")}>
-        <Text>Skip for now </Text>
+      <TouchableOpacity
+        onPress={() => router.replace("/(tabs)/play")}
+        style={styles.skipButton}
+      >
+        <Text style={styles.skipText}>Skip for now</Text>
       </TouchableOpacity>
     </View>
   );
@@ -137,9 +211,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    padding: 20,
   },
   containerInput: {
     gap: Gaps.g8,
+    width: "100%",
   },
   title: {
     fontSize: FontSizes.H1Fs,
@@ -149,11 +225,14 @@ const styles = StyleSheet.create({
   errorText: {
     color: Colors.systemRed,
     marginTop: 5,
-    marginLeft: Gaps.g16,
     fontSize: FontSizes.FootnoteFS,
     alignSelf: "flex-start",
+    marginLeft: 5,
   },
-
+  inputError: {
+    borderColor: Colors.systemRed,
+    borderWidth: 1,
+  },
   linkContainer: {
     flexDirection: "row",
     marginTop: Gaps.g16,
@@ -163,5 +242,13 @@ const styles = StyleSheet.create({
     color: Colors.black,
     marginLeft: 5,
     fontWeight: "600",
+  },
+  skipButton: {
+    marginTop: Gaps.g24,
+    padding: 10,
+  },
+  skipText: {
+    color: Colors.black,
+    fontSize: FontSizes.TextSmallFs,
   },
 });
