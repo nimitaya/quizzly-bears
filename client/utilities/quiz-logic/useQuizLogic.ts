@@ -1,12 +1,14 @@
-import { useState, useEffect, useRef } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Difficulty,
   calculatePoints,
   cachePoints,
   clearCachePoints,
+  sendPointsToDatabase,
+  checkCache,
 } from "@/utilities/quiz-logic/points";
-// Dummy data:
+import AsyncStorage from "@react-native-async-storage/async-storage";
+// Dummy data: TODO
 import quizQuestions from "@/utilities/quiz-logic/data";
 import type { QuizQuestion } from "@/utilities/quiz-logic/data";
 
@@ -33,10 +35,11 @@ type PointsState = {
 // solo or group play TODO temporary
 type PlayStyle = "solo" | "group";
 
+// ========================================================== START OF HOOK ==========================================================
 export function useQuizLogic() {
   // Timer duration/ delays TODO
   const READ_TIMER_DURATION = 2000;
-  const ANSWER_TIMER_DURATION = 10000;
+  const ANSWER_TIMER_DURATION = 5000;
   const NEXT_QUESTION_DELAY = 3000;
 
   // To reset Timers
@@ -47,6 +50,7 @@ export function useQuizLogic() {
   const [currentQuestionData, setCurrentQuestionData] =
     useState<QuizQuestion | null>(null);
   const [currQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
+  // TODO setGameState
   const [gameState, setGameState] = useState<GameState>({
     difficulty: "simple",
     category: "jahreszeiten",
@@ -77,7 +81,7 @@ export function useQuizLogic() {
   // ===== FETCHING Questions FROM CACHE TODO =====
   const fetchQuestionsFromCache = async (): Promise<QuizQuestion[] | null> => {
     try {
-      const cached = await AsyncStorage.getItem("quizQuestions");
+      const cached = await AsyncStorage.getItem("quizData");
       if (cached) {
         return JSON.parse(cached);
       }
@@ -122,7 +126,7 @@ export function useQuizLogic() {
     } catch (error) {
       console.error("Error loading questions:", error);
     }
-  };
+  }
 
   // ----- set TIMING for questions -----
   const timingQuestions = (): void => {
@@ -149,7 +153,7 @@ export function useQuizLogic() {
       chosenAnswer: selectedOption,
       isSelected: true,
     }));
-  };
+  }
 
   // ----- Handle SELECTION STATE for Quizbuttons -----
   const handleSelection = (option: string): boolean => {
@@ -170,7 +174,7 @@ export function useQuizLogic() {
     } else {
       return false;
     }
-  };
+  }
 
   // ----- Handle ANSWER SUBMISSION -----
   const handleAnswerSubmit = (): void => {
@@ -180,7 +184,7 @@ export function useQuizLogic() {
       isLocked: true,
     }));
     handleAnswerCheck();
-  };
+  }
 
   // ----- Handle ANSWER CHECK -----
   const handleAnswerCheck = (): void => {
@@ -189,7 +193,7 @@ export function useQuizLogic() {
       const newChosenCorrect = pointsState.chosenCorrect + 1;
 
       let difficulty = gameState.difficulty;
-      let timeTaken = ANSWER_TIMER_DURATION / 1000 - remainingTime;     
+      let timeTaken = ANSWER_TIMER_DURATION / 1000 - remainingTime;
       let isSolo = gameState.playStyle === "solo";
       // TODO make maximum of questions dynamic
       let totalQuestions = 10;
@@ -214,7 +218,7 @@ export function useQuizLogic() {
         score: prevPoints.score + gainedPoints?.basePoints,
         timePoints: prevPoints.timePoints + gainedPoints?.timeBonus,
         perfectGame: prevPoints.perfectGame + gainedPoints?.bonusAllCorrect,
-        total: prevPoints.total * gainedPoints?.totalPoints,
+        total: prevPoints.total + gainedPoints?.totalPoints,
         chosenCorrect: newChosenCorrect,
       }));
     }
@@ -272,7 +276,9 @@ export function useQuizLogic() {
         setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
         setReadTimer(false);
       }, NEXT_QUESTION_DELAY);
-    } else {
+    }
+    // if last question done
+    else {
       setShowResult(true);
       setAnswerState((prev) => ({
         ...prev,
@@ -281,20 +287,23 @@ export function useQuizLogic() {
         isSubmitted: false,
         isLocked: false,
       }));
-      endGame()
+      endGame();
     }
-  };
-
-  const endGame = async () => {
-    // get final data from Cache
-
-  // send to database
-
-  // clear cached data
-    clearCachePoints()
   }
 
+  const endGame = async () => {
+    // send to database
+    sendPointsToDatabase();
+    // clear cached data
+    clearCachePoints();
+  };
+
   // ========================================================== USE EFFECTS ==========================================================
+  // CHECK if points are still IN CACHE IMPORTANT
+  useEffect(() => {
+    checkCache();
+  },[])
+
   // ----- INITIALIZE questions loading on mount and when currQuestionIndex changes -----
   useEffect(() => {
     loadQuestions();

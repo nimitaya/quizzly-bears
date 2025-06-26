@@ -1,5 +1,6 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { loadCacheData, saveDataToCache, clearCacheData } from "@/utilities/quiz-logic/cacheUtils";
 
+// // ---------- TYPES AND INTERFACES ----------
 export type Difficulty = "simple" | "medium" | "hard";
 
 type GameInformation = {
@@ -8,8 +9,6 @@ type GameInformation = {
   correctAnswers: number;
   totalAnswers: number;
 };
-
-type GameCache = Record<string, GameInformation>;
 
 interface CalculatePointsParams {
   difficulty: Difficulty;
@@ -27,6 +26,9 @@ interface CachePointsParams {
   correctAnswers: number;
   totalAnswers: number;
 }
+
+// // ---------- OTHERS ----------
+const CACHE_KEY = "currGameData";
 
 // ---------- CALCULATE Points according to rules ----------
 export const calculatePoints = ({
@@ -89,14 +91,12 @@ export const cachePoints = async ({
     correctAnswers: correctAnswers,
     totalAnswers: totalAnswers,
   };
-
   try {
     // Just for checking if it is working, can be deleted later
-    const storedData = await AsyncStorage.getItem("currGameData");
-    const currData: GameCache = storedData ? JSON.parse(storedData) : {};
-    console.log("currentData", currData);
-    // ------------------------------------
-    await AsyncStorage.setItem("currGameData", JSON.stringify(gameInformation));
+    const storedData = await loadCacheData(CACHE_KEY);
+    console.log("currentData", storedData);
+    // ------------------------------------ TODO
+    await saveDataToCache(CACHE_KEY, gameInformation);
   } catch (error) {
     console.error("Failed to save points:", error);
   }
@@ -105,19 +105,30 @@ export const cachePoints = async ({
 // ---------- CLEAR cache for game Data ----------
 export const clearCachePoints = async () => {
   try {
-    await AsyncStorage.removeItem("currGameData");
+    await clearCacheData(CACHE_KEY);
   } catch (error) {
     console.error("Failed to clear points:", error);
   }
 };
 
-// ---------- CHECK cache storage for remeining data ----------
-export const checkCache = async (): Promise<any> => {
+// ---------- CHECK cache storage for remaining data ----------
+export const checkCache = async () => {
   try {
-    const storedData = await AsyncStorage.getItem("currGameData");
-    return storedData ? JSON.parse(storedData) : null;
+    const storedData = await loadCacheData(CACHE_KEY);
+    if (!storedData) {
+      return;
+    } else {
+      // send Data to Database TODO
+    }
   } catch (error) {
     console.error("Failed to read cache:", error);
     return null;
   }
 };
+
+// ---------- SEND cached data TO DATABASE ----------
+export const sendPointsToDatabase = async () => {
+  const finalGameData = loadCacheData(CACHE_KEY)
+  // Code goes here TODO
+  // send finalGameData to DB
+}
