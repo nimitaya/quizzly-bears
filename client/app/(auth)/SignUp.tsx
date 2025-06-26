@@ -1,60 +1,97 @@
 import * as React from "react";
 import {
   Text,
-  TextInput,
   TouchableOpacity,
   View,
   StyleSheet,
   Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Modal,
 } from "react-native";
 import { useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { Colors, FontSizes, Gaps } from "@/styles/theme";
 import { SearchInput } from "@/components/Inputs";
-import { ButtonPrimary } from "@/components/Buttons";
+import { ButtonPrimary, ButtonPrimaryDisabled } from "@/components/Buttons";
 
 export default function SignUpScreen() {
   const { isLoaded, signUp, setActive } = useSignUp();
   const router = useRouter();
 
+  // State management
   const [emailAddress, setEmailAddress] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [repeatPassword, setRepeatPassword] = React.useState("");
   const [passwordsMatch, setPasswordsMatch] = React.useState(true);
   const [pendingVerification, setPendingVerification] = React.useState(false);
   const [code, setCode] = React.useState("");
-  const [error, setError] = React.useState(""); // Add error state
-  const [isEmailError, setIsEmailError] = React.useState(false); // Add specific email error state
+  const [error, setError] = React.useState("");
+  const [isEmailError, setIsEmailError] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [isResendingCode, setIsResendingCode] = React.useState(false);
+  const [loadingStartTime, setLoadingStartTime] = React.useState(0);
 
-  // Email validation function
+  // Form validation
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
   const validatePasswords = () => {
-    return password === repeatPassword;
+    if (error === "Password must be at least 8 characters") {
+      setError("");
+    }
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return false;
+    }
+
+    if (password !== repeatPassword) {
+      setPasswordsMatch(false);
+      setError("Passwords don't match");
+      return false;
+    }
+
+    return true;
+  };
+
+  // prevent infinite loading
+  const safeSetLoading = (isLoading: boolean) => {
+    setIsLoading(isLoading);
+
+    if (isLoading && Platform.OS === "web") {
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 15000);
+    }
   };
 
   const onSignUpPress = async () => {
-    if (!isLoaded) return;
+    if (!isLoaded || isLoading) {
+      return;
+    }
 
-    // Reset previous errors
     setError("");
     setIsEmailError(false);
+    safeSetLoading(true);
 
     // Validate email format
     if (!validateEmail(emailAddress)) {
       setError("Please enter a valid email address");
       setIsEmailError(true);
+      safeSetLoading(false);
       return;
     }
 
-    // Validate passwords
+    // Email validation passed, now check passwords
     if (!validatePasswords()) {
-      setPasswordsMatch(false);
+      safeSetLoading(false);
       return;
     }
+
     try {
       await signUp.create({
         emailAddress,
@@ -62,90 +99,236 @@ export default function SignUpScreen() {
       });
 
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-
       setPendingVerification(true);
     } catch (err: any) {
-      console.error(JSON.stringify(err, null, 2));
-
-      // Check for specific email-exists error
-      if (
-        err.errors &&
-        err.errors.some(
-          (e: { code?: string; message?: string }) =>
-            e.code === "form_identifier_exists" ||
-            e.message?.toLowerCase().includes("email already exists") ||
-            e.message?.toLowerCase().includes("email address is already in use")
-        )
-      ) {
-        setError("This email is already registered. Please log in instead.");
-        setIsEmailError(true);
-
-        // Optionally show an alert with navigation option
-        Alert.alert(
-          "Account Exists",
-          "An account with this email already exists.",
-          [
-            { text: "Try Another Email", style: "cancel" },
-            {
-              text: "Go to Login",
-              onPress: () => router.replace("/(auth)/LogInScreen"),
-            },
-          ]
-        );
+      // Handle common errors
+      if (err.errors && err.errors.length > 0) {
+        // Check for password breach error
+        if (
+          err.errors.some(
+            (e: any) =>
+              (e.message && e.message.toLowerCase().includes("data breach")) ||
+              e.code === "password_compromised" ||
+              e.code === "form_password_pwned"
+          )
+        ) {
+          setError(
+            "Password has been found in a data breach. Please use a different password."
+          );
+          return;
+        }
+        // Check for email already exists
+        else if (
+          err.errors.some(
+            (e: any) =>
+              e.code === "form_identifier_exists" ||
+              (e.message && e.message.toLowerCase().includes("already exists"))
+          )
+        ) {
+          handleExistingEmailError();
+        }
+        // Check for invalid email error
+        else if (
+          err.errors.some(
+            (e: any) =>
+              e.code === "form_identifier_not_valid" ||
+              (e.message &&
+                (e.message.toLowerCase().includes("valid email") ||
+                  e.message.toLowerCase().includes("must be a valid email") ||
+                  e.message.toLowerCase().includes("is invalid")))
+          )
+        ) {
+          setError("Please enter a valid email address");
+          setIsEmailError(true);
+        }
+        // Other validation errors
+        else {
+          setError(
+            err.errors[0].message || "Sign up failed. Please try again."
+          );
+        }
+      } else if (err.code === "form_identifier_exists") {
+        handleExistingEmailError();
+      } else {
+        setError("An error occurred. Please try again.");
       }
-      // Handle CAPTCHA errors
-      else if (
-        err.errors &&
-        err.errors.some((e: any) => e.code === "captcha_invalid")
-      ) {
-        setError(
-          "Could not verify you're human. Try another authentication method."
-        );
-      }
-      // Handle other errors
-      else {
-        setError(err.errors?.[0]?.message || "Failed to create account.");
-      }
+    } finally {
+      safeSetLoading(false);
     }
+  };
+
+  // error handlers for better organization
+  const handleExistingEmailError = () => {
+    setError("This email is already registered");
+    setIsEmailError(true);
+
+    Alert.alert(
+      "Account Exists",
+      "An account with this email already exists.",
+      [
+        { text: "Try Another Email", style: "cancel" },
+        {
+          text: "Go to Login",
+          onPress: () => router.replace("/(auth)/LogInScreen"),
+        },
+      ]
+    );
   };
 
   const onVerifyPress = async () => {
-    if (!isLoaded) return;
+    if (!isLoaded || isLoading) return;
+
+    safeSetLoading(true);
+    setError("");
 
     try {
-      const signUpAttempt = await signUp.attemptEmailAddressVerification({
-        code,
-      });
-
-      if (signUpAttempt.status === "complete") {
-        await setActive({ session: signUpAttempt.createdSessionId });
-        router.replace("/(tabs)/play");
-      } else {
-        console.error(JSON.stringify(signUpAttempt, null, 2));
+      if (!code || code.trim().length === 0) {
+        setError("Please enter the verification code");
+        safeSetLoading(false);
+        return;
       }
-    } catch (err) {
-      console.error(JSON.stringify(err, null, 2));
+
+      try {
+        const signUpAttempt = await signUp.attemptEmailAddressVerification({
+          code,
+        });
+
+        if (signUpAttempt.status === "complete") {
+          try {
+            await setActive({ session: signUpAttempt.createdSessionId });
+            router.replace("/(tabs)/play");
+          } catch (sessionErr) {
+            setError(
+              "Verification succeeded but couldn't log you in. Please try logging in."
+            );
+          }
+        } else {
+          setError("Please enter a valid verification code");
+        }
+      } catch (verificationErr: any) {
+        // Handle specific verification errors
+        if (verificationErr.errors && verificationErr.errors.length > 0) {
+          const invalidCodeError = verificationErr.errors.find(
+            (e: any) =>
+              e.code === "verification_failed" ||
+              (e.message && e.message.toLowerCase().includes("code")) ||
+              (e.message && e.message.toLowerCase().includes("invalid"))
+          );
+
+          if (invalidCodeError) {
+            setError("Please enter a valid verification code");
+          } else {
+            setError("Please enter a valid verification code");
+          }
+        } else {
+          setError("Please enter a valid verification code");
+        }
+      }
+    } catch (err: any) {
+      if (!error) {
+        setError("Please enter a valid verification code");
+      }
+    } finally {
+      safeSetLoading(false);
     }
   };
 
+  const resendVerificationCode = async () => {
+    if (!isLoaded || isResendingCode) return;
+
+    setIsResendingCode(true);
+
+    try {
+      if (signUp) {
+        await signUp.prepareEmailAddressVerification({
+          strategy: "email_code",
+        });
+        Alert.alert("Success", "Verification code resent to your email");
+      }
+    } catch (err: any) {
+      setError("Failed to resend verification code");
+    } finally {
+      setIsResendingCode(false);
+    }
+  };
+
+  // Verification screen
   if (pendingVerification) {
     return (
-      <View style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={
+          Platform.OS === "ios"
+            ? "padding"
+            : Platform.OS === "android"
+            ? "height"
+            : undefined
+        }
+      >
         <Text style={styles.title}>Verify your email</Text>
+
+        <Text style={styles.subtitle}>We've sent a verification code to </Text>
+        <Text style={{ ...styles.subtitle, fontWeight: "bold", marginTop: 0 }}>
+          {emailAddress}
+        </Text>
+
         <SearchInput
           value={code}
-          placeholder="Enter your verification code"
-          onChangeText={(code) => setCode(code)}
+          placeholder="Enter verification code"
+          onChangeText={(newCode) => {
+            if (error !== "") {
+              setError("");
+            }
+            setCode(newCode);
+          }}
+          keyboardType="number-pad"
+          autoFocus
         />
-        <TouchableOpacity onPress={onVerifyPress}>
-          <Text>Verify</Text>
+
+        {error !== "" && <Text style={styles.errorText}>{error}</Text>}
+
+        <View style={{ marginTop: Gaps.g16, width: "100%" }}>
+          {code.length === 0 || isLoading ? (
+            <ButtonPrimaryDisabled
+              text={isLoading ? "Verifying..." : "Verify Email"}
+              disabled={true}
+            />
+          ) : (
+            <ButtonPrimary
+              text="Verify Email"
+              onPress={onVerifyPress}
+              disabled={false}
+            />
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={styles.resendButton}
+          onPress={resendVerificationCode}
+          disabled={isResendingCode}
+        >
+          {isResendingCode ? (
+            <ActivityIndicator size="small" color={Colors.black} />
+          ) : (
+            <Text style={styles.resendText}>Resend code</Text>
+          )}
         </TouchableOpacity>
-      </View>
+      </KeyboardAvoidingView>
     );
   }
 
+  // Sign up screen
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={
+        Platform.OS === "ios"
+          ? "padding"
+          : Platform.OS === "android"
+          ? "height"
+          : undefined
+      }
+    >
       <Text style={styles.title}>Sign up</Text>
       <View style={styles.containerInput}>
         <SearchInput
@@ -154,19 +337,31 @@ export default function SignUpScreen() {
           placeholder="Enter email"
           onChangeText={(email) => {
             setEmailAddress(email);
-            // Clear email error when user types
             if (isEmailError) {
               setIsEmailError(false);
               setError("");
             }
           }}
-          // style={isEmailError ? styles.inputError : {}} // Add red border for email error
         />
         <SearchInput
           value={password}
           placeholder="Enter password"
           secureTextEntry={true}
-          onChangeText={(password) => setPassword(password)}
+          onChangeText={(pwd) => {
+            setPassword(pwd);
+
+            if (error) {
+              setError("");
+            }
+
+            if (isEmailError) {
+              setIsEmailError(false);
+            }
+
+            if (repeatPassword.length > 0) {
+              setPasswordsMatch(pwd === repeatPassword);
+            }
+          }}
         />
         <SearchInput
           value={repeatPassword}
@@ -174,18 +369,46 @@ export default function SignUpScreen() {
           secureTextEntry={true}
           onChangeText={(text) => {
             setRepeatPassword(text);
-            setPasswordsMatch(text === password);
+
+            if (error) {
+              setError("");
+            }
+
+            if (text.length > 0) {
+              setPasswordsMatch(text === password);
+            } else {
+              setPasswordsMatch(true);
+            }
           }}
         />
+
+        {!passwordsMatch && repeatPassword.length > 0 && (
+          <Text style={styles.errorText}>Passwords don't match</Text>
+        )}
       </View>
-      {!passwordsMatch && (
-        <Text style={styles.errorText}>Passwords don't match</Text>
+      {error !== "" && error !== "Passwords don't match" && (
+        <Text style={styles.errorText}>{error}</Text>
       )}
-      {error !== "" && <Text style={styles.errorText}>{error}</Text>}
       <ButtonPrimary
-        text="Continue"
-        onPress={onSignUpPress}
+        text={isLoading ? "Creating Account..." : "Continue"}
+        onPress={() => {
+          if (isLoading) {
+            Alert.alert(
+              "Processing",
+              "Your request is being processed. Please wait..."
+            );
+
+            if (new Date().getTime() - loadingStartTime > 10000) {
+              setIsLoading(false);
+              setError("Request timed out. Please try again.");
+            }
+          } else {
+            setLoadingStartTime(new Date().getTime());
+            onSignUpPress();
+          }
+        }}
         style={{ marginTop: Gaps.g16 }}
+        disabled={isLoading}
       />
 
       <View style={styles.linkContainer}>
@@ -202,7 +425,7 @@ export default function SignUpScreen() {
       >
         <Text style={styles.skipText}>Skip for now</Text>
       </TouchableOpacity>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -212,6 +435,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+    width: "100%",
   },
   containerInput: {
     gap: Gaps.g8,
@@ -222,16 +446,17 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: Gaps.g16,
   },
+  subtitle: {
+    fontSize: FontSizes.TextMediumFs,
+    marginBottom: Gaps.g16,
+    textAlign: "center",
+  },
   errorText: {
     color: Colors.systemRed,
     marginTop: 5,
     fontSize: FontSizes.FootnoteFS,
-    alignSelf: "flex-start",
+    alignSelf: "center",
     marginLeft: 5,
-  },
-  inputError: {
-    borderColor: Colors.systemRed,
-    borderWidth: 1,
   },
   linkContainer: {
     flexDirection: "row",
@@ -241,7 +466,7 @@ const styles = StyleSheet.create({
   link: {
     color: Colors.black,
     marginLeft: 5,
-    fontWeight: "600",
+    fontWeight: "bold",
   },
   skipButton: {
     marginTop: Gaps.g24,
@@ -250,5 +475,14 @@ const styles = StyleSheet.create({
   skipText: {
     color: Colors.black,
     fontSize: FontSizes.TextSmallFs,
+  },
+  resendButton: {
+    marginTop: Gaps.g16,
+    padding: Gaps.g8,
+  },
+  resendText: {
+    color: Colors.black,
+    fontSize: FontSizes.TextMediumFs,
+    textAlign: "center",
   },
 });
