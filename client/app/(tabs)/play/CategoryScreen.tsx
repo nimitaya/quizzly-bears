@@ -58,7 +58,7 @@ const CategoryScreen = () => {
         <View style={styles.preparedToticContainer}>
           <ButtonSecondary
             text="history"
-            onPress={() => router.push("/(tabs)/play/QuizScreen")}
+            onPress={() => router.push("/(tabs)/play/StartQuizScreen")}
           />
           <ButtonSecondary text="science" />
           <ButtonSecondary text="sport" />

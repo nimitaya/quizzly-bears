@@ -66,7 +66,10 @@ const QuizLogic = () => {
           </View>
 
           <View style={styles.buttonsContainer}>
-            <ButtonPrimary text="Round again?" />
+            <ButtonPrimary
+              text="Round again?"
+              onPress={() => router.push("./CategoryScreen")}
+            />
             <ButtonSecondary text="Home" onPress={() => router.push("./")} />
           </View>
         </ScrollView>
@@ -185,7 +188,7 @@ const styles = StyleSheet.create({
 
   resultsContainer: {
     alignItems: "flex-start",
-    gap: Gaps.g8,
+    gap: Gaps.g16,
     paddingVertical: Gaps.g48,
   },
   pointsRow: {
