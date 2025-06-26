@@ -8,7 +8,7 @@ import { StyleSheet } from "react-native";
 import { SearchInput } from "@/components/Inputs";
 import { RadioButton } from "@/components/RadioButton";
 import { useEffect, useState } from "react";
-import { saveDataToCache, QuizSpecs, loadCacheData } from "@/utilities/quiz-logic/cacheUtils";
+import { saveDataToCache, QuizSpecs, loadCacheData, PlayStyle } from "@/utilities/quiz-logic/cacheUtils";
 
 const LEVELS = [
   { label: "Easy: Cub Curious", value: "easy" },
@@ -21,13 +21,13 @@ const CategoryScreen = () => {
   const router = useRouter();
   const [selectedLevel, setSelectedLevel] = useState("medium");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [playStyle, setPlayStyle] = useState<string>("");
+  const [playStyle, setPlayStyle] = useState<PlayStyle>("solo");
 
   // ---------- FUNCTIONS ----------
   // send selected quiz info to cache
-  const sendInformationToCache = async () => {
+  const sendInformationToCache = async (category: string) => {
     const chosenSpecs: QuizSpecs = {
-      quizCategory: selectedCategory,
+      quizCategory: category,
       quizLevel: selectedLevel,
       quizPlayStyle: playStyle, 
     };
@@ -41,7 +41,7 @@ const CategoryScreen = () => {
   // set the selected category, call cache function and navigate to StartQuizScreen
   const handleChosenCategory = (category: string) => {
     setSelectedCategory(category);
-    sendInformationToCache()
+    sendInformationToCache(category)
     router.push("/(tabs)/play/StartQuizScreen")
   }
 
@@ -59,7 +59,7 @@ const CategoryScreen = () => {
       }
     }
     fetchCachedQuizSpecs()
-  })
+  }, [])
   // ----------------------------------------
   return (
     <View style={styles.container}>
