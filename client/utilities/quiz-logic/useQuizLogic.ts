@@ -34,7 +34,7 @@ type PointsState = {
   totalAnswers: number;
 };
 // solo or group play TODO temporary
-type PlayStyle = "solo" | "group";
+type PlayStyle = "solo" | "duel" | "group";
 
 // ========================================================== START OF HOOK ==========================================================
 export function useQuizLogic() {
@@ -53,7 +53,7 @@ export function useQuizLogic() {
   const [currQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   // TODO setGameState
   const [gameState, setGameState] = useState<GameState>({
-    difficulty: "simple",
+    difficulty: "easy",
     category: "jahreszeiten",
     // solo or group play TODO temporary
     playStyle: "solo",
