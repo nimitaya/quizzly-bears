@@ -14,7 +14,7 @@ const PlayScreen = () => {
       <View style={{ marginBottom: Gaps.g32 }}>
         <ButtonPrimary
           text="Go Play"
-          onPress={() => router.push("/(tabs)/play/QuizScreen")}
+          onPress={() => router.push("/(tabs)/play/QuizTypeSelectionScreen")}
         />
       </View>
       <View style={styles.myRankBlock}>
