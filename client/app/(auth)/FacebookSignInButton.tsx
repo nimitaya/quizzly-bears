@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { ButtonSecondary } from "@/components/Buttons";
 import { Alert, Platform, ActivityIndicator } from "react-native";
 import SimpleLineIcons from "@expo/vector-icons/SimpleLineIcons";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import * as WebBrowser from "expo-web-browser";
 import { Colors } from "@/styles/theme";
 
@@ -15,15 +15,31 @@ const FacebookSignInButton = () => {
   const router = useRouter();
   const { isLoaded: authLoaded } = useAuth();
   const { startOAuthFlow } = useOAuth({
-    strategy: "oauth_google",
+    strategy: "oauth_facebook",
     redirectUrl: Platform.OS === "web" ? window.location.origin : undefined,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const previousScreen = useRef("");
 
+  // Helper function to handle navigation back
+  const navigateBack = () => {
+    if (Platform.OS !== "web") {
+      if (previousScreen.current === "back" && router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/(auth)/LogInScreen");
+      }
+    }
+  };
+
+  // handle navigation back
   useEffect(() => {
     if (isAuthenticating && Platform.OS !== "web") {
-      router.replace("../Loading");
+      previousScreen.current = router.canGoBack()
+        ? "back"
+        : "/(auth)/LogInScreen";
+      router.push("../Loading");
     }
   }, [isAuthenticating]);
 
@@ -38,24 +54,22 @@ const FacebookSignInButton = () => {
         await setActive({ session: createdSessionId });
         router.replace("/(tabs)/play");
       } else {
-        if (Platform.OS !== "web") {
-          router.back();
-        }
+        navigateBack();
       }
     } catch (err: any) {
-      console.error("Facebook OAuth error:", err);
-
-      if (Platform.OS !== "web") {
-        router.back();
-      }
-
-      Alert.alert("Error", err.message || "Facebook sign-in failed");
+      console.error("Google OAuth error:", err);
+      navigateBack();
+      Alert.alert("Error", err.message || "Google sign-in failed");
     } finally {
       setIsLoading(false);
       setIsAuthenticating(false);
     }
   };
+
   if (!authLoaded) return null;
+  if (isAuthenticating && Platform.OS !== "web") {
+    return null;
+  }
   return (
     <ButtonSecondary
       text={
