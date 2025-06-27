@@ -1,34 +1,16 @@
-import { loadCacheData, saveDataToCache, clearCacheData } from "@/utilities/quiz-logic/cacheUtils";
+import {
+  loadCacheData,
+  saveDataToCache,
+  clearCacheData,
+} from "@/utilities/quiz-logic/cacheUtils";
+import {
+  GameInformation,
+  CalculatePointsParams,
+  CachePointsParams,
+} from "@/utilities/quiz-logic/quizTypesInterfaces";
+import { CACHE_KEY } from "@/utilities/quiz-logic/cacheStructure";
 
-// ---------- TYPES AND INTERFACES ----------
-export type Difficulty = "easy" | "medium" | "hard";
-
-type GameInformation = {
-  category: string;
-  points: number;
-  correctAnswers: number;
-  totalAnswers: number;
-};
-
-interface CalculatePointsParams {
-  difficulty: Difficulty;
-  timeTaken: number; // in seconds
-  isCorrect: boolean;
-  isSolo: boolean;
-  allCorrect: boolean;
-  totalQuestions: number;
-  correctAnswers: number;
-}
-
-interface CachePointsParams {
-  gameCategory: string;
-  score: number;
-  correctAnswers: number;
-  totalAnswers: number;
-}
-
-// // ---------- OTHERS ----------
-const CACHE_KEY = "currGameData";
+const cacheKey = CACHE_KEY.gameData;
 
 // ---------- CALCULATE Points according to rules ----------
 export const calculatePoints = ({
@@ -93,10 +75,10 @@ export const cachePoints = async ({
   };
   try {
     // Just for checking if it is working, can be deleted later
-    const storedData = await loadCacheData(CACHE_KEY);
+    const storedData = await loadCacheData(cacheKey);
     console.log("currentData", storedData);
     // ------------------------------------ TODO
-    await saveDataToCache(CACHE_KEY, gameInformation);
+    await saveDataToCache(cacheKey, gameInformation);
   } catch (error) {
     console.error("Failed to save points:", error);
   }
@@ -105,7 +87,7 @@ export const cachePoints = async ({
 // ---------- CLEAR cache for game Data ----------
 export const clearCachePoints = async () => {
   try {
-    await clearCacheData(CACHE_KEY);
+    await clearCacheData(cacheKey);
   } catch (error) {
     console.error("Failed to clear points:", error);
   }
@@ -114,7 +96,7 @@ export const clearCachePoints = async () => {
 // ---------- CHECK cache storage for remaining data ----------
 export const checkCache = async () => {
   try {
-    const storedData = await loadCacheData(CACHE_KEY);
+    const storedData = await loadCacheData(cacheKey);
     if (!storedData) {
       return;
     } else {
@@ -128,7 +110,7 @@ export const checkCache = async () => {
 
 // ---------- SEND cached data TO DATABASE ----------
 export const sendPointsToDatabase = async () => {
-  const finalGameData = loadCacheData(CACHE_KEY)
+  const finalGameData = loadCacheData(cacheKey);
   // Code goes here TODO
   // send finalGameData to DB
-}
+};

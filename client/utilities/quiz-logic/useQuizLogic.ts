@@ -1,46 +1,28 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  Difficulty,
   calculatePoints,
   cachePoints,
   clearCachePoints,
   sendPointsToDatabase,
   checkCache,
 } from "@/utilities/quiz-logic/pointsUtils";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 // Dummy data: TODO
 import quizQuestions from "@/utilities/quiz-logic/data";
 import type { QuizQuestion } from "@/utilities/quiz-logic/data";
-import { loadCacheData, PlayStyle } from "./cacheUtils";
-
-// ========================================================== TYPES ==========================================================
-type GameState = {
-  difficulty: Difficulty;
-  category: string;
-  playStyle: PlayStyle;
-};
-
-type AnswerState = {
-  chosenAnswer: string | null;
-  isSelected: boolean;
-  isSubmitted: boolean;
-  isLocked: boolean;
-};
-type PointsState = {
-  score: number;
-  timePoints: number;
-  perfectGame: number;
-  total: number;
-  chosenCorrect: number;
-  totalAnswers: number;
-};
+import { loadCacheData } from "./cacheUtils";
+import {
+  GameState,
+  AnswerState,
+  PointsState,
+} from "@/utilities/quiz-logic/quizTypesInterfaces";
 
 // ========================================================== START OF HOOK ==========================================================
 export function useQuizLogic() {
   const CACHE_KEY = {
     questions: "aiQuestions",
-    quizSettings: "quizSpecs",
-  }
+    quizSettings: "quizSettings",
+    gameData: "currGameData",
+  };
   // Timer duration/ delays TODO
   const READ_TIMER_DURATION = 2000;
   const ANSWER_TIMER_DURATION = 5000;
@@ -51,6 +33,8 @@ export function useQuizLogic() {
   const answerTimeout = useRef<number | null>(null);
 
   // ========================================================== STATE MANAGEMENT ==========================================================
+  // TODO combine states
+  const [currQuestionsArray, setCurrQuestionsArray] = useState([]);
   const [currentQuestionData, setCurrentQuestionData] =
     useState<QuizQuestion | null>(null);
   const [currQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
@@ -86,12 +70,41 @@ export function useQuizLogic() {
     try {
       const cachedData = await loadCacheData(key);
       if (cachedData) {
-        return cachedData
+        return cachedData;
       }
       return null;
     } catch (error) {
       console.error(`Error fetching data with key ${key} from cache:`, error);
       return null;
+    }
+  };
+
+  // ----- fetch Data and set Game State -----
+  const fetchGameInfo = async () => {
+    try {
+      const cachedInfo = await loadCacheData(CACHE_KEY.quizSettings);
+      if (cachedInfo) {
+        setGameState((prev) => ({
+          ...prev,
+          difficulty: cachedInfo.quizCategory,
+          category: cachedInfo.quizCategory,
+          playStyle: cachedInfo.quizPlayStyle,
+        }));
+      }
+    } catch (error) {
+      console.error("Error loading settings:", error);
+    }
+  };
+
+  // ----- fetch Data and set all Questions Array -----
+  const fetchAiData = async () => {
+    try {
+      const cachedInfo = await loadCacheData(CACHE_KEY.questions);
+      if (cachedInfo) {
+        setCurrQuestionsArray(cachedInfo.questionArray);
+      }
+    } catch (error) {
+      console.error("Error loading questions:", error);
     }
   };
 
@@ -130,7 +143,7 @@ export function useQuizLogic() {
     } catch (error) {
       console.error("Error loading questions:", error);
     }
-  }
+  };
 
   // ----- set TIMING for questions -----
   const timingQuestions = (): void => {
@@ -157,7 +170,7 @@ export function useQuizLogic() {
       chosenAnswer: selectedOption,
       isSelected: true,
     }));
-  }
+  };
 
   // ----- Handle SELECTION STATE for Quizbuttons -----
   const handleSelection = (option: string): boolean => {
@@ -178,7 +191,7 @@ export function useQuizLogic() {
     } else {
       return false;
     }
-  }
+  };
 
   // ----- Handle ANSWER SUBMISSION -----
   const handleAnswerSubmit = (): void => {
@@ -188,7 +201,7 @@ export function useQuizLogic() {
       isLocked: true,
     }));
     handleAnswerCheck();
-  }
+  };
 
   // ----- Handle ANSWER CHECK -----
   const handleAnswerCheck = (): void => {
@@ -273,8 +286,9 @@ export function useQuizLogic() {
     }
     // Logic for Group Play
     else if (
-      currQuestionIndex < quizQuestions.length - 1 &&
-      gameState.playStyle === "group" || "duel"
+      (currQuestionIndex < quizQuestions.length - 1 &&
+        gameState.playStyle === "group") ||
+      "duel"
     ) {
       setTimeout(() => {
         setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
@@ -293,7 +307,7 @@ export function useQuizLogic() {
       }));
       endGame();
     }
-  }
+  };
 
   const endGame = async () => {
     // send to database
@@ -303,22 +317,14 @@ export function useQuizLogic() {
   };
 
   // ========================================================== USE EFFECTS ==========================================================
+  // ----- START check and loading
   useEffect(() => {
+    // check if points need to be uploaded to DB
     checkCache(); // TODO
-    const fetchGameInfo = async () => {
-      try {
-        const cachedInfo = await fetchFromCache(CACHE_KEY.quizSettings)
-        if (cachedInfo) {
-          setGameState({difficulty: cachedInfo.quizCategory,
-          category: cachedInfo.quizCategory,
-          playStyle: cachedInfo.quizPlayStyle,})
-        }
-      } catch (error) {
-        console.error("Error loading questions:", error);
-      }
-    }
-    fetchGameInfo()
-  },[])
+    // get Game Settings
+    fetchGameInfo();
+    fetchAiData();
+  }, []);
 
   // ----- INITIALIZE questions loading on mount and when currQuestionIndex changes -----
   useEffect(() => {

@@ -5,24 +5,28 @@ import { Logo } from "@/components/Logos";
 import { Gaps } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { saveDataToCache, QuizSpecs, PlayStyle } from "@/utilities/quiz-logic/cacheUtils";
+import { saveDataToCache } from "@/utilities/quiz-logic/cacheUtils";
+import { QuizSettings, PlayStyle } from "@/utilities/quiz-logic/quizTypesInterfaces";
+import { CACHE_KEY } from "@/utilities/quiz-logic/cacheStructure";
 
-const CACHE_KEY = "quizSpecs";
+// Use the cache key for quiz settings
+const cacheKey = CACHE_KEY.quizSettings; 
 
 const QuizTypeSelectionScreen = () => {
   const router = useRouter();
   const [playStyle, setPlayStyle] = useState<PlayStyle>("solo");
 
   // ---------- FUNCTIONS ----------
-  // send selected quiz info to cache
+  // send selected Playstyle to cache
   const sendInformationToCache = async () => {
-    const chosenSpecs: QuizSpecs = {
+    const chosenSpecs: QuizSettings = {
       quizCategory: "",
-      quizLevel: "",
+      quizLevel: "medium",
       quizPlayStyle: playStyle,
+      chosenTopic: "",
     };    
     try {
-      await saveDataToCache(CACHE_KEY, chosenSpecs);      
+      await saveDataToCache(cacheKey, chosenSpecs);      
     } catch (error) {
       console.error("Failed to save specs:", error);
     }

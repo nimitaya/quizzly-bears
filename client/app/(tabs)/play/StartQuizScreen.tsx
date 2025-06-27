@@ -6,30 +6,42 @@ import { FontSizes, Gaps } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
 import { useState, useEffect } from "react";
-import { PlayStyle, loadCacheData } from "@/utilities/quiz-logic/cacheUtils";
+import { loadCacheData } from "@/utilities/quiz-logic/cacheUtils";
+import { generateMultipleQuizQuestions } from "@/utilities/api/quizApi";
+import { Difficulty } from "@/utilities/types";
+import { PlayStyle } from "@/utilities/quiz-logic/quizTypesInterfaces";
 
 const StartQuizScreen = () => {
   const router = useRouter();
   const CACHE_KEY = "quizSpecs";
-  const [level, setLevel] = useState("medium");
-  const [category, setCategory] = useState<string>("");
+  const [level, setLevel] = useState<Difficulty>("medium");
+  const [topic, setTopic] = useState<string>("");
   const [playStyle, setPlayStyle] = useState<PlayStyle>("solo");
+  const [rounds, setRounds] = useState(10);
+
+  // ---------- Functions ----------
+  const fetchCachedQuizSpecs = async () => {
+    try {
+      const cachedQuizSpecs = await loadCacheData(CACHE_KEY);
+      if (cachedQuizSpecs) {
+        setLevel(cachedQuizSpecs.quizLevel);
+        setTopic(cachedQuizSpecs.quizCategory);
+        setPlayStyle(cachedQuizSpecs.quizPlayStyle);
+      }
+    } catch (error) {
+      console.error("Failed to load data from cache:", error);
+    }
+  };
+// IMPORTANT
+  // const handleStartQuiz = (topic: string, level: Difficulty, rounds: number) => {
+  //   router.push("/(tabs)/play/QuizScreen")
+
+  //   generateMultipleQuizQuestions(topic, level, rounds)
+  // }
 
   // ---------- USE EFFECT ----------
   // Fetch cached quiz specs to set information
   useEffect(() => {
-    const fetchCachedQuizSpecs = async () => {
-      try {
-        const cachedQuizSpecs = await loadCacheData(CACHE_KEY);
-        if (cachedQuizSpecs) {
-          setLevel(cachedQuizSpecs.quizLevel);
-          setCategory(cachedQuizSpecs.quizCategory);
-          setPlayStyle(cachedQuizSpecs.quizPlayStyle);
-        }
-      } catch (error) {
-        console.error("Failed to load data from cache:", error);
-      }
-    };
     fetchCachedQuizSpecs();
   }, []);
 
@@ -51,7 +63,7 @@ const StartQuizScreen = () => {
         <View style={{ marginTop: Gaps.g16, gap: Gaps.g16 }}>
           <View style={styles.pointsRow}>
             <IconCheckbox />
-            <Text style={styles.pointsText}>Chosen topic: {category}</Text>
+            <Text style={styles.pointsText}>Chosen topic: {topic}</Text>
           </View>
           <View style={styles.pointsRow}>
             <IconCheckbox />
@@ -70,7 +82,7 @@ const StartQuizScreen = () => {
       <View style={styles.buttonContainer}>
         <ButtonPrimary
           text="Start"
-          onPress={() => router.push("/(tabs)/play/QuizScreen")}
+          onPress={() => {}}
         />
       </View>
     </View>
