@@ -10,10 +10,11 @@ import { loadCacheData } from "@/utilities/quiz-logic/cacheUtils";
 import { generateMultipleQuizQuestions } from "@/utilities/api/quizApi";
 import { Difficulty } from "@/utilities/types";
 import { PlayStyle } from "@/utilities/quiz-logic/quizTypesInterfaces";
+import { CACHE_KEY } from "@/utilities/quiz-logic/cacheStructure";
 
 const StartQuizScreen = () => {
   const router = useRouter();
-  const CACHE_KEY = "quizSpecs";
+  const cacheKey = CACHE_KEY.quizSettings;
   const [level, setLevel] = useState<Difficulty>("medium");
   const [topic, setTopic] = useState<string>("");
   const [playStyle, setPlayStyle] = useState<PlayStyle>("solo");
@@ -22,10 +23,12 @@ const StartQuizScreen = () => {
   // ---------- Functions ----------
   const fetchCachedQuizSpecs = async () => {
     try {
-      const cachedQuizSpecs = await loadCacheData(CACHE_KEY);
+      const cachedQuizSpecs = await loadCacheData(cacheKey);
       if (cachedQuizSpecs) {
+        console.log(cachedQuizSpecs);
+        
         setLevel(cachedQuizSpecs.quizLevel);
-        setTopic(cachedQuizSpecs.quizCategory);
+        setTopic(cachedQuizSpecs.chosenTopic);
         setPlayStyle(cachedQuizSpecs.quizPlayStyle);
       }
     } catch (error) {
