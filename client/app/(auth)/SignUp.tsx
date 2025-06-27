@@ -437,6 +437,7 @@ export default function SignUpScreen() {
         cancelText="Try Another Email"
         confirmText="Go to Login"
         onConfirm={handleGoToLogin}
+        noInternet={false}
       />
     </KeyboardAvoidingView>
   );
