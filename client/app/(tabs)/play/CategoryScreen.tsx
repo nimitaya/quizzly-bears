@@ -8,7 +8,12 @@ import { StyleSheet } from "react-native";
 import { SearchInput } from "@/components/Inputs";
 import { RadioButton } from "@/components/RadioButton";
 import { useEffect, useState } from "react";
-import { saveDataToCache, QuizSpecs, loadCacheData, PlayStyle } from "@/utilities/quiz-logic/cacheUtils";
+import {
+  saveDataToCache,
+  QuizSpecs,
+  loadCacheData,
+  PlayStyle,
+} from "@/utilities/quiz-logic/cacheUtils";
 
 const LEVELS = [
   { label: "Easy: Cub Curious", value: "easy" },
@@ -29,7 +34,7 @@ const CategoryScreen = () => {
     const chosenSpecs: QuizSpecs = {
       quizCategory: category,
       quizLevel: selectedLevel,
-      quizPlayStyle: playStyle, 
+      quizPlayStyle: playStyle,
     };
     try {
       await saveDataToCache(CACHE_KEY, chosenSpecs);
@@ -41,25 +46,25 @@ const CategoryScreen = () => {
   // set the selected category, call cache function and navigate to StartQuizScreen
   const handleChosenCategory = (category: string) => {
     setSelectedCategory(category);
-    sendInformationToCache(category)
-    router.push("/(tabs)/play/StartQuizScreen")
-  }
+    sendInformationToCache(category);
+    router.push("/(tabs)/play/StartQuizScreen");
+  };
 
   // ---------- USE EFFECT ----------
-  useEffect(()=> {
+  useEffect(() => {
     // Fetch cached quiz specs to set the play style
     const fetchCachedQuizSpecs = async () => {
       try {
-        const cachedQuizSpecs = await loadCacheData(CACHE_KEY)
+        const cachedQuizSpecs = await loadCacheData(CACHE_KEY);
         if (cachedQuizSpecs) {
           setPlayStyle(cachedQuizSpecs.quizPlayStyle);
         }
       } catch (error) {
         console.error("Failed to load data from cache:", error);
       }
-    }
-    fetchCachedQuizSpecs()
-  }, [])
+    };
+    fetchCachedQuizSpecs();
+  }, []);
   // ----------------------------------------
   return (
     <View style={styles.container}>
@@ -88,25 +93,50 @@ const CategoryScreen = () => {
           ))}
         </View>
         <View style={styles.searchToticBlock}>
-          <SearchInput placeholder="Your topic ..." value={selectedCategory} onChangeText={(text: string)=>setSelectedCategory(text)}/>
-          <ButtonPrimary text="Search" onPress={()=>handleChosenCategory(selectedCategory)}/>
+          <SearchInput
+            placeholder="Your topic ..."
+            value={selectedCategory}
+            onChangeText={(text: string) => setSelectedCategory(text)}
+          />
+          <ButtonPrimary
+            text="Search"
+            onPress={() => handleChosenCategory(selectedCategory)}
+          />
         </View>
         <View style={{ marginVertical: Gaps.g32 }}>
           <Text style={{ fontSize: FontSizes.TextLargeFs }}>
             Or pick a prepared category
           </Text>
         </View>
-        <View style={styles.preparedToticContainer}>
+        <View style={styles.preparedTopicContainer}>
           <ButtonSecondary
             text="History"
             onPress={() => handleChosenCategory("History")}
           />
-          <ButtonSecondary text="Science" onPress={() => handleChosenCategory("Science")}/>
-          <ButtonSecondary text="Sports" onPress={() => handleChosenCategory("Sports")}/>
-          <ButtonSecondary text="Geography" onPress={() => handleChosenCategory("Geography")}/>
-          <ButtonSecondary text="Media" onPress={() => handleChosenCategory("Media")}/>
-          <ButtonSecondary text="Culture" onPress={() => handleChosenCategory("Culture")}/>
-          <ButtonSecondary text="Daily life" onPress={() => handleChosenCategory("Daily life")}/>
+          <ButtonSecondary
+            text="Science"
+            onPress={() => handleChosenCategory("Science")}
+          />
+          <ButtonSecondary
+            text="Sports"
+            onPress={() => handleChosenCategory("Sports")}
+          />
+          <ButtonSecondary
+            text="Geography"
+            onPress={() => handleChosenCategory("Geography")}
+          />
+          <ButtonSecondary
+            text="Media"
+            onPress={() => handleChosenCategory("Media")}
+          />
+          <ButtonSecondary
+            text="Culture"
+            onPress={() => handleChosenCategory("Culture")}
+          />
+          <ButtonSecondary
+            text="Daily life"
+            onPress={() => handleChosenCategory("Daily life")}
+          />
         </View>
       </ScrollView>
     </View>
@@ -136,7 +166,7 @@ const styles = StyleSheet.create({
   levelSelectionBlock: {
     marginBottom: Gaps.g32,
   },
-  preparedToticContainer: {
+  preparedTopicContainer: {
     gap: Gaps.g16,
   },
 });
