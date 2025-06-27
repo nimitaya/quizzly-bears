@@ -22,7 +22,7 @@ export default function WelcomeScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={{ marginBottom: Gaps.g40 }}>
+      <View style={{ marginBottom: Gaps.g16 }}>
         <Logo size="big" />
       </View>
       <View style={styles.descriptionContainer}>
@@ -30,7 +30,7 @@ export default function WelcomeScreen() {
           style={{
             color: Colors.black,
             fontSize: FontSizes.H1Fs,
-            marginBottom: Gaps.g32,
+            marginBottom: Gaps.g16,
           }}
         >
           Quizzly Bears Guide
