@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, useSegments } from "expo-router";
 import NetInfo from "@react-native-community/netinfo";
-import CustomAlert from "./CustomAlert";
+import CustomAlert from "../components/CustomAlert";
 
 type NetworkAlertProviderProps = {
   children: React.ReactNode;
