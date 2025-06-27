@@ -1,20 +1,25 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
 import { useUser, useAuth } from "@clerk/clerk-expo";
-import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Define the context type
 type GlobalLoadingContextType = {
   isGloballyLoading: boolean;
   isAuthenticated: boolean;
-  refreshGlobalState: () => void;
+  refreshGlobalState: () => Promise<void>;
 };
 
 // Create the context
 const GlobalLoadingContext = createContext<GlobalLoadingContextType>({
   isGloballyLoading: true,
   isAuthenticated: false,
-  refreshGlobalState: () => {},
+  refreshGlobalState: async () => {},
 });
 
 // Custom hook to use the context
@@ -27,75 +32,70 @@ export const GlobalLoadingProvider: React.FC<{ children: React.ReactNode }> = ({
   const { isLoaded: authLoaded } = useAuth();
   const [isGloballyLoading, setIsGloballyLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [mongoDbConnected, setMongoDbConnected] = useState(false);
-  const router = useRouter();
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  // Use refs to prevent infinite loops
+  const isRefreshingRef = useRef(false);
 
   // Function to refresh the global state
   const refreshGlobalState = async () => {
-    setIsGloballyLoading(true);
+    // Prevent concurrent refreshes
+    if (isRefreshingRef.current) return;
+
+    isRefreshingRef.current = true;
 
     try {
-      // Check MongoDB connection if needed
-      await checkMongoDbConnection();
+      // Only set loading if we're not already initializing
+      if (!isInitializing) {
+        setIsGloballyLoading(true);
+      }
 
       // Check if authentication is loaded
       if (userLoaded && authLoaded) {
         setIsAuthenticated(!!isSignedIn);
       }
+
+      // Small delay for stability
+      await new Promise((resolve) => setTimeout(resolve, 100));
     } catch (error) {
       console.error("Error refreshing global state:", error);
     } finally {
       setIsGloballyLoading(false);
-    }
-  };
-
-  // Check MongoDB connection
-  const checkMongoDbConnection = async () => {
-    try {
-      // Simulate MongoDB connection check or actually check it
-      // For example check if a token exists
-      const dbConnected = await AsyncStorage.getItem("mongodb_connected");
-      setMongoDbConnected(dbConnected === "true");
-      return dbConnected === "true";
-    } catch (error) {
-      console.error("MongoDB connection check failed:", error);
-      return false;
+      isRefreshingRef.current = false;
     }
   };
 
   // Effect to handle initial loading and authentication state
   useEffect(() => {
     const initializeApp = async () => {
-      if (!userLoaded || !authLoaded) {
-        return; // Auth not ready yet
-      }
-
       try {
-        // Check MongoDB connection
-        await checkMongoDbConnection();
+        // Skip if auth is not ready
+        if (!userLoaded || !authLoaded) {
+          return;
+        }
 
-        // Set authentication state
+        // Set authentication based on Clerk state
         setIsAuthenticated(!!isSignedIn);
 
-        // Wait for a small delay to ensure everything is loaded
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        // Wait to ensure everything is loaded
+        await new Promise((resolve) => setTimeout(resolve, 300));
       } catch (error) {
         console.error("Error during app initialization:", error);
       } finally {
-        // Finish loading
+        // Finish initial loading
         setIsGloballyLoading(false);
+        setIsInitializing(false);
       }
     };
 
-    initializeApp();
+    // Only initialize if both userLoaded and authLoaded are true
+    if (userLoaded && authLoaded) {
+      initializeApp();
+    }
   }, [userLoaded, authLoaded, isSignedIn]);
 
-  // Route to Loading screen when globally loading
-  useEffect(() => {
-    if (isGloballyLoading) {
-      router.replace("/Loading");
-    }
-  }, [isGloballyLoading, router]);
+  // CRITICAL FIX: Remove the automatic router.replace to Loading
+  // This was causing an infinite loop
 
   // Provide the context values
   const contextValue = {
