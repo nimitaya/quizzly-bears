@@ -67,7 +67,7 @@ const StartQuizScreen = () => {
           </View>
           <View style={styles.pointsRow}>
             <IconCheckbox />
-            <Text style={styles.pointsText}>Chosen level: {level[0].toUpperCase()+level.slice(1)}</Text>
+            <Text style={styles.pointsText}>Chosen level: {level}</Text>
 
           </View>
           <View style={styles.pointsRow}>
