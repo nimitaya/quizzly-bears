@@ -9,10 +9,12 @@ import {
   ScrollView,
   SafeAreaView,
 } from "react-native";
-import { generateQuizQuestion } from "@/utilities/api/quizApi";
-import { QuizComponentProps} from "@/utilities/types";
+import {
+  generateQuizQuestion,
+  generateMultipleQuizQuestions,
+} from "@/utilities/api/quizApi";
+import { QuizComponentProps } from "@/utilities/types";
 import { QuizQuestion } from "@/utilities/types";
-
 
 const QuizComponent: React.FC<QuizComponentProps> = ({
   difficulty = "easy",
@@ -27,6 +29,41 @@ const QuizComponent: React.FC<QuizComponentProps> = ({
   const [score, setScore] = useState(0);
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [usedQuestions, setUsedQuestions] = useState<Set<string>>(new Set()); // Nachverfolgung bereits gestellter Fragen
+  const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]); // hier werden die 10 Antworten gespeichert in einem Array
+
+    // Neue Zustände für Mehrfachfragen (10)
+    const [questionBank, setQuestionBank] = useState<QuizQuestion[]>([]);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
+//Funktion um mehrere Fragen auf einmal zu generieren und speichern
+
+ const loadTenQuestions = async () => {
+  setLoading(true);
+  try {
+    const questions = await generateMultipleQuizQuestions(
+      category,
+      difficulty,
+      10
+    );
+    
+    console.log('Questions generated:', questions.length);
+    setQuestionBank(questions);
+    setCurrentQuestionIndex(0);
+    
+    if (questions.length > 0) {
+      setCurrentQuestion(questions[0]);
+      setTotalQuestions(1);
+    }
+  } catch (error) {
+    console.error('Error generating ten questions:', error);
+    Alert.alert(
+      "Error",
+      "Es war nicht möglich, die Fragen zu generieren. Bitte versuche es später erneut."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   /**
    * Lädt eine neue Frage
@@ -91,10 +128,6 @@ const QuizComponent: React.FC<QuizComponentProps> = ({
     }
   };
 
-  /**
-   * Behandelt die Auswahl einer Antwort
-   */
-  const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]); // Array para almacenar las opciones seleccionadas
 
   /**
    * Behandelt die Auswahl einer Antwort
@@ -141,6 +174,9 @@ const QuizComponent: React.FC<QuizComponentProps> = ({
     setScore(0);
     setTotalQuestions(0);
     setUsedQuestions(new Set()); // Fragenverlauf löschen
+
+    setQuestionBank([]);
+    setCurrentQuestionIndex(0);
   };
 
   return (

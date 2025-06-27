@@ -119,9 +119,9 @@ const QuizLogic = () => {
                     ))}
                 </View>
                 <View style={styles.buttonsWrapper}>
-                  {answerState.isLocked && playStyle === "solo" ? (
+                  {answerState.isLocked && gameState.playStyle === "solo" ? (
                     <ButtonPrimary text="Next" onPress={handleNextQuestion} />
-                  ) : answerState.isLocked && playStyle === "group" ? (
+                  ) : answerState.isLocked && gameState.playStyle === "group" ? (
                     <ButtonPrimaryDisabled text="Waiting for other bears..." />
                   ) : answerState.isSelected ? (
                     <ButtonPrimary text="Answer" onPress={handleAnswerSubmit} />

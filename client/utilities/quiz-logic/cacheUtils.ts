@@ -1,14 +1,22 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// ---------- TYPES AND INTERFACES ----------
+export interface QuizSpecs {
+  quizCategory: string,
+  quizLevel: string,
+  quizPlayStyle: PlayStyle
+}
+
+export type PlayStyle = "solo" | "duel" | "group";
+
 // ---------- LOAD CACHE DATA ----------
 export const loadCacheData = async <T = any>(
   key: string
-): Promise<T | null> => {
+) => {
   try {
     const storedData = await AsyncStorage.getItem(key);
     if (storedData) {
       const parsedData = JSON.parse(storedData);
-
       return parsedData;
     } else {
       return null;
