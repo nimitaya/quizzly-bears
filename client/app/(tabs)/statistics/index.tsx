@@ -1,13 +1,9 @@
 import { View, TouchableOpacity, Text, ScrollView } from "react-native";
-import IconArrowBack from "@/assets/icons/IconArrowBack";
-import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
+import { ButtonSecondary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
 import { FontSizes, Gaps } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import { StyleSheet } from "react-native";
-import { SearchInput } from "@/components/Inputs";
-import { RadioButton } from "@/components/RadioButton";
-import { useEffect, useState } from "react";
 import IconMedal1Place from "@/assets/icons/IconMedal1Place";
 const StatisticsScreen = () => {
   const router = useRouter();
