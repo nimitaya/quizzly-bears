@@ -1,15 +1,20 @@
-import { Colors } from "@/styles/theme";
+import { Colors, FontSizes, Gaps, Radius } from "@/styles/theme";
 import React, { useState } from "react";
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
+
+import { Logo } from "./Logos";
+
+
 
 type CustomAlertProps = {
   visible: boolean;
   onClose: () => void;
   title?: string | null;
   message: string;
-  cancelText?: string;
+  cancelText?: string | null;
   confirmText?: string;
   onConfirm?: () => void;
+  noInternet: boolean;
 };
 
 const CustomAlert: React.FC<CustomAlertProps> = ({
@@ -20,11 +25,12 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
   cancelText = "Cancel",
   confirmText = "OK",
   onConfirm = onClose,
+  noInternet,
 }) => (
   <Modal transparent visible={visible} animationType="fade">
     <View style={styles.overlay}>
       <View style={styles.alertBox}>
-        <Text style={styles.title}>{title}</Text>
+        {noInternet ? <Logo size="small" /> : null}
         <Text style={styles.message}>{message}</Text>
         <View style={styles.buttonRow}>
           {cancelText !== null && (
@@ -46,38 +52,53 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#0008",
+    backgroundColor: "rgba(41, 45, 26, 0.58)",
   },
   alertBox: {
     backgroundColor: Colors.bgGray,
-    borderRadius: 10,
-    padding: 24,
-    width: 300,
+    borderRadius: 28,
+    padding: 32,
+    width: 320,
     alignItems: "center",
   },
-  title: { fontWeight: "bold", fontSize: 18, marginBottom: 8 },
-  message: { fontSize: 16, marginBottom: 16 },
+  message: {
+    fontSize: FontSizes.H3Fs,
+    textAlign: "center",
+    marginTop: Gaps.g24,
+    width: 256,
+  },
   buttonRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     width: "100%",
+    marginTop: Gaps.g40,
   },
   cancelBtn: {
-    flex: 1,
-    padding: 10,
-    marginRight: 8,
+    width: 120,
+    height: 48,
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: Colors.white,
-    borderRadius: 5,
+    borderRadius: Radius.r50,
   },
   okBtn: {
-    flex: 1,
-    padding: 10,
-    marginLeft: 8,
+    width: 120,
+    height: 54,
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: Colors.primaryLimo,
-    borderRadius: 5,
+    borderRadius: Radius.r50,
   },
-  cancelText: { color: Colors.black, textAlign: "center" },
-  okText: { color: Colors.black, textAlign: "center" },
+  cancelText: {
+    color: Colors.black,
+    textAlign: "center",
+    fontSize: FontSizes.TextSmallFs,
+  },
+  okText: {
+    color: Colors.black,
+    textAlign: "center",
+    fontSize: FontSizes.TextSmallFs,
+  },
 });
 
 export default CustomAlert;

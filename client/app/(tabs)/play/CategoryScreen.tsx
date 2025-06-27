@@ -113,7 +113,7 @@ const CategoryScreen = () => {
             Or pick a prepared category
           </Text>
         </View>
-        <View style={styles.preparedToticContainer}>
+        <View style={styles.preparedTopicContainer}>
           <ButtonSecondary
             text="History"
             onPress={() => handleChosenCategory("History")}
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   levelSelectionBlock: {
     marginBottom: Gaps.g32,
   },
-  preparedToticContainer: {
+  preparedTopicContainer: {
     gap: Gaps.g16,
   },
 });
