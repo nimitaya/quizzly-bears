@@ -36,7 +36,7 @@ const CategoryScreen = () => {
   // Send selected quiz info to cache
   const sendInformationToCache = async (category: string) => {
     const chosenSpecs: QuizSettings = {
-      quizCategory: "",
+      quizCategory: category,
       quizLevel: selectedLevel,
       quizPlayStyle: playStyle,
       chosenTopic: category
@@ -50,6 +50,8 @@ const CategoryScreen = () => {
 
   // Set the selected category, call cache function and navigate to StartQuizScreen
   const handleChosenCategory = (category: string) => {
+    console.log(category);
+    
     setSelectedTopic(category);
     sendInformationToCache(category);
     router.push("/(tabs)/play/StartQuizScreen");
