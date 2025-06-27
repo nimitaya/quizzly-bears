@@ -273,10 +273,15 @@ export default function SignUpScreen() {
           value={code}
           placeholder="Enter verification code"
           onChangeText={(newCode) => {
-            if (error !== "") {
+            const numbersOnly = newCode.replace(/[^0-9]/g, "");
+
+            if (newCode !== numbersOnly) {
+              setError("Please enter numbers only");
+            } else if (error && error.includes("verification code")) {
               setError("");
             }
-            setCode(newCode);
+
+            setCode(numbersOnly);
           }}
           keyboardType="number-pad"
           autoFocus
@@ -432,6 +437,7 @@ export default function SignUpScreen() {
         cancelText="Try Another Email"
         confirmText="Go to Login"
         onConfirm={handleGoToLogin}
+        noInternet={false}
       />
     </KeyboardAvoidingView>
   );

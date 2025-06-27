@@ -2,18 +2,13 @@ import React, { useEffect } from "react";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { Slot } from "expo-router";
-import {
-  View,
-  Text,
-  TextInput,
-  TextProps,
-  TextInputProps,
-  Platform,
-} from "react-native";
+import { View, Text, TextInput } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Colors } from "@/styles/theme";
 import { useCustomFonts } from "@/hooks/useCustomFonts";
-import NetworkAlertProvider from "@/components/NetworkAlertProvider";
+import NetworkAlertProvider from "@/providers/NetworkAlertProvider";
+import AuthNavigationHelper from "@/components/AuthNavigationHelper";
+import { GlobalLoadingProvider } from "@/providers/GlobalLoadingProvider";
 
 // Override with safe type casting
 const overrideDefaultFont = () => {
@@ -47,13 +42,16 @@ export default function RootLayout() {
 
   return (
     <ClerkProvider tokenCache={tokenCache}>
-      <NetworkAlertProvider>
-        <SafeAreaProvider>
-          <View style={{ flex: 1, backgroundColor: Colors.bgGray }}>
-            <Slot />
-          </View>
-        </SafeAreaProvider>
-      </NetworkAlertProvider>
+      <GlobalLoadingProvider>
+        <NetworkAlertProvider>
+          <SafeAreaProvider>
+            <View style={{ flex: 1, backgroundColor: Colors.bgGray }}>
+              <AuthNavigationHelper />
+              <Slot />
+            </View>
+          </SafeAreaProvider>
+        </NetworkAlertProvider>
+      </GlobalLoadingProvider>
     </ClerkProvider>
   );
 }

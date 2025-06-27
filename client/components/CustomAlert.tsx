@@ -1,16 +1,20 @@
 import { Colors, FontSizes, Gaps, Radius } from "@/styles/theme";
 import React, { useState } from "react";
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
+
 import { Logo } from "./Logos";
+
+
 
 type CustomAlertProps = {
   visible: boolean;
   onClose: () => void;
   title?: string | null;
   message: string;
-  cancelText?: string;
+  cancelText?: string | null;
   confirmText?: string;
   onConfirm?: () => void;
+  noInternet: boolean;
 };
 
 const CustomAlert: React.FC<CustomAlertProps> = ({
@@ -21,11 +25,12 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
   cancelText = "Cancel",
   confirmText = "OK",
   onConfirm = onClose,
+  noInternet,
 }) => (
   <Modal transparent visible={visible} animationType="fade">
     <View style={styles.overlay}>
       <View style={styles.alertBox}>
-        <Logo size="small" />
+        {noInternet ? <Logo size="small" /> : null}
         <Text style={styles.message}>{message}</Text>
         <View style={styles.buttonRow}>
           {cancelText !== null && (

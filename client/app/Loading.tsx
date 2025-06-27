@@ -1,8 +1,52 @@
+import React, { useEffect } from "react";
 import { View, StyleSheet, Image } from "react-native";
 import { Logo } from "@/components/Logos";
-import { Gaps } from "@/styles/theme";
+import { Gaps, Colors } from "@/styles/theme";
+import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Loading = () => {
+  const { isGloballyLoading } = useGlobalLoading();
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  const returnTo = (params.returnTo as string) || null;
+
+  useEffect(() => {
+    let isMounted = true;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const checkAndNavigate = async () => {
+      if (!isGloballyLoading && isMounted) {
+        // Get the lastScreen from storage if no returnTo is provided
+        let destination = returnTo;
+
+        if (!destination) {
+          try {
+            destination =
+              (await AsyncStorage.getItem("last_screen")) || "/(tabs)";
+          } catch (err) {
+            destination = "/(tabs)";
+          }
+        }
+
+        // Wait a bit to show the loading screen
+        timer = setTimeout(() => {
+          if (isMounted) {
+            router.replace(destination as any);
+          }
+        }, 1500);
+      }
+    };
+
+    checkAndNavigate();
+
+    return () => {
+      isMounted = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [isGloballyLoading, router, returnTo]);
+
   return (
     <View style={styles.container}>
       <Logo size="big" />
@@ -16,6 +60,7 @@ const Loading = () => {
     </View>
   );
 };
+
 export default Loading;
 
 const styles = StyleSheet.create({
@@ -24,5 +69,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: Gaps.g40,
+    backgroundColor: Colors.white,
   },
 });
