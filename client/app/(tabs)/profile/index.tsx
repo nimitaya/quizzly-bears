@@ -1,13 +1,15 @@
+
 import IconBearTab from "@/assets/icons/IconBearTab";
 import IconBearTabAktiv from "@/assets/icons/IconBearTabAktiv";
-import { Text, View, TouchableOpacity } from "react-native";
+import { Text, View, TouchableOpacity, StyleSheet } from "react-native";
 import ClerkSettings from "@/app/(auth)/ClerkSettings";
-import QuizComponent from "@/components/QuizComponent";
 import { useUser } from "@clerk/clerk-expo";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Colors, FontSizes } from "@/styles/theme";
 import Loading from "@/app/Loading";
+import { Logo } from "@/components/Logos";
+import { FontSizes, Gaps } from "@/styles/theme";
+
 
 const ProfileScreen = () => {
   const { isSignedIn, isLoaded } = useUser();
@@ -53,14 +55,16 @@ const ProfileScreen = () => {
   }
 
   return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <Text>ProfileScreen</Text>
-      <IconBearTab />
-      <IconBearTabAktiv />
+    <View style={styles.container}>
+      <View style={{ marginBottom: Gaps.g24 }}>
+        <Logo size="small" />
+      </View>
+      {/* Profile name aund settings */}
       {isSignedIn ? (
         // Pass refreshKey as a prop instead of using it as part of key
         <ClerkSettings refreshKey={refreshKey} />
       ) : (
+
         <View>
           <Text>Sign in to access your profile settings</Text>
           <TouchableOpacity onPress={handleAuthRedirect}>
@@ -68,9 +72,16 @@ const ProfileScreen = () => {
           </TouchableOpacity>
         </View>
       )}
-      <QuizComponent />
     </View>
   );
 };
 
 export default ProfileScreen;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    marginTop: Gaps.g80,
+    alignItems: "center",
+  },
+});
