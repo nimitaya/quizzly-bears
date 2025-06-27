@@ -80,7 +80,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.primaryLimo,
     flex: 1,
     paddingHorizontal: 32,
-
     fontSize: FontSizes.TextLargeFs,
   },
 });

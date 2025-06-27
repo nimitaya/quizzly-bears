@@ -66,6 +66,7 @@ const NetworkAlertProvider: React.FC<NetworkAlertProviderProps> = ({
         cancelText="Home"
         confirmText="Mini games"
         onConfirm={handleGoToPlay}
+        noInternet={true}
       />
     </>
   );
