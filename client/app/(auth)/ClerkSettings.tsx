@@ -1,35 +1,53 @@
-import { SignedIn, SignedOut, useUser, useAuth } from "@clerk/clerk-expo";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
+import {
+  SignedIn,
+  SignedOut,
+  useUser,
+  useAuth,
+  useClerk,
+} from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
-import { Text, View, StyleSheet, ActivityIndicator } from "react-native";
+import {
+  Text,
+  View,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+} from "react-native";
 import SignOutButton from "@/app/(auth)/SignOutButton";
-import { useEffect, useState, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors, FontSizes, Gaps } from "@/styles/theme";
 
-// Add a prop to receive the refresh key from the parent
-export default function ClerkSettings({ refreshKey = 0 }) {
-  const { user, isLoaded: userLoaded } = useUser();
-  const { isSignedIn, isLoaded: authLoaded } = useAuth();
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [wasRecentlyReset, setWasRecentlyReset] = useState(false);
-  const router = useRouter();
-  const prevRefreshKeyRef = useRef(refreshKey);
+// Define the ref type
+export type ClerkSettingsRefType = {
+  manualRefresh: () => Promise<void>;
+};
 
-  // React to refreshKey changes
-  useEffect(() => {
-    if (refreshKey !== prevRefreshKeyRef.current) {
-      console.log("ClerkSettings detected refresh key change:", refreshKey);
-      prevRefreshKeyRef.current = refreshKey;
+// Change the component to use forwardRef
+const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
+  ({ refreshKey = 0 }, ref) => {
+    const { user, isLoaded: userLoaded } = useUser();
+    const { isSignedIn, isLoaded: authLoaded } = useAuth();
+    const clerk = useClerk();
+    const [isCheckingAuth, setIsCheckingAuth] = useState(false); // Start as false to avoid immediate checking
+    const [wasRecentlyReset, setWasRecentlyReset] = useState(false);
+    const prevRefreshKeyRef = useRef(refreshKey);
+    const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const maxChecksRef = useRef(0);
 
-      // Force a re-check of auth status
-      setIsCheckingAuth(true);
+    // First render effect to check for password reset
+    useEffect(() => {
+      let isMounted = true;
 
-      // Force user and auth to re-evaluate
-      const forceRefresh = async () => {
-        try {
-          // Check if auth has already been loaded
-          if (authLoaded && userLoaded) {
-            // Check if password was recently reset
+      const checkPasswordReset = async () => {
+        if (authLoaded && userLoaded && isMounted) {
+          try {
             const resetFlag = await AsyncStorage.getItem(
               "password_recently_reset"
             );
@@ -38,197 +56,334 @@ export default function ClerkSettings({ refreshKey = 0 }) {
               setWasRecentlyReset(true);
               await AsyncStorage.removeItem("password_recently_reset");
             }
-
-            // Short delay before finishing check to let auth state stabilize
-            setTimeout(() => {
-              setIsCheckingAuth(false);
-              console.log("Refreshed auth state:", { isSignedIn, userLoaded });
-            }, 500);
+          } catch (err) {
+            console.log("Error checking reset status:", err);
           }
-        } catch (e) {
-          console.log("Error during refresh:", e);
-          setIsCheckingAuth(false);
         }
       };
 
-      forceRefresh();
-    }
-  }, [refreshKey, authLoaded, userLoaded, isSignedIn]);
+      checkPasswordReset();
 
-  // Check authentication status and recent password reset
-  useEffect(() => {
-    const checkAuthState = async () => {
-      if (authLoaded && userLoaded) {
+      return () => {
+        isMounted = false;
+      };
+    }, [authLoaded, userLoaded]);
+
+    // Handle refresh key changes
+    useEffect(() => {
+      // Only check if the refresh key actually changed
+      if (refreshKey !== prevRefreshKeyRef.current) {
+        console.log("ClerkSettings refresh key changed:", refreshKey);
+        prevRefreshKeyRef.current = refreshKey;
+
+        // Increment check counter to prevent infinite loops
+        maxChecksRef.current += 1;
+
+        // Only check up to 3 times per component lifecycle
+        if (maxChecksRef.current <= 3) {
+          setIsCheckingAuth(true);
+
+          // Set a timeout to end checking state after 2 seconds max
+          setTimeout(() => {
+            setIsCheckingAuth(false);
+          }, 2000);
+        } else {
+          console.log("Too many auth checks - skipping");
+        }
+      }
+    }, [refreshKey]);
+
+    // Force syncing the clerk session state
+    useEffect(() => {
+      if (isCheckingAuth && clerk) {
+        const syncSession = async () => {
+          try {
+            // Try to sync the session using available methods
+            if (clerk.session) {
+              console.log("Found clerk session, attempting to refresh");
+
+              // Clerk-expo specific: try touching the session
+              if (typeof clerk.session.touch === "function") {
+                await clerk.session.touch();
+                console.log("Touched clerk session");
+              }
+            }
+          } catch (e) {
+            console.log("Error syncing clerk session:", e);
+          } finally {
+            // Always end checking after a delay
+            setTimeout(() => {
+              setIsCheckingAuth(false);
+            }, 1000);
+          }
+        };
+
+        syncSession();
+      }
+    }, [isCheckingAuth, clerk]);
+
+    // Reset max checks counter when component unmounts
+    useEffect(() => {
+      return () => {
+        maxChecksRef.current = 0;
+      };
+    }, []);
+
+    // Manual refresh function - enhanced version
+    const manualRefresh = async () => {
+      console.log("Performing manual auth refresh");
+      setIsCheckingAuth(true);
+
+      try {
+        // Force clerk session synchronization
+        if (clerk) {
+          // Check for session
+          if (clerk.session) {
+            console.log("Found existing session during manual refresh");
+
+            // Try using touch method if available
+            if (typeof clerk.session.touch === "function") {
+              await clerk.session.touch();
+              console.log("Touched clerk session");
+            }
+          }
+
+          // Special handling for different auth states
+          if (!isSignedIn && clerk.session) {
+            console.log(
+              "Session exists but isSignedIn is false - possible state mismatch"
+            );
+
+            // Force state refresh by setting wasRecentlyReset
+            setWasRecentlyReset(true);
+          }
+        }
+
+        // Check if there's a token in storage that indicates we should be signed in
         try {
-          // Check if password was recently reset
+          const token = await AsyncStorage.getItem("auth_token");
+          if (token && !isSignedIn) {
+            console.log(
+              "Found auth token but not signed in - forcing signed in view"
+            );
+            setWasRecentlyReset(true);
+          }
+        } catch (tokenErr) {
+          console.log("Error checking token:", tokenErr);
+        }
+
+        // Check for password reset flag as a last resort
+        try {
           const resetFlag = await AsyncStorage.getItem(
             "password_recently_reset"
           );
           if (resetFlag === "true") {
-            console.log("Found recent password reset flag");
+            console.log("Found password reset flag during manual refresh");
             setWasRecentlyReset(true);
-
-            // Clear the flag so we don't keep checking
             await AsyncStorage.removeItem("password_recently_reset");
           }
-        } catch (err) {
-          console.log("Error checking reset status:", err);
-        } finally {
-          // Give some time for auth state to stabilize
-          setTimeout(() => {
-            setIsCheckingAuth(false);
-          }, 1000);
+        } catch (resetErr) {
+          console.log("Error checking reset flag:", resetErr);
         }
+      } catch (e) {
+        console.log("Error during manual refresh:", e);
+      } finally {
+        // Give time for all operations to complete
+        setTimeout(() => {
+          setIsCheckingAuth(false);
+        }, 1000);
       }
     };
 
-    checkAuthState();
-  }, [authLoaded, userLoaded]);
+    // Expose functions via ref
+    useImperativeHandle(ref, () => ({
+      manualRefresh,
+    }));
 
-  // Log auth state for debugging
-  useEffect(() => {
-    console.log("Auth state:", {
-      isSignedIn,
-      authLoaded,
-      userLoaded,
-      refreshKey,
-    });
-  }, [isSignedIn, authLoaded, userLoaded, refreshKey]);
+    // Add a special case for forcing signed-in view based on password reset flag
+    // regardless of what Clerk's state shows
+    useEffect(() => {
+      let isMounted = true;
 
-  // Show a loading state locally instead of navigating
-  if (isCheckingAuth || !authLoaded || !userLoaded) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primaryLimo} />
-        <Text style={styles.loadingText}>
-          Checking authentication status...
-        </Text>
-      </View>
-    );
-  }
+      // Check on mount and also on each refresh key change
+      const checkForceSignedIn = async () => {
+        if (!isMounted) return;
 
-  // Force signed-in view if we recently reset password
-  if (wasRecentlyReset) {
+        try {
+          // Check for password reset flag
+          const resetFlag = await AsyncStorage.getItem(
+            "password_recently_reset"
+          );
+
+          // Check for any other special flags that might indicate the user is signed in
+          const hasValidSession = clerk && clerk.session;
+
+          if (resetFlag === "true" || (hasValidSession && !isSignedIn)) {
+            console.log("Force showing signed in view");
+
+            // Force showing signed-in view by setting wasRecentlyReset
+            setWasRecentlyReset(true);
+
+            // Clear the flag
+            if (resetFlag === "true") {
+              await AsyncStorage.removeItem("password_recently_reset");
+            }
+          }
+        } catch (err) {
+          console.log("Error checking force signed in state:", err);
+        }
+      };
+
+      checkForceSignedIn();
+
+      return () => {
+        isMounted = false;
+      };
+    }, [refreshKey, clerk, isSignedIn]);
+
+    // Determine which view to show based on multiple factors
+    const determineAuthState = () => {
+      // If we know the password was reset, always show signed in
+      if (wasRecentlyReset) {
+        return "signedIn";
+      }
+
+      // If Clerk says we're signed in, trust that
+      if (isSignedIn) {
+        return "signedIn";
+      }
+
+      // If we have a session but Clerk says not signed in, it might be a race condition
+      if (clerk && clerk.session) {
+        return "signedIn";
+      }
+
+      // Otherwise show signed out
+      return "signedOut";
+    };
+
+    // Show a loading state locally instead of navigating
+    if (isCheckingAuth) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primaryLimo} />
+          <Text style={styles.loadingText}>
+            Checking authentication status...
+          </Text>
+        </View>
+      );
+    }
+
+    // Use our own auth state determination instead of relying solely on Clerk components
+    const authState = determineAuthState();
+
     return (
       <View style={styles.container}>
-        <View style={styles.signedInContainer}>
-          <Text style={styles.greeting}>Welcome back!</Text>
-          {user && (
-            <Text style={styles.emailText}>
-              {user.emailAddresses[0].emailAddress}
+        {authState === "signedIn" ? (
+          <View style={styles.signedInContainer}>
+            <Text style={styles.greeting}>
+              Hello,{" "}
+              {user?.firstName ||
+                (user?.emailAddresses &&
+                  user.emailAddresses[0]?.emailAddress) ||
+                "User"}
             </Text>
-          )}
-          <Text style={styles.infoText}>Your password was recently reset.</Text>
-          <SignOutButton />
-        </View>
+            <TouchableOpacity
+              onPress={manualRefresh}
+              style={styles.refreshButton}
+            >
+              <Text style={styles.refreshText}>Refresh Auth</Text>
+            </TouchableOpacity>
+            <SignOutButton />
+          </View>
+        ) : (
+          <View style={styles.signedOutContainer}>
+            <Text style={styles.title}>Account Options</Text>
+            <Link href="/(auth)/LogIn" style={styles.link} asChild>
+              <TouchableOpacity>
+                <Text style={styles.linkText}>Sign in</Text>
+              </TouchableOpacity>
+            </Link>
+            <Link href="/(auth)/SignUp" style={styles.link} asChild>
+              <TouchableOpacity>
+                <Text style={styles.linkText}>Sign up</Text>
+              </TouchableOpacity>
+            </Link>
+            <TouchableOpacity
+              onPress={manualRefresh}
+              style={styles.refreshButton}
+            >
+              <Text style={styles.refreshText}>Refresh Auth</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     );
   }
+);
 
-  // The rest of your component stays the same
-  return (
-    <View style={styles.container}>
-      <SignedIn>
-        <View style={styles.signedInContainer}>
-          <Text style={styles.greeting}>
-            Hello,{" "}
-            {user?.firstName || user?.emailAddresses[0]?.emailAddress || "User"}
-          </Text>
-          <SignOutButton />
-        </View>
-      </SignedIn>
-      <SignedOut>
-        <View style={styles.signedOutContainer}>
-          <Text style={styles.title}>Account Options</Text>
-          <Link href="/(auth)/LogIn" style={styles.link}>
-            <Text style={styles.linkText}>Sign in</Text>
-          </Link>
-          <Link href="/(auth)/SignUp" style={styles.link}>
-            <Text style={styles.linkText}>Sign up</Text>
-          </Link>
-        </View>
-      </SignedOut>
-
-      {/* Debug button with refreshKey info - remove in production */}
-      <Text
-        style={styles.debugButton}
-        onPress={() => {
-          console.log("Debug - Auth state:", {
-            isSignedIn,
-            authLoaded,
-            userLoaded,
-            wasRecentlyReset,
-            refreshKey,
-          });
-        }}
-      >
-        Debug Auth State (Refresh: {refreshKey})
-      </Text>
-    </View>
-  );
-}
+// Add display name
+ClerkSettings.displayName = "ClerkSettings";
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    width: "100%",
     padding: 20,
-    backgroundColor: Colors.white,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: Colors.white,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: Colors.black,
   },
   signedInContainer: {
     alignItems: "center",
-    padding: 20,
+    gap: Gaps.g16,
   },
   signedOutContainer: {
     alignItems: "center",
-    padding: 20,
+    gap: Gaps.g16,
   },
   greeting: {
     fontSize: FontSizes.H2Fs,
-    fontWeight: "bold",
-    marginBottom: 16,
+    textAlign: "center",
   },
   emailText: {
     fontSize: FontSizes.TextMediumFs,
-    marginBottom: 20,
   },
   infoText: {
     fontSize: FontSizes.TextMediumFs,
-    color: Colors.primaryLimo,
-    marginBottom: 20,
+    marginBottom: Gaps.g8,
   },
   title: {
-    fontSize: FontSizes.H1Fs,
-    fontWeight: "bold",
-    marginBottom: 24,
+    fontSize: FontSizes.H2Fs,
+    marginBottom: Gaps.g16,
   },
   link: {
-    marginVertical: 8,
+    backgroundColor: Colors.primaryLimo,
     padding: 12,
-    backgroundColor: Colors.black + "10",
     borderRadius: 8,
     width: "100%",
     alignItems: "center",
   },
   linkText: {
+    color: Colors.white,
     fontSize: FontSizes.TextMediumFs,
-    fontWeight: "600",
-  },
-  debugButton: {
-    marginTop: 40,
-    padding: 8,
     textAlign: "center",
-    color: Colors.black + "80",
-    fontSize: 12,
+  },
+  loadingContainer: {
+    padding: Gaps.g24,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Gaps.g16,
+  },
+  loadingText: {
+    fontSize: FontSizes.TextMediumFs,
+  },
+  refreshButton: {
+    backgroundColor: Colors.black + "15",
+    padding: 10,
+    borderRadius: 6,
+    marginTop: 10,
+  },
+  refreshText: {
+    color: Colors.white,
+    fontSize: FontSizes.TextSmallFs,
   },
 });
+
+export default ClerkSettings;
