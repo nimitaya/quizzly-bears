@@ -295,6 +295,8 @@ export default function ForgotPassword() {
           try {
             // Store the successful reset flag for other components
             await AsyncStorage.setItem("password_recently_reset", "true");
+            console.log("Set password reset flag"); // Add this line
+
             console.log(
               "Authentication successful, session created:",
               result.createdSessionId
