@@ -1,13 +1,15 @@
 import { Text, View, TouchableOpacity, StyleSheet } from "react-native";
 import GoogleSignInButton from "@/app/(auth)/GoogleSignInButton";
 import FacebookInButton from "@/app/(auth)/FacebookSignInButton";
-import { Gaps, FontSizes, FontWeights } from "@/styles/theme";
+import { Gaps, FontSizes } from "@/styles/theme";
 import { ButtonSecondary } from "@/components/Buttons";
 import Fontisto from "@expo/vector-icons/Fontisto";
 import { useRouter } from "expo-router";
 
 const LogInScreen = () => {
   const router = useRouter();
+
+  // Navigation handlers
   const EmailLogIn = () => {
     router.push("/(auth)/LogIn");
   };
@@ -55,6 +57,7 @@ const LogInScreen = () => {
     </View>
   );
 };
+
 export default LogInScreen;
 
 const styles = StyleSheet.create({

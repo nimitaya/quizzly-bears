@@ -15,26 +15,23 @@ import { ButtonPrimary } from "@/components/Buttons";
 import CustomAlert from "@/components/CustomAlert";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
-import { Feather } from "@expo/vector-icons";
+import { PasswordInput } from "@/components/Inputs";
 
 export default function LogIn() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const router = useRouter();
   const { refreshGlobalState } = useGlobalLoading();
 
-  // State management
   const [emailAddress, setEmailAddress] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isEmailError, setIsEmailError] = useState(false);
   const [showResetAlert, setShowResetAlert] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
-  // Safe loading state with timeout to prevent infinite loading
+  // Prevent infinite loading on web
   const safeSetLoading = (isLoading: boolean) => {
     setIsLoading(isLoading);
-
     if (isLoading && Platform.OS === "web") {
       setTimeout(() => {
         setIsLoading(false);
@@ -42,22 +39,19 @@ export default function LogIn() {
     }
   };
 
-  // Handle the submission of the sign-in form
+  // Handle sign-in logic
   const onSignInPress = async () => {
     if (!isLoaded || isLoading) return;
 
-    // Clear previous errors
     setError("");
     setIsEmailError(false);
 
-    // Validate email first - both presence and format
     if (!emailAddress) {
       setError("Please enter your email");
       setIsEmailError(true);
       return;
     }
 
-    // Email format validation before checking password
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(emailAddress)) {
       setError("Please enter a valid email address");
@@ -65,13 +59,11 @@ export default function LogIn() {
       return;
     }
 
-    // Only check password after email is valid
     if (!password) {
       setError("Please enter your password");
       return;
     }
 
-    // Proceed with sign-in if validation passes
     safeSetLoading(true);
 
     try {
@@ -82,11 +74,9 @@ export default function LogIn() {
 
       if (signInAttempt.status === "complete") {
         await setActive({ session: signInAttempt.createdSessionId });
-
-        // IMPORTANT: Update global auth state
         await refreshGlobalState();
 
-        // IMPORTANT: Use AuthNavigationHelper pattern
+        // Use AuthNavigationHelper pattern for navigation
         if (Platform.OS !== "web") {
           await AsyncStorage.setItem("auth_navigation_pending", "true");
           await AsyncStorage.setItem(
@@ -100,9 +90,7 @@ export default function LogIn() {
         setError("Sign in failed. Please check your email and password.");
       }
     } catch (err: any) {
-      // Handle common errors
       if (err.errors && err.errors.length > 0) {
-        // Check for incorrect credentials
         if (
           err.errors.some(
             (e: any) =>
@@ -112,9 +100,7 @@ export default function LogIn() {
           )
         ) {
           setError("Incorrect email or password");
-        }
-        // Check for invalid email
-        else if (
+        } else if (
           err.errors.some(
             (e: any) =>
               e.code === "form_identifier_not_valid" ||
@@ -125,9 +111,7 @@ export default function LogIn() {
         ) {
           setError("Please enter a valid email address");
           setIsEmailError(true);
-        }
-        // Other errors
-        else {
+        } else {
           setError(
             err.errors[0].message || "Sign in failed. Please try again."
           );
@@ -140,18 +124,17 @@ export default function LogIn() {
     }
   };
 
-  // Handle password reset request
+  // Show password reset alert if email is present
   const handleForgotPassword = () => {
     if (!emailAddress) {
       setError("Please enter your email first");
       setIsEmailError(true);
       return;
     }
-
     setShowResetAlert(true);
   };
 
-  // Navigate to the forgot password screen
+  // Navigate to forgot password screen
   const handleResetPassword = () => {
     setShowResetAlert(false);
     router.push({
@@ -185,11 +168,10 @@ export default function LogIn() {
             }
           }}
         />
-        <SearchInput
+
+        <PasswordInput
           value={password}
-          placeholder="Enter password"
-          secureTextEntry={!showPassword}
-          onChangeText={(pwd) => {
+          onChangeText={(pwd: string) => {
             setPassword(pwd);
             if (
               error === "Please enter your password" ||
@@ -200,17 +182,6 @@ export default function LogIn() {
             }
           }}
         />
-        <TouchableOpacity
-          style={styles.eyeIcon}
-          onPress={() => setShowPassword(!showPassword)}
-          activeOpacity={0.7}
-        >
-          <Feather
-            name={showPassword ? "eye" : "eye-off"}
-            size={22}
-            color={Colors.black}
-          />
-        </TouchableOpacity>
       </View>
 
       {error !== "" && <Text style={styles.errorText}>{error}</Text>}
@@ -255,7 +226,6 @@ export default function LogIn() {
         <Text style={styles.skipText}>Skip for now</Text>
       </TouchableOpacity>
 
-      {/* Password Reset Alert */}
       <CustomAlert
         visible={showResetAlert}
         onClose={() => setShowResetAlert(false)}
@@ -320,13 +290,5 @@ const styles = StyleSheet.create({
     color: Colors.black,
     fontSize: FontSizes.TextSmallFs,
     textDecorationLine: "underline",
-  },
-  eyeIcon: {
-    position: "absolute",
-    right: 15,
-    top: 0,
-    bottom: 0,
-    justifyContent: "center",
-    zIndex: 1,
   },
 });
