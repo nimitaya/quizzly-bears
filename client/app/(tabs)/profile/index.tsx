@@ -113,7 +113,6 @@ const ProfileScreen = () => {
           </TouchableOpacity>
         </View>
       )}
-      <QuizComponent />
     </View>
   );
 };

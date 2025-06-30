@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { QuizSettings, PlayStyle, Difficulty } from "@/utilities/quiz-logic/quizTypesInterfaces";
 
 // ---------- LOAD CACHE DATA ----------
 export const loadCacheData = async <T = any>(
@@ -36,3 +37,4 @@ export const clearCacheData = async (key: string) => {
     console.error("Failed to clear data from cache:", error);
   }
 };
+
