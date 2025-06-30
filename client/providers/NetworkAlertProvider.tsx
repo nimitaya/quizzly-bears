@@ -53,7 +53,7 @@ const NetworkAlertProvider: React.FC<NetworkAlertProviderProps> = ({
 
     // Clean up subscription
     return () => unsubscribe();
-  }, [isExemptRoute, segments]); // Re-run when route changes
+  }, [isExemptRoute, segments]);
 
   return (
     <>

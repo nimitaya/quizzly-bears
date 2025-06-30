@@ -1,4 +1,4 @@
-import { Text, View, Alert, TouchableOpacity, StyleSheet } from "react-native";
+import { Text, View, TouchableOpacity, StyleSheet } from "react-native";
 import GoogleSignInButton from "@/app/(auth)/GoogleSignInButton";
 import FacebookInButton from "@/app/(auth)/FacebookSignInButton";
 import { Gaps, FontSizes, FontWeights } from "@/styles/theme";
