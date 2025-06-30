@@ -6,7 +6,7 @@ import React, {
   useImperativeHandle,
 } from "react";
 import { useUser, useAuth, useClerk } from "@clerk/clerk-expo";
-import { Link, useRouter } from "expo-router";
+import { Link } from "expo-router";
 import {
   Text,
   View,
@@ -17,6 +17,8 @@ import {
 import SignOutButton from "@/app/(auth)/SignOutButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors, FontSizes, Gaps } from "@/styles/theme";
+import DeleteAccountButton from "./DeleteAccountButton";
+import ChangePassword from "./ChangePassword";
 
 // Define the ref type
 export type ClerkSettingsRefType = {
@@ -353,18 +355,19 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
       <View style={styles.container}>
         {currentAuthState === "signedIn" ? (
           <View style={styles.signedInContainer}>
-            <Text style={styles.greeting}>
-              Hello,{" "}
+            {/* <Text style={styles.greeting}>
               {user?.firstName ||
                 (user?.emailAddresses &&
                   user.emailAddresses[0]?.emailAddress) ||
                 "User"}
-            </Text>
+            </Text> */}
+            <ChangePassword />
             <SignOutButton />
+            <DeleteAccountButton />
           </View>
         ) : (
           <View style={styles.signedOutContainer}>
-            <Text style={styles.title}>Account Options</Text>
+            {/* <Text style={styles.title}>Account Options</Text> */}
             <Link href="/(auth)/LogInScreen" style={styles.link} asChild>
               <TouchableOpacity>
                 <Text style={styles.linkText}>Log in</Text>
