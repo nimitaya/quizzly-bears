@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Image, StyleSheet, ImageSourcePropType } from "react-native";
 
-type LogoSize = "small" | "medium" | "big";
+type LogoSize = "small" | "medium" | "big" | "start";
 
 interface LogoProps {
   size?: LogoSize;
@@ -35,6 +35,8 @@ const getLogoStyle = (size: LogoSize) => {
       return { logoStyle: styles.medium, showText: true };
     case "big":
       return { logoStyle: styles.big, showText: true };
+    case "start":
+      return { logoStyle: styles.big, showText: false };
     default:
       return { logoStyle: styles.medium, showText: false };
   }
@@ -57,6 +59,11 @@ const styles = StyleSheet.create({
     width: 180,
     height: 180,
   },
+  start: {
+    width: 180,
+    height: 180,
+  },
+
   textStyle: {
     marginBottom: 24,
     width: 200,
