@@ -121,43 +121,12 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
       {/* Circle segments */}
       <View style={styles.segmentsContainer}>{createSegments()}</View>
 
-      {/* Inner white circle */}
-      <View
-        style={[
-          styles.innerCircle,
-          {
-            width: innerRadius * 2,
-            height: innerRadius * 2,
-            borderRadius: innerRadius,
-          },
-        ]}
-      />
-
       {/* Text in center */}
       <View style={styles.textContainer}>
-        <Animated.Text
-          style={[
-            styles.percentageText,
-            {
-              fontSize: FontSizes.H1Fs,
-              color: textColor,
-              opacity: animatedValue.interpolate({
-                inputRange: [0, 100],
-                outputRange: [0.5, 1],
-              }),
-            },
-          ]}
-        >
+        <Animated.Text style={[styles.percentageText]}>
           {Math.round(percentage)}%
         </Animated.Text>
-        <Text
-          style={[
-            styles.accuracyText,
-            { fontSize: FontSizes.TextMediumFs, color: textColor },
-          ]}
-        >
-          accuracy
-        </Text>
+        <Text style={[styles.accuracyText]}>accuracy</Text>
       </View>
     </Animated.View>
   );
@@ -177,10 +146,6 @@ const styles = StyleSheet.create({
   segment: {
     position: "absolute",
   },
-  innerCircle: {
-    position: "absolute",
-    backgroundColor: Colors.white,
-  },
   textContainer: {
     position: "absolute",
     alignItems: "center",
@@ -188,10 +153,13 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   percentageText: {
-    fontWeight: "700",
-    marginBottom: 2,
+    fontSize: FontSizes.H1Fs,
+    color: Colors.black,
   },
-  accuracyText: {},
+  accuracyText: {
+    fontSize: FontSizes.TextMediumFs,
+    color: Colors.black,
+  },
 });
 
 export default CircularProgress;
