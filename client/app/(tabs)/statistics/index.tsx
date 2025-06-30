@@ -10,7 +10,7 @@ const StatisticsScreen = () => {
   const router = useRouter();
 
   // Example data - replace with real data from your API/state
-  const correctAnswers = 120;
+  const correctAnswers = 250;
   const totalAnswers = 300;
   const accuracyPercentage = (correctAnswers / totalAnswers) * 100;
 
@@ -20,7 +20,7 @@ const StatisticsScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={{ marginBottom: Gaps.g40 }}>
+        <View style={{ marginBottom: Gaps.g16 }}>
           <Logo size="small" />
         </View>
         <Text style={{ fontSize: FontSizes.H2Fs }}>My statistics</Text>
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   allPointsMedalenBlock: {
-    marginVertical: Gaps.g16,
+    marginTop: Gaps.g40,
     gap: Gaps.g16,
     alignItems: "center",
   },
