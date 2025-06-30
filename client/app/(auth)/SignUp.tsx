@@ -16,6 +16,7 @@ import { Colors, FontSizes, Gaps } from "@/styles/theme";
 import { SearchInput } from "@/components/Inputs";
 import { ButtonPrimary, ButtonPrimaryDisabled } from "@/components/Buttons";
 import CustomAlert from "@/components/CustomAlert";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function SignUpScreen() {
   const { isLoaded, signUp, setActive } = useSignUp();
@@ -34,6 +35,9 @@ export default function SignUpScreen() {
   const [isResendingCode, setIsResendingCode] = React.useState(false);
   const [loadingStartTime, setLoadingStartTime] = React.useState(0);
   const [showExistsAlert, setShowExistsAlert] = React.useState(false);
+  const [isRateLimited, setIsRateLimited] = React.useState(false);
+  const [timeRemaining, setTimeRemaining] = React.useState(0);
+  const timerRef = React.useRef<NodeJS.Timeout | number | null>(null);
 
   // Form validation
   const validateEmail = (email: string) => {
@@ -230,8 +234,83 @@ export default function SignUpScreen() {
     }
   };
 
+  // Add this function to check if resend is rate limited
+  const checkResendRateLimit = async () => {
+    try {
+      const lastResendTime = await AsyncStorage.getItem(
+        "last_verification_resend"
+      );
+
+      if (lastResendTime) {
+        const lastTime = parseInt(lastResendTime, 10);
+        const now = Date.now();
+        const timePassed = now - lastTime;
+        const COOLDOWN_PERIOD = 60 * 1000; // 60 seconds
+
+        if (timePassed < COOLDOWN_PERIOD) {
+          // User needs to wait
+          const timeLeft = Math.ceil((COOLDOWN_PERIOD - timePassed) / 1000);
+          setTimeRemaining(timeLeft);
+          setIsRateLimited(true);
+
+          // Start countdown timer
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+          }
+
+          timerRef.current = setInterval(() => {
+            setTimeRemaining((prev) => {
+              if (prev <= 1) {
+                if (timerRef.current) {
+                  clearInterval(timerRef.current);
+                }
+                setIsRateLimited(false);
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+
+          return true; // Rate limited
+        }
+      }
+
+      return false; // Not rate limited
+    } catch (err) {
+      console.log("Rate limit check error:", err);
+      return false; // Allow operation if storage fails
+    }
+  };
+
+  // Add this function to record resend attempt
+  const recordResendAttempt = async () => {
+    try {
+      await AsyncStorage.setItem(
+        "last_verification_resend",
+        Date.now().toString()
+      );
+    } catch (err) {
+      console.log("Failed to record resend attempt:", err);
+    }
+  };
+
+  // Clean up timer when component unmounts
+  React.useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
+
   const resendVerificationCode = async () => {
     if (!isLoaded || isResendingCode) return;
+
+    // Check for rate limiting
+    const isLimited = await checkResendRateLimit();
+    if (isLimited) {
+      return;
+    }
 
     setIsResendingCode(true);
 
@@ -241,6 +320,9 @@ export default function SignUpScreen() {
           strategy: "email_code",
         });
         Alert.alert("Success", "Verification code resent to your email");
+
+        // Record successful resend for rate limiting
+        await recordResendAttempt();
       }
     } catch (err: any) {
       setError("Failed to resend verification code");
@@ -305,12 +387,19 @@ export default function SignUpScreen() {
         </View>
 
         <TouchableOpacity
-          style={styles.resendButton}
+          style={[
+            styles.resendButton,
+            isRateLimited && styles.disabledButton, // Add this style
+          ]}
           onPress={resendVerificationCode}
-          disabled={isResendingCode}
+          disabled={isResendingCode || isRateLimited}
         >
           {isResendingCode ? (
             <ActivityIndicator size="small" color={Colors.black} />
+          ) : isRateLimited ? (
+            <Text style={styles.resendText}>
+              Wait {timeRemaining}s to resend
+            </Text>
           ) : (
             <Text style={styles.resendText}>Resend code</Text>
           )}
@@ -498,5 +587,8 @@ const styles = StyleSheet.create({
     color: Colors.black,
     fontSize: FontSizes.TextMediumFs,
     textAlign: "center",
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
 });
