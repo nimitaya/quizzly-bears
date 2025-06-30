@@ -40,6 +40,8 @@ export const GlobalLoadingProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isInitializing, setIsInitializing] = useState(true);
   const [manualLoading, setManualLoading] = useState(false);
 
+  // Use refs to prevent infinite loops
+
   const isRefreshingRef = useRef(false);
   const isMountedRef = useRef(true);
 
@@ -77,11 +79,16 @@ export const GlobalLoadingProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const refreshGlobalState = async () => {
+ 
+    // Prevent concurrent refreshes
+
     if (isRefreshingRef.current) return;
 
     isRefreshingRef.current = true;
 
     try {
+      // Only set loading if we're not already initializing
+
       if (!isInitializing) {
         safeSetState(setIsGloballyLoading, true);
       }
@@ -94,6 +101,8 @@ export const GlobalLoadingProvider: React.FC<{ children: React.ReactNode }> = ({
         safeSetState(setIsAuthenticated, !!isSignedIn);
       }
 
+      // Small delay for stability
+
       await new Promise((resolve) => setTimeout(resolve, 100));
     } catch (error) {
       console.error("Error refreshing global state:", error);
@@ -103,12 +112,23 @@ export const GlobalLoadingProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // Effect to handle initial loading and authentication state
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        // Skip if auth is not ready
+
   useEffect(() => {
     const initializeApp = async () => {
       try {
         if (!userLoaded || !authLoaded) {
           return;
         }
+
+        // Set authentication based on Clerk state
+        setIsAuthenticated(!!isSignedIn);
+
+        // Wait to ensure everything is loaded
 
         //check for password reset flag during initialization
         const resetFlag = await AsyncStorage.getItem("password_recently_reset");
@@ -122,17 +142,23 @@ export const GlobalLoadingProvider: React.FC<{ children: React.ReactNode }> = ({
       } catch (error) {
         console.error("Error during app initialization:", error);
       } finally {
+
         if (isMountedRef.current) {
           safeSetState(setIsGloballyLoading, false);
           safeSetState(setIsInitializing, false);
         }
+
       }
     };
 
+    // Only initialize if both userLoaded and authLoaded are true
     if (userLoaded && authLoaded) {
       initializeApp();
     }
   }, [userLoaded, authLoaded, isSignedIn]);
+
+  // CRITICAL FIX: Remove the automatic router.replace to Loading
+  // This was causing an infinite loop
 
   const contextValue = {
     isGloballyLoading,

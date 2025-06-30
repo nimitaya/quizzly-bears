@@ -5,12 +5,14 @@ import { Category, Difficulty, QuizQuestion } from "../types"
 const GROQ_API_URL =
   Config.GROQ_API_URL || "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_API_KEY =
-  Config.GROQ_API_KEY ||
-  "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";
+  Config.GROQ_API_KEY || "";  
+
 
 // 1- Funktion zum Generieren mehrerer Quizfragen
+// En quizApi.ts - Reemplaza la función generateMultipleQuizQuestions existente
+
 export const generateMultipleQuizQuestions = async (
-  category: Category,
+  category: string, // Cambio: ahora recibe string en lugar de Category
   difficulty: Difficulty,
   questionCount: number = 10
 ): Promise<QuizQuestion[]> => {
@@ -36,8 +38,8 @@ export const generateMultipleQuizQuestions = async (
     WICHTIG: Jede Frage muss VÖLLIG ANDERS sein als alle anderen. 
     - Verwende verschiedene Konzepte, Zahlen, Beispiele und Ansätze
     - Keine zwei Fragen dürfen sich ähneln
-    - Die Frage darf maximal 30 Zeichen lang sein
-    - Die Antwortoptionen müssen klar und eindeutig sein. Weniger als 20 Zeichen pro Option
+    - Die Frage darf maximal 120 Zeichen lang sein
+    - Die Antwortoptionen müssen klar und eindeutig sein. Weniger als 50 Zeichen pro Option
     
     Du musst GENAU in diesem JSON-Array-Format antworten:
     [
@@ -59,32 +61,6 @@ export const generateMultipleQuizQuestions = async (
         "optionC": {
           "isCorrect": false,
           "de": "Option C auf Deutsch",
-          "en": "Option C in English"
-        },
-        "optionD": {
-          "isCorrect": false,
-          "de": "Option D auf Deutsch",
-          "en": "Option D in English"
-        }
-      },
-      {
-        "question": {
-          "de": "Zweite völlig andere Frage auf Deutsch",
-          "en": "Second completely different question in English"
-        },
-        "optionA": {
-          "isCorrect": false,
-          "de": "Option A auf Deutsch",
-          "en": "Option A in English"
-        },
-        "optionB": {
-          "isCorrect": true,
-          "de": "Option B auf Deutsch",
-          "en": "Option B in English"
-        },
-        "optionC": {
-          "isCorrect": false,
-          "de": "Option C auf Deutsch", 
           "en": "Option C in English"
         },
         "optionD": {
@@ -115,14 +91,14 @@ export const generateMultipleQuizQuestions = async (
           },
         ],
         temperature: 0.9,
-        max_tokens: 2000, 
+        max_tokens: 3000, // Aumentado para 10 preguntas
         top_p: 0.9,
         frequency_penalty: 0.8, 
         presence_penalty: 0.6,  
       },
       {
         headers: {
-          Authorization: `Bearer ${GROQ_API_KEY.trim()}`,
+          Authorization: `Bearer ${GROQ_API_KEY?.trim() || ""}`,
           "Content-Type": "application/json",
         },
       }
@@ -140,7 +116,7 @@ export const generateMultipleQuizQuestions = async (
 
     // Array validieren
     if (!Array.isArray(questionsData)) {
-      throw new Error("Respuesta ist kein Array");
+      throw new Error("Response ist kein Array");
     }
 
     // Validierung jeder Frage
@@ -170,7 +146,7 @@ export const generateMultipleQuizQuestions = async (
         continue;
       }
 
-      // Welche Option ist korrekt? Wir suchden nach der Option, die isCorrect: true ist
+      // Encontrar la opción correcta
       const correctAnswer = ["optionA", "optionB", "optionC", "optionD"].findIndex(
         (option) => {
           const value = questionData[option as keyof typeof questionData];
@@ -292,7 +268,7 @@ export const generateQuizQuestion = async (
       },
       {
         headers: {
-          Authorization: `Bearer ${GROQ_API_KEY.trim()}`,
+          Authorization: `Bearer ${(GROQ_API_KEY ?? "").trim()}`,
           "Content-Type": "application/json",
         },
       }
