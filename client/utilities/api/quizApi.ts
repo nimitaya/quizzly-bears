@@ -5,8 +5,8 @@ import { Category, Difficulty, QuizQuestion } from "../types"
 const GROQ_API_URL =
   Config.GROQ_API_URL || "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_API_KEY =
-  Config.GROQ_API_KEY ||
-  "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";
+  Config.GROQ_API_KEY 
+
 
 // 1- Funktion zum Generieren mehrerer Quizfragen
 // En quizApi.ts - Reemplaza la función generateMultipleQuizQuestions existente
