@@ -17,6 +17,12 @@ export interface QuizComponentProps {
   difficulty?: Difficulty;
   category?: Category;  
 }  
+export interface QuizData {
+  category: string;
+  originalTopic?: string;
+  mappedCategory?: string; 
+  questionArray: QuizQuestion[];
+}
 
   export interface QuizQuestion {
     question: {
@@ -46,3 +52,8 @@ export interface QuizComponentProps {
     correctAnswer?: number;
   }
 
+  export interface CategoryMappingResult {
+    mappedCategory: Category;
+    confidence: number;
+    explanation: string;
+  }

@@ -1,3 +1,5 @@
+//-- TESTZONE, ES WIRD NUR FÜR TESTS VERWENDET, NICHT FÜR PRODUCTION --//
+
 import { View, TouchableOpacity, StyleSheet } from "react-native";
 import IconArrowBack from "@/assets/icons/IconArrowBack";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
@@ -21,12 +23,14 @@ const QuizTypeSelectionScreen = () => {
   const sendInformationToCache = async () => {
     const chosenSpecs: QuizSettings = {
       quizCategory: "",
-      quizLevel: "medium",
+      quizLevel: "medium", // Default level, can be changed later
       quizPlayStyle: playStyle,
       chosenTopic: "",
     };    
     try {
       await saveDataToCache(cacheKey, chosenSpecs);      
+      console.log("QuizSettings saved:", chosenSpecs); // Agregar este log
+
     } catch (error) {
       console.error("Failed to save specs:", error);
     }

@@ -1,3 +1,5 @@
+//-- TESTZONE, ES WIRD NUR FÜR TESTS VERWENDET, NICHT FÜR PRODUCTION --//
+
 import { View, TouchableOpacity, Text, ScrollView } from "react-native";
 import IconArrowBack from "@/assets/icons/IconArrowBack";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
@@ -10,49 +12,42 @@ import { RadioButton } from "@/components/RadioButton";
 import { useEffect, useState } from "react";
 import {
   saveDataToCache,
+  QuizSpecs,
   loadCacheData,
-} from "@/utilities/quiz-logic/cacheUtils";
-import {
-  QuizSettings,
   PlayStyle,
-  Difficulty,
-} from "@/utilities/quiz-logic/quizTypesInterfaces";
-import { CACHE_KEY } from "@/utilities/quiz-logic/cacheStructure";
+} from "@/utilities/quiz-logic/cacheUtils";
 
 const LEVELS = [
   { label: "Easy: Cub Curious", value: "easy" },
   { label: "Medium: Bearly Brainy", value: "medium" },
   { label: "Hard: Grizzly Guru", value: "hard" },
 ];
-const cacheKey = CACHE_KEY.quizSettings; 
+const CACHE_KEY = "quizSpecs";
 
 const CategoryScreen = () => {
   const router = useRouter();
-  const [selectedLevel, setSelectedLevel] = useState<Difficulty>("medium");
-  const [selectedTopic, setSelectedTopic] = useState<string>("");
+  const [selectedLevel, setSelectedLevel] = useState("medium");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [playStyle, setPlayStyle] = useState<PlayStyle>("solo");
 
   // ---------- FUNCTIONS ----------
-  // Send selected quiz info to cache
+  // send selected quiz info to cache
   const sendInformationToCache = async (category: string) => {
-    const chosenSpecs: QuizSettings = {
+    const chosenSpecs: QuizSpecs = {
       quizCategory: category,
       quizLevel: selectedLevel,
       quizPlayStyle: playStyle,
-      chosenTopic: category
     };
     try {
-      await saveDataToCache(cacheKey, chosenSpecs);
+      await saveDataToCache(CACHE_KEY, chosenSpecs);
     } catch (error) {
       console.error("Failed to save specs:", error);
     }
   };
 
-  // Set the selected category, call cache function and navigate to StartQuizScreen
+  // set the selected category, call cache function and navigate to StartQuizScreen
   const handleChosenCategory = (category: string) => {
-    console.log(category);
-    
-    setSelectedTopic(category);
+    setSelectedCategory(category);
     sendInformationToCache(category);
     router.push("/(tabs)/play/StartQuizScreen");
   };
@@ -62,7 +57,7 @@ const CategoryScreen = () => {
     // Fetch cached quiz specs to set the play style
     const fetchCachedQuizSpecs = async () => {
       try {
-        const cachedQuizSpecs = await loadCacheData(cacheKey);
+        const cachedQuizSpecs = await loadCacheData(CACHE_KEY);
         if (cachedQuizSpecs) {
           setPlayStyle(cachedQuizSpecs.quizPlayStyle);
         }
@@ -95,19 +90,19 @@ const CategoryScreen = () => {
               key={level.value}
               label={level.label}
               selected={selectedLevel === level.value}
-              onChange={() => setSelectedLevel(level.value as Difficulty)}
+              onChange={() => setSelectedLevel(level.value)}
             />
           ))}
         </View>
         <View style={styles.searchToticBlock}>
           <SearchInput
             placeholder="Your topic ..."
-            value={selectedTopic}
-            onChangeText={(text: string) => setSelectedTopic(text)}
+            value={selectedCategory}
+            onChangeText={(text: string) => setSelectedCategory(text)}
           />
           <ButtonPrimary
             text="Search"
-            onPress={() => handleChosenCategory(selectedTopic)}
+            onPress={() => handleChosenCategory(selectedCategory)}
           />
         </View>
         <View style={{ marginVertical: Gaps.g32 }}>
