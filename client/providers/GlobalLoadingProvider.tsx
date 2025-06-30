@@ -17,7 +17,7 @@ type GlobalLoadingContextType = {
   withLoading: <T>(promise: Promise<T>) => Promise<T>;
 };
 
-// type assertion
+// type assertion for the context value
 const GlobalLoadingContext = createContext<GlobalLoadingContextType>({
   isGloballyLoading: true,
   isAuthenticated: false,
@@ -79,7 +79,6 @@ export const GlobalLoadingProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const refreshGlobalState = async () => {
- 
     // Prevent concurrent refreshes
 
     if (isRefreshingRef.current) return;
@@ -113,10 +112,6 @@ export const GlobalLoadingProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // Effect to handle initial loading and authentication state
-  useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        // Skip if auth is not ready
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -142,12 +137,10 @@ export const GlobalLoadingProvider: React.FC<{ children: React.ReactNode }> = ({
       } catch (error) {
         console.error("Error during app initialization:", error);
       } finally {
-
         if (isMountedRef.current) {
           safeSetState(setIsGloballyLoading, false);
           safeSetState(setIsInitializing, false);
         }
-
       }
     };
 
