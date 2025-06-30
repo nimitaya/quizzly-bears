@@ -30,7 +30,6 @@ const SignOutButton = () => {
       // );
       // Sign out from Clerk
       await signOut();
-      // No need for router.replace here - AuthNavigationHelper will handle it
     } catch (err) {
       console.error(JSON.stringify(err, null, 2));
     } finally {
