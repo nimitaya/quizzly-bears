@@ -33,6 +33,8 @@ export function SearchInput(props: SearchInputProps) {
           style,
         ]}
         placeholderTextColor={Colors.disable}
+        autoComplete="username"
+        textContentType="username"
         {...rest}
       />
     </View>
@@ -47,6 +49,8 @@ export function SearchFriendInput(props: TextInputProps) {
       <TextInput
         style={styles.inputSearchFriend}
         placeholderTextColor={Colors.disable}
+        autoComplete="username"
+        textContentType="username"
         {...props}
       />
       <View style={{ width: 8 }} />
@@ -76,6 +80,8 @@ export function PasswordInput({
         secureTextEntry={!showPassword}
         placeholder="Enter password"
         isPassword
+        autoComplete="password"
+        textContentType="password"
         {...props}
       />
       <TouchableOpacity
