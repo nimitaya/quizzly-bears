@@ -177,16 +177,12 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
 
     // IMPORTANT: Enhanced manual refresh to handle edge cases
     const manualRefresh = async () => {
-      console.log("Performing manual auth refresh");
       setIsCheckingAuth(true);
 
       try {
         // Direct token check - most reliable method
         const sessionToken = await AsyncStorage.getItem("__clerk_client_jwt");
         if (sessionToken) {
-          console.log(
-            "Found Clerk session token - user should be considered signed in"
-          );
           setWasRecentlyReset(true);
         }
 
@@ -197,7 +193,6 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
         );
 
         if (resetFlag === "true" || persistResetFlag === "true") {
-          console.log("Found password reset flag during manual refresh");
           setWasRecentlyReset(true);
 
           if (resetFlag === "true") {
@@ -208,18 +203,12 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
 
         // Check for Clerk session inconsistency
         if (clerk?.session && !isSignedIn) {
-          console.log(
-            "Clerk session exists but isSignedIn is false - fixing state"
-          );
           setWasRecentlyReset(true);
 
           if (typeof clerk.session.touch === "function") {
             try {
               await clerk.session.touch();
-              console.log("Touched clerk session");
-            } catch (touchErr) {
-              console.log("Error touching session:", touchErr);
-            }
+            } catch {}
           }
         }
 
@@ -229,21 +218,15 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
           const clerkUser = await AsyncStorage.getItem("clerk-js-user");
 
           if ((clerkStorage || clerkUser) && !isSignedIn) {
-            console.log("Found clerk storage data but not signed in");
             setWasRecentlyReset(true);
           }
-        } catch (storageErr) {
-          console.log("Error checking clerk storage:", storageErr);
-        }
-      } catch (e) {
-        console.log("Error during manual refresh:", e);
+        } catch {}
+      } catch {
       } finally {
         if (wasRecentlyReset) {
           try {
             await AsyncStorage.setItem("force_signed_in", "true");
-          } catch (err) {
-            console.log("Error setting force signed in flag:", err);
-          }
+          } catch {}
         }
         setTimeout(() => {
           setIsCheckingAuth(false);
@@ -384,7 +367,7 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
             <Text style={styles.title}>Account Options</Text>
             <Link href="/(auth)/LogInScreen" style={styles.link} asChild>
               <TouchableOpacity>
-                <Text style={styles.linkText}>Sign in</Text>
+                <Text style={styles.linkText}>Log in</Text>
               </TouchableOpacity>
             </Link>
             <Link href="/(auth)/SignUp" style={styles.link} asChild>

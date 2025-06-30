@@ -1,24 +1,39 @@
+import React, { useState } from "react";
 import {
   StyleSheet,
   TextInput,
   TextInputProps,
   View,
   useWindowDimensions,
+  TouchableOpacity,
 } from "react-native";
 import { Colors, FontSizes } from "../styles/theme";
 import { ButtonSearchFriend } from "./Buttons";
+import IconEye from "@/assets/icons/IconEye";
+import IconEyeClose from "@/assets/icons/IconEyeClose";
 
 // 1. Universal Search Input
-export function SearchInput(props: TextInputProps) {
+type SearchInputProps = TextInputProps & {
+  isPassword?: boolean;
+};
+
+export function SearchInput(props: SearchInputProps) {
   const { width } = useWindowDimensions();
   const inputWidth = Math.min(348, width - 32);
+  const { isPassword = false, style, ...rest } = props;
 
   return (
     <View style={[styles.containerSearch, { width: inputWidth }]}>
       <TextInput
-        style={styles.inputSearch}
+        style={[
+          styles.inputSearch,
+          isPassword
+            ? { paddingLeft: 32, paddingRight: 48 }
+            : { paddingHorizontal: 32 },
+          style,
+        ]}
         placeholderTextColor={Colors.disable}
-        {...props}
+        {...rest}
       />
     </View>
   );
@@ -36,6 +51,44 @@ export function SearchFriendInput(props: TextInputProps) {
       />
       <View style={{ width: 8 }} />
       <ButtonSearchFriend />
+    </View>
+  );
+}
+
+// 3. Password Input with toggle visibility
+type PasswordInputProps = TextInputProps & {
+  value: string;
+  onChangeText: (text: string) => void;
+};
+
+export function PasswordInput({
+  value,
+  onChangeText,
+  ...props
+}: PasswordInputProps) {
+  const [showPassword, setShowPassword] = useState(false);
+
+  return (
+    <View style={styles.eyeContainer}>
+      <SearchInput
+        value={value}
+        onChangeText={onChangeText}
+        secureTextEntry={!showPassword}
+        placeholder="Enter password"
+        isPassword
+        {...props}
+      />
+      <TouchableOpacity
+        style={styles.eyeIcon}
+        onPress={() => setShowPassword((prev) => !prev)}
+        activeOpacity={0.7}
+      >
+        {showPassword ? (
+          <IconEye width={22} height={22} color={Colors.black} />
+        ) : (
+          <IconEyeClose width={22} height={22} color={Colors.black} />
+        )}
+      </TouchableOpacity>
     </View>
   );
 }
@@ -81,5 +134,17 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 32,
     fontSize: FontSizes.TextLargeFs,
+  },
+  eyeContainer: {
+    position: "relative",
+    alignSelf: "center",
+  },
+  eyeIcon: {
+    position: "absolute",
+    right: 15,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+    zIndex: 1,
   },
 });

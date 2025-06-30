@@ -17,6 +17,7 @@ import { SearchInput } from "@/components/Inputs";
 import { ButtonPrimary, ButtonPrimaryDisabled } from "@/components/Buttons";
 import CustomAlert from "@/components/CustomAlert";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { PasswordInput } from "@/components/Inputs";
 
 export default function SignUpScreen() {
   const { isLoaded, signUp, setActive } = useSignUp();
@@ -167,7 +168,7 @@ export default function SignUpScreen() {
   const handleExistingEmailError = () => {
     setError("This email is already registered");
     setIsEmailError(true);
-    setShowExistsAlert(true); // Show custom alert instead of Alert.alert
+    setShowExistsAlert(true);
   };
 
   // Create a handler to navigate to login when confirmed
@@ -276,22 +277,19 @@ export default function SignUpScreen() {
       }
 
       return false; // Not rate limited
-    } catch (err) {
-      console.log("Rate limit check error:", err);
+    } catch {
       return false; // Allow operation if storage fails
     }
   };
 
-  // Add this function to record resend attempt
+  // Record resend attempt for rate limiting
   const recordResendAttempt = async () => {
     try {
       await AsyncStorage.setItem(
         "last_verification_resend",
         Date.now().toString()
       );
-    } catch (err) {
-      console.log("Failed to record resend attempt:", err);
-    }
+    } catch {}
   };
 
   // Clean up timer when component unmounts
@@ -434,10 +432,8 @@ export default function SignUpScreen() {
             }
           }}
         />
-        <SearchInput
+        <PasswordInput
           value={password}
-          placeholder="Enter password"
-          secureTextEntry={true}
           onChangeText={(pwd) => {
             setPassword(pwd);
 
@@ -453,11 +449,10 @@ export default function SignUpScreen() {
               setPasswordsMatch(pwd === repeatPassword);
             }
           }}
+          placeholder="Enter password"
         />
-        <SearchInput
+        <PasswordInput
           value={repeatPassword}
-          placeholder="Repeat password"
-          secureTextEntry={true}
           onChangeText={(text) => {
             setRepeatPassword(text);
 
@@ -471,6 +466,7 @@ export default function SignUpScreen() {
               setPasswordsMatch(true);
             }
           }}
+          placeholder="Repeat password"
         />
 
         {!passwordsMatch && repeatPassword.length > 0 && (

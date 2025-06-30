@@ -18,7 +18,8 @@ export default function AuthNavigationHelper() {
 
           // Get the destination
           const destination =
-            (await AsyncStorage.getItem("auth_navigation_destination")) || "/";
+            (await AsyncStorage.getItem("auth_navigation_destination")) ||
+            "/(tabs)/play";
 
           // Use a timeout for extra safety
           setTimeout(() => {
