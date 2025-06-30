@@ -14,7 +14,6 @@ import { Toggle } from "@/components/Toggle";
 import { ButtonSecondary } from "@/components/Buttons";
 import { useRouter } from "expo-router";
 
-
 const ProfileScreen = () => {
   const router = useRouter();
   const { isAuthenticated, refreshGlobalState, isGloballyLoading } =
@@ -26,7 +25,6 @@ const ProfileScreen = () => {
   const [passwordResetFlag, setPasswordResetFlag] = useState<string | null>(
     null
   );
-  const { user } = useUser();
 
   // Check for password reset flag on mount and refresh
   useEffect(() => {
@@ -168,7 +166,6 @@ const ProfileScreen = () => {
         />
       </View>
     </ScrollView>
-
   );
 };
 
