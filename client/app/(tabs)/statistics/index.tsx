@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   allPointsMedalenBlock: {
-    marginVertical: Gaps.g40,
+    marginVertical: Gaps.g16,
     gap: Gaps.g16,
     alignItems: "center",
   },

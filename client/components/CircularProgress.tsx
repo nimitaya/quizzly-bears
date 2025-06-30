@@ -53,25 +53,21 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
   const radius = size / 2;
   const innerRadius = radius - strokeWidth;
 
-  // Создаем множество маленьких сегментов для имитации круга
+  // Create multiple small segments to simulate a circle
   const createSegments = () => {
     const segments = [];
-    const totalSegments = 100; // Оптимальное количество сегментов
+    const totalSegments = 100;
     const segmentAngle = 360 / totalSegments;
 
     for (let i = 0; i < totalSegments; i++) {
-      const angle = (i * segmentAngle - 90) * (Math.PI / 180); // Начинаем сверху
+      const angle = (i * segmentAngle - 90) * (Math.PI / 180); // Start from the top
       const rotationDeg = i * segmentAngle - 90;
 
-      // Вычисляем позицию каждого сегмента
+      // Calculate position of each segment
       const x =
-        radius +
-        (radius - strokeWidth / 2) * Math.cos(angle) -
-        strokeWidth * 0.7;
+        radius + (radius - strokeWidth / 2) * Math.cos(angle) - strokeWidth / 2;
       const y =
-        radius +
-        (radius - strokeWidth / 2) * Math.sin(angle) -
-        strokeWidth * 0.3;
+        radius + (radius - strokeWidth / 2) * Math.sin(angle) - strokeWidth / 2;
 
       segments.push(
         <Animated.View
@@ -82,9 +78,9 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
               position: "absolute",
               left: x,
               top: y,
-              width: strokeWidth * 1.4, // Делаем сегменты шире
-              height: strokeWidth * 0.6, // Но не очень высокими
-              borderRadius: strokeWidth * 0.1, // Минимальное скругление
+              width: strokeWidth,
+              height: strokeWidth,
+              borderRadius: strokeWidth / 2,
               backgroundColor: animatedValue.interpolate({
                 inputRange: [
                   0,
@@ -101,7 +97,7 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
                 extrapolate: "clamp",
               }),
               transform: [
-                { rotate: `${rotationDeg}deg` }, // Поворачиваем каждый сегмент
+                { rotate: `${rotationDeg}deg` }, // Rotate each segment
               ],
             },
           ]}
@@ -122,7 +118,7 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
         },
       ]}
     >
-      {/* Сегменты круга */}
+      {/* Circle segments */}
       <View style={styles.segmentsContainer}>{createSegments()}</View>
 
       {/* Inner white circle */}
@@ -184,14 +180,6 @@ const styles = StyleSheet.create({
   innerCircle: {
     position: "absolute",
     backgroundColor: Colors.white,
-    elevation: 2,
-    shadowColor: Colors.black,
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
   },
   textContainer: {
     position: "absolute",
@@ -203,9 +191,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 2,
   },
-  accuracyText: {
-    opacity: 0.7,
-  },
+  accuracyText: {},
 });
 
 export default CircularProgress;
