@@ -14,6 +14,7 @@ import IconCheckbox from "@/assets/icons/IconCheckbox";
 
 const QuizLogic = () => {
   const {
+    language,
     currentQuestionData,
     currQuestionIndex,
     gameState,
@@ -30,10 +31,17 @@ const QuizLogic = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
+  const options = [
+    {key: "A", data: currentQuestionData?.optionA},
+    {key: "B", data: currentQuestionData?.optionB},
+    {key: "C", data: currentQuestionData?.optionC},
+    {key: "D", data: currentQuestionData?.optionD}
+  ]
+
+
   return (
     <>
       {showResult ? (
-        // TODO: Show correct restulst Page or forward to it
         <ScrollView
           style={styles.containerResult}
           contentContainerStyle={styles.contentContainerResult}
@@ -53,13 +61,13 @@ const QuizLogic = () => {
             <View style={styles.pointsRow}>
               <IconCheckbox />
               <Text style={styles.pointsText}>
-                has earned {pointsState.score} Grizzly-Points
+                has earned {pointsState.score} Quizzly-Points
               </Text>
             </View>
             <View style={styles.pointsRow}>
               <IconCheckbox />
               <Text style={styles.pointsText}>
-                plus extra {pointsState.timePoints} Grizzly-Points
+                plus extra {pointsState.timePoints} Quizzly-Points
               </Text>
             </View>
           </View>
@@ -86,7 +94,7 @@ const QuizLogic = () => {
               {currQuestionIndex + 1} from 10
             </Text>
             <Text style={styles.questionText}>
-              {currentQuestionData?.question}
+              {currentQuestionData?.question.de}
             </Text>
           </View>
           {/* Show only if readTimer true */}
@@ -94,27 +102,27 @@ const QuizLogic = () => {
             <View style={styles.answerSection}>
               <View>
                 <Text>Timer Anzeige TODO</Text>
-                <Text>Taste „Close“ oben links, die das Quiz beendet.</Text>
+                <Text>Taste „Close“ oben links, die das Quiz beendet. TODO</Text>
                 <Text>Time left: {remainingTime}s</Text>
               </View>
               <View style={styles.questionAnswerContainer}>
                 <View style={styles.answerContainer}>
                   {/* show one quiz button for each option */}
-                  {currentQuestionData &&
-                    currentQuestionData.options.map((option, index) => (
+                  {options &&
+                    options.map(({key, data}) => (
                       <QuizButton
-                        key={index}
-                        text={option}
-                        selected={handleSelection(option)}
+                        key={key}
+                        text={data?.[language] ?? data?.["en"] ?? ""}
+                        selected={handleSelection(data?.[language]?? "")}
                         checked={
                           (answerState.isLocked &&
-                            currentQuestionData.answer === option) ||
+                            data?.isCorrect) ||
                           (answerState.isLocked &&
                             answerState.isSubmitted &&
-                            answerState.chosenAnswer === option)
+                            answerState.chosenAnswer === (data?.[language] ?? ""))
                         }
-                        isCorrect={currentQuestionData.answer === option}
-                        onPress={() => handleAnswerSelect(option)}
+                        isCorrect={!!data?.isCorrect}
+                        onPress={() => handleAnswerSelect(data?.[language] ?? "")}
                       />
                     ))}
                 </View>

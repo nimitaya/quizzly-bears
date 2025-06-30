@@ -519,8 +519,8 @@ export default function SignUpScreen() {
         onClose={() => setShowExistsAlert(false)}
         title="Account Exists"
         message="An account with this email already exists."
-        cancelText="Try Another Email"
-        confirmText="Go to Login"
+        cancelText="Retry"
+        confirmText="Login"
         onConfirm={handleGoToLogin}
         noInternet={false}
       />

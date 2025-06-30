@@ -236,7 +236,9 @@ export default function ForgotPassword() {
             (e: any) =>
               e.code === "verification_failed" ||
               (e.message && e.message.toLowerCase().includes("verification")) ||
-              (e.message && e.message.toLowerCase().includes("code"))
+              (e.message && e.message.toLowerCase().includes("code")) ||
+              (e.message && e.message.toLowerCase().includes("invalid")) ||
+              (e.message && e.message.toLowerCase().includes("incorrect"))
           )
         ) {
           setError("Invalid verification code. Please try again.");

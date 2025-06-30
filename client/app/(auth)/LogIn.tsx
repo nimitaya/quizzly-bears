@@ -79,10 +79,10 @@ export default function LogIn() {
         // Use AuthNavigationHelper pattern for navigation
         if (Platform.OS !== "web") {
           await AsyncStorage.setItem("auth_navigation_pending", "true");
-          await AsyncStorage.setItem(
-            "auth_navigation_destination",
-            "/(tabs)/play"
-          );
+          // await AsyncStorage.setItem(
+          //   "auth_navigation_destination",
+          //   "/(tabs)/play"
+          // );
         } else {
           router.replace("/(tabs)/play");
         }
@@ -213,10 +213,10 @@ export default function LogIn() {
         onPress={async () => {
           if (Platform.OS !== "web") {
             await AsyncStorage.setItem("auth_navigation_pending", "true");
-            await AsyncStorage.setItem(
-              "auth_navigation_destination",
-              "/(tabs)/play"
-            );
+            // await AsyncStorage.setItem(
+            //   "auth_navigation_destination",
+            //   "/(tabs)/play"
+            // );
           } else {
             router.replace("/(tabs)/play");
           }

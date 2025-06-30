@@ -22,16 +22,14 @@ const SignOutButton = () => {
         AsyncStorage.removeItem("auth_token"),
       ]);
 
-      // Sign out from Clerk
-      await signOut();
-
       // Set up navigation for AuthNavigationHelper to handle
       await AsyncStorage.setItem("auth_navigation_pending", "true");
-      await AsyncStorage.setItem(
-        "auth_navigation_destination",
-        "/(auth)/LogInScreen"
-      );
-
+      // await AsyncStorage.setItem(
+      //   "auth_navigation_destination",
+      //   "/(auth)/LogInScreen"
+      // );
+      // Sign out from Clerk
+      await signOut();
       // No need for router.replace here - AuthNavigationHelper will handle it
     } catch (err) {
       console.error(JSON.stringify(err, null, 2));

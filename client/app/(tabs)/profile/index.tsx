@@ -9,9 +9,11 @@ import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Loading from "@/app/Loading";
 import { Logo } from "@/components/Logos";
+
 import { Toggle } from "@/components/Toggle";
 import { ButtonSecondary } from "@/components/Buttons";
 import { useRouter } from "expo-router";
+
 
 const ProfileScreen = () => {
   const router = useRouter();
@@ -24,6 +26,7 @@ const ProfileScreen = () => {
   const [passwordResetFlag, setPasswordResetFlag] = useState<string | null>(
     null
   );
+  const { user } = useUser();
 
   // Check for password reset flag on mount and refresh
   useEffect(() => {
@@ -142,6 +145,7 @@ const ProfileScreen = () => {
 
       {/* IMPORTANT: Always render ClerkSettings to maintain ref connection */}
       <ClerkSettings ref={clerkSettingsRef} refreshKey={refreshKey} />
+
       <View style={styles.toggleBox}>
         <Toggle label="Sound" />
         <Toggle label="Music" />
@@ -164,6 +168,7 @@ const ProfileScreen = () => {
         />
       </View>
     </ScrollView>
+
   );
 };
 

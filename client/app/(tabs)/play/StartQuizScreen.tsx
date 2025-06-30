@@ -85,7 +85,7 @@ const StartQuizScreen = () => {
       <View style={styles.buttonContainer}>
         <ButtonPrimary
           text="Start"
-          onPress={() => {}}
+          onPress={() => router.push("/(tabs)/play/QuizScreen")}
         />
       </View>
     </View>
