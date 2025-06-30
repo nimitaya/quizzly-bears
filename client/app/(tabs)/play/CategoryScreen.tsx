@@ -36,7 +36,7 @@ const CategoryScreen = () => {
   // Send selected quiz info to cache
   const sendInformationToCache = async (category: string) => {
     const chosenSpecs: QuizSettings = {
-      quizCategory: category,
+      quizCategory: "",
       quizLevel: selectedLevel,
       quizPlayStyle: playStyle,
       chosenTopic: category
@@ -50,8 +50,6 @@ const CategoryScreen = () => {
 
   // Set the selected category, call cache function and navigate to StartQuizScreen
   const handleChosenCategory = (category: string) => {
-    console.log(category);
-    
     setSelectedTopic(category);
     sendInformationToCache(category);
     router.push("/(tabs)/play/StartQuizScreen");
@@ -115,7 +113,7 @@ const CategoryScreen = () => {
             Or pick a prepared category
           </Text>
         </View>
-        <View style={styles.preparedTopicContainer}>
+        <View style={styles.preparedToticContainer}>
           <ButtonSecondary
             text="History"
             onPress={() => handleChosenCategory("History")}
@@ -173,7 +171,7 @@ const styles = StyleSheet.create({
   levelSelectionBlock: {
     marginBottom: Gaps.g32,
   },
-  preparedTopicContainer: {
+  preparedToticContainer: {
     gap: Gaps.g16,
   },
 });
