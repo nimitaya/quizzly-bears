@@ -1,20 +1,28 @@
 import { useClerk } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { Text, TouchableOpacity, StyleSheet } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const SignOutButton = () => {
-  // Use `useClerk()` to access the `signOut()` function
   const { signOut } = useClerk();
   const router = useRouter();
 
   const handleSignOut = async () => {
     try {
+      // Clear ALL auth-related flags before signing out
+      await Promise.all([
+        AsyncStorage.removeItem("password_recently_reset"),
+        AsyncStorage.removeItem("password_recently_reset_persist"),
+        AsyncStorage.removeItem("force_signed_in"),
+        AsyncStorage.removeItem("had_password_reset"),
+        AsyncStorage.removeItem("auth_token"),
+      ]);
+
       await signOut();
+
       // Redirect to the welcome screen using router
-      router.replace("/");
+      router.replace("/(auth)/LogInScreen");
     } catch (err) {
-      // See https://clerk.com/docs/custom-flows/error-handling
-      // for more info on error handling
       console.error(JSON.stringify(err, null, 2));
     }
   };
@@ -34,7 +42,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 16,
-    color: "#dc3545", // Red color for sign out
+    color: "#dc3545",
   },
 });
 

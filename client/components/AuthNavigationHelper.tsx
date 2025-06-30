@@ -1,11 +1,7 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-/**
- * Helper component to handle navigation after auth operations
- * This should be placed in the app's root layout
- */
 export default function AuthNavigationHelper() {
   const router = useRouter();
 
@@ -23,8 +19,6 @@ export default function AuthNavigationHelper() {
           // Get the destination
           const destination =
             (await AsyncStorage.getItem("auth_navigation_destination")) || "/";
-
-          console.log("Performing delayed navigation to:", destination);
 
           // Use a timeout for extra safety
           setTimeout(() => {
@@ -45,15 +39,14 @@ export default function AuthNavigationHelper() {
     // Check for pending navigation on mount and periodically
     checkPendingNavigation();
 
-    // Set up a periodic check for pending navigation
+    //periodic check for pending navigation
     const intervalId = setInterval(checkPendingNavigation, 2000);
 
-    // Clean up
     return () => {
       isMounted = false;
       clearInterval(intervalId);
     };
   }, [router]);
 
-  return null; // This component doesn't render anything
+  return null;
 }
