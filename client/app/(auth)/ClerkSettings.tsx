@@ -7,18 +7,13 @@ import React, {
 } from "react";
 import { useUser, useAuth, useClerk } from "@clerk/clerk-expo";
 import { Link } from "expo-router";
-import {
-  Text,
-  View,
-  StyleSheet,
-  ActivityIndicator,
-  TouchableOpacity,
-} from "react-native";
+import { Text, View, StyleSheet, ActivityIndicator } from "react-native";
 import SignOutButton from "@/app/(auth)/SignOutButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors, FontSizes, Gaps } from "@/styles/theme";
 import DeleteAccountButton from "./DeleteAccountButton";
 import ChangePassword from "./ChangePassword";
+import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 
 // Define the ref type
 export type ClerkSettingsRefType = {
@@ -355,28 +350,24 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
       <View style={styles.container}>
         {currentAuthState === "signedIn" ? (
           <View style={styles.signedInContainer}>
-            {/* <Text style={styles.greeting}>
+            <Text style={styles.greeting}>
               {user?.firstName ||
                 (user?.emailAddresses &&
                   user.emailAddresses[0]?.emailAddress) ||
                 "User"}
-            </Text> */}
+            </Text>
             <ChangePassword />
             <SignOutButton />
             <DeleteAccountButton />
           </View>
         ) : (
           <View style={styles.signedOutContainer}>
-            {/* <Text style={styles.title}>Account Options</Text> */}
-            <Link href="/(auth)/LogInScreen" style={styles.link} asChild>
-              <TouchableOpacity>
-                <Text style={styles.linkText}>Log in</Text>
-              </TouchableOpacity>
+            <Text style={styles.title}>Guest</Text>
+            <Link href="/(auth)/LogInScreen" asChild>
+              <ButtonPrimary text="Log in" />
             </Link>
-            <Link href="/(auth)/SignUp" style={styles.link} asChild>
-              <TouchableOpacity>
-                <Text style={styles.linkText}>Sign up</Text>
-              </TouchableOpacity>
+            <Link href="/(auth)/SignUp" asChild>
+              <ButtonSecondary text="Sign up" />
             </Link>
           </View>
         )}
@@ -390,7 +381,6 @@ ClerkSettings.displayName = "ClerkSettings";
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    padding: 20,
   },
   signedInContainer: {
     alignItems: "center",
@@ -414,17 +404,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FontSizes.H2Fs,
     marginBottom: Gaps.g16,
-  },
-  link: {
-    backgroundColor: Colors.primaryLimo,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  linkText: {
-    color: Colors.white,
-    fontSize: FontSizes.TextMediumFs,
-    textAlign: "center",
   },
   loadingContainer: {
     padding: Gaps.g24,

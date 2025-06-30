@@ -4,8 +4,6 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 
 import { Logo } from "./Logos";
 
-
-
 type CustomAlertProps = {
   visible: boolean;
   onClose: () => void;

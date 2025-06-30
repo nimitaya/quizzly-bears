@@ -7,7 +7,7 @@ import {
   useWindowDimensions,
   TouchableOpacity,
 } from "react-native";
-import { Colors, FontSizes } from "../styles/theme";
+import { Colors, FontSizes, Gaps } from "../styles/theme";
 import { ButtonSearchFriend } from "./Buttons";
 import IconEye from "@/assets/icons/IconEye";
 import IconEyeClose from "@/assets/icons/IconEyeClose";
@@ -87,13 +87,8 @@ export function PasswordInput({
       <TouchableOpacity
         style={styles.eyeIcon}
         onPress={() => setShowPassword((prev) => !prev)}
-        activeOpacity={0.7}
       >
-        {showPassword ? (
-          <IconEye width={22} height={22} color={Colors.black} />
-        ) : (
-          <IconEyeClose width={22} height={22} color={Colors.black} />
-        )}
+        {showPassword ? <IconEye /> : <IconEyeClose />}
       </TouchableOpacity>
     </View>
   );
@@ -147,7 +142,7 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     position: "absolute",
-    right: 15,
+    right: Gaps.g24,
     top: 0,
     bottom: 0,
     justifyContent: "center",
