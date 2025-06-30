@@ -13,7 +13,7 @@ const IconBearTab = () => (
     accessibilityRole="image"
   >
     <Image
-      source={require("../images/Logo-Bear-black.png")}
+      source={require("../images/Logo-Bear-black.webp")}
       style={{ width: 32, height: 32 }}
       resizeMode="contain"
     />

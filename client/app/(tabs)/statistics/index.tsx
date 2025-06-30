@@ -5,8 +5,15 @@ import { FontSizes, Gaps } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import { StyleSheet } from "react-native";
 import IconMedal1Place from "@/assets/icons/IconMedal1Place";
+import CircularProgress from "@/components/CircularProgress";
 const StatisticsScreen = () => {
   const router = useRouter();
+
+  // Example data - replace with real data from your API/state
+  const correctAnswers = 120;
+  const totalAnswers = 300;
+  const accuracyPercentage = (correctAnswers / totalAnswers) * 100;
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -39,6 +46,19 @@ const StatisticsScreen = () => {
             </View>
           </View>
         </View>
+        <View style={styles.accuracyBlock}>
+          <Text style={{ fontSize: FontSizes.TextLargeFs }}>
+            {correctAnswers}/{totalAnswers} correct answers
+          </Text>
+          <CircularProgress
+            percentage={accuracyPercentage}
+            size={150}
+            strokeWidth={8}
+            animated={true}
+            duration={2000}
+          />
+        </View>
+
         <View style={styles.CategoryPerformanceContainer}>
           <Text style={{ fontSize: FontSizes.TextLargeFs }}>
             Category performance
@@ -86,5 +106,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: Gaps.g4,
     alignItems: "center",
+  },
+  accuracyBlock: {
+    gap: Gaps.g16,
+    alignItems: "center",
+    marginVertical: Gaps.g40,
   },
 });
