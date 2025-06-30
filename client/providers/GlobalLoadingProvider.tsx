@@ -17,7 +17,7 @@ type GlobalLoadingContextType = {
   withLoading: <T>(promise: Promise<T>) => Promise<T>;
 };
 
-// type assertion
+// type assertion for the context value
 const GlobalLoadingContext = createContext<GlobalLoadingContextType>({
   isGloballyLoading: true,
   isAuthenticated: false,
