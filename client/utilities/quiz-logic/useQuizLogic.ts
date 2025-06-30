@@ -6,20 +6,20 @@ import {
   sendPointsToDatabase,
   checkCache,
 } from "@/utilities/quiz-logic/pointsUtils";
-// Dummy data: TODO
-import quizQuestions from "@/utilities/quiz-logic/data";
-import type { QuizQuestion } from "@/utilities/quiz-logic/data";
 import { loadCacheData } from "./cacheUtils";
 import {
   GameState,
   AnswerState,
   PointsState,
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
+// Dummy data: TODO
+import { AiQuestions, aiQuestions, QuestionStructure
+ } from "@/utilities/quiz-logic/data";
 
 // ========================================================== START OF HOOK ==========================================================
 export function useQuizLogic() {
   const CACHE_KEY = {
-    questions: "aiQuestions",
+    aiQuestions: "aiQuestions",
     quizSettings: "quizSettings",
     gameData: "currGameData",
   };
@@ -34,9 +34,10 @@ export function useQuizLogic() {
 
   // ========================================================== STATE MANAGEMENT ==========================================================
   // TODO combine states
-  const [currQuestionsArray, setCurrQuestionsArray] = useState([]);
+  const [language, setLanguage] = useState("de");
+  const [currQuestionsArray, setCurrQuestionsArray] = useState<QuestionStructure[]>([]);
   const [currentQuestionData, setCurrentQuestionData] =
-    useState<QuizQuestion | null>(null);
+    useState<QuestionStructure | null>(null);
   const [currQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   // TODO setGameState
   const [gameState, setGameState] = useState<GameState>({
@@ -86,7 +87,7 @@ export function useQuizLogic() {
       if (cachedInfo) {
         setGameState((prev) => ({
           ...prev,
-          difficulty: cachedInfo.quizCategory,
+          difficulty: cachedInfo.quizLevel,
           category: cachedInfo.quizCategory,
           playStyle: cachedInfo.quizPlayStyle,
         }));
@@ -99,7 +100,7 @@ export function useQuizLogic() {
   // ----- fetch Data and set all Questions Array -----
   const fetchAiData = async () => {
     try {
-      const cachedInfo = await loadCacheData(CACHE_KEY.questions);
+      const cachedInfo = await loadCacheData(CACHE_KEY.aiQuestions);
       if (cachedInfo) {
         setCurrQuestionsArray(cachedInfo.questionArray);
       }
@@ -113,14 +114,15 @@ export function useQuizLogic() {
   const loadQuestions = async (): Promise<void> => {
     try {
       // fetch questions from cache
-      let questions = await fetchFromCache(CACHE_KEY.questions);
+      let questions = await fetchFromCache(CACHE_KEY.aiQuestions);
       if (!questions) {
         // Fallback to dummy data if cache is empty
-        questions = quizQuestions;
+        questions = aiQuestions;
+        setCurrQuestionsArray(questions.questionArray);
       }
-      if (currQuestionIndex < questions.length) {
+      if (currQuestionIndex < questions.questionArray.length) {
         // Reset
-        setCurrentQuestionData(questions[currQuestionIndex]);
+        setCurrentQuestionData(questions.questionArray[currQuestionIndex]);
         setAnswerState((prev) => ({
           ...prev,
           chosenAnswer: null,
@@ -203,17 +205,27 @@ export function useQuizLogic() {
     handleAnswerCheck();
   };
 
+  // ----- HELPER for finding correct answer -----
+  const getIsCorrect = (): boolean => {
+  if (!currentQuestionData || !answerState.chosenAnswer) return false;
+  const { optionA, optionB, optionC, optionD } = currentQuestionData;
+  const options = [optionA, optionB, optionC, optionD];
+  const chosenText = answerState.chosenAnswer;
+  // Find the matching option (in the current language)
+  const matchedOption = options.find((option) => option[language] === chosenText);  
+  return !!matchedOption?.isCorrect;
+};
+
   // ----- Handle ANSWER CHECK -----
   const handleAnswerCheck = (): void => {
-    const isCorrect = answerState.chosenAnswer === currentQuestionData?.answer;
+    const isCorrect = getIsCorrect();    
     if (isCorrect) {
       const newChosenCorrect = pointsState.chosenCorrect + 1;
 
       let difficulty = gameState.difficulty;
       let timeTaken = ANSWER_TIMER_DURATION / 1000 - remainingTime;
       let isSolo = gameState.playStyle === "solo";
-      // TODO make maximum of questions dynamic
-      let totalQuestions = 10;
+      let totalQuestions = currQuestionsArray.length;
       let allCorrect = newChosenCorrect === totalQuestions;
       let correctAnswers = newChosenCorrect;
 
@@ -237,11 +249,10 @@ export function useQuizLogic() {
         perfectGame: prevPoints.perfectGame + gainedPoints?.bonusAllCorrect,
         total: prevPoints.total + gainedPoints?.totalPoints,
         chosenCorrect: newChosenCorrect,
-      }));
-    }
+      }));          }
     // Logic for SOLO Play
     if (
-      currQuestionIndex < quizQuestions.length - 1 &&
+      currQuestionIndex < currQuestionsArray.length - 1 &&
       gameState.playStyle === "solo"
     ) {
       // Clear the timeout if answer is submitted early
@@ -278,7 +289,7 @@ export function useQuizLogic() {
     }
     // Logic for Solo Play
     if (
-      currQuestionIndex < quizQuestions.length - 1 &&
+      currQuestionIndex < currQuestionsArray.length - 1 &&
       gameState.playStyle === "solo"
     ) {
       setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
@@ -286,7 +297,7 @@ export function useQuizLogic() {
     }
     // Logic for Group Play
     else if (
-      (currQuestionIndex < quizQuestions.length - 1 &&
+      (currQuestionIndex < currQuestionsArray.length - 1 &&
         gameState.playStyle === "group") ||
       "duel"
     ) {
@@ -358,6 +369,7 @@ export function useQuizLogic() {
   }, [readTimer, answerState.isLocked]);
 
   return {
+    language,
     currentQuestionData,
     currQuestionIndex,
     answerState,
