@@ -1,8 +1,12 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "ESNext",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "types": ["node", "express"],
     "moduleResolution": "node",
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
     "rootDir": "./",
     "outDir": "./dist",
     "esModuleInterop": true,

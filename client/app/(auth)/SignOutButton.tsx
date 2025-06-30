@@ -24,10 +24,7 @@ const SignOutButton = () => {
 
       // Set up navigation for AuthNavigationHelper to handle
       await AsyncStorage.setItem("auth_navigation_pending", "true");
-      // await AsyncStorage.setItem(
-      //   "auth_navigation_destination",
-      //   "/(auth)/LogInScreen"
-      // );
+
       // Sign out from Clerk
       await signOut();
     } catch (err) {

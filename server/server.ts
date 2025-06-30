@@ -1,15 +1,18 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import connectDB from "./database/connectDB.js"; // Change .ts to .js
+import connectDB from "./database/connectDB.js";
+import clerkWebhookRouter from "./routes/ClerkWebhook";
 
 const app = express();
 const port = process.env.PORTNUMMER || 3000;
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({ credentials: true, origin: ["http://localhost:5173"] }));
+app.use(cors());
 
+app.use("/api/clerk-webhook", cors());
+app.use("/api", clerkWebhookRouter);
 app.get("/", (req, res) => {
   res.send("API is running...");
 });

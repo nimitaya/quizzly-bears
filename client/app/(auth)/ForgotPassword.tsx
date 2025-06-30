@@ -264,13 +264,6 @@ export default function ForgotPassword() {
     }
   };
 
-  // Safe navigation after reset
-  const safeNavigate = () => {
-    if (!isMountedRef.current) return;
-    AsyncStorage.setItem("auth_navigation_pending", "true").catch(() => {});
-    AsyncStorage.setItem("auth_navigation_destination", "/").catch(() => {});
-  };
-
   return (
     <KeyboardAvoidingView
       style={styles.container}
