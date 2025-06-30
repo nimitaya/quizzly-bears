@@ -1,7 +1,7 @@
 import { useClerk } from "@clerk/clerk-expo";
-import { Text, TouchableOpacity, StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useState } from "react";
+import { ButtonSecondary } from "@/components/Buttons";
 
 const SignOutButton = () => {
   const { signOut } = useClerk();
@@ -38,31 +38,12 @@ const SignOutButton = () => {
   };
 
   return (
-    <TouchableOpacity
+    <ButtonSecondary
+      text={isProcessing ? "Signing out..." : "Log out"}
       onPress={handleSignOut}
-      style={[styles.button, isProcessing && styles.disabledButton]}
       disabled={isProcessing}
-    >
-      <Text style={styles.text}>
-        {isProcessing ? "Signing out..." : "Log out"}
-      </Text>
-    </TouchableOpacity>
+    />
   );
 };
-
-const styles = StyleSheet.create({
-  button: {
-    padding: 10,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 8,
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  text: {
-    fontSize: 16,
-    color: "#dc3545",
-  },
-});
 
 export default SignOutButton;

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import CustomAlert from "@/components/CustomAlert";
 import { useUser } from "@clerk/clerk-expo";
-import { ButtonSmallSecondary } from "@/components/Buttons";
+import { ButtonSecondary } from "@/components/Buttons";
 
 type DeleteAccountButtonProps = {
   onDelete?: () => void;
@@ -39,11 +39,10 @@ const DeleteAccountButton: React.FC<DeleteAccountButtonProps> = ({
 
   return (
     <>
-      <ButtonSmallSecondary
+      <ButtonSecondary
         text={isProcessing ? "Deleting..." : "Delete Account"}
         onPress={handleDeleteAccount}
         disabled={isProcessing}
-        style={{ marginTop: 24 }}
       />
       <CustomAlert
         visible={showAlert}

@@ -8,13 +8,16 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Modal,
 } from "react-native";
 import { useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { Colors, FontSizes, Gaps } from "@/styles/theme";
 import { SearchInput } from "@/components/Inputs";
-import { ButtonPrimary, ButtonPrimaryDisabled } from "@/components/Buttons";
+import {
+  ButtonPrimary,
+  ButtonPrimaryDisabled,
+  ButtonSkip,
+} from "@/components/Buttons";
 import CustomAlert from "@/components/CustomAlert";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { PasswordInput } from "@/components/Inputs";
@@ -385,10 +388,7 @@ export default function SignUpScreen() {
         </View>
 
         <TouchableOpacity
-          style={[
-            styles.resendButton,
-            isRateLimited && styles.disabledButton, // Add this style
-          ]}
+          style={[styles.resendButton, isRateLimited && styles.disabledButton]}
           onPress={resendVerificationCode}
           disabled={isResendingCode || isRateLimited}
         >
@@ -423,7 +423,7 @@ export default function SignUpScreen() {
         <SearchInput
           autoCapitalize="none"
           value={emailAddress}
-          placeholder="Enter email"
+          placeholder="enter email"
           onChangeText={(email) => {
             setEmailAddress(email);
             if (isEmailError) {
@@ -449,7 +449,7 @@ export default function SignUpScreen() {
               setPasswordsMatch(pwd === repeatPassword);
             }
           }}
-          placeholder="Enter password"
+          placeholder="enter password"
         />
         <PasswordInput
           value={repeatPassword}
@@ -466,7 +466,7 @@ export default function SignUpScreen() {
               setPasswordsMatch(true);
             }
           }}
-          placeholder="Repeat password"
+          placeholder="repeat password"
         />
 
         {!passwordsMatch && repeatPassword.length > 0 && (
@@ -506,12 +506,10 @@ export default function SignUpScreen() {
           </TouchableOpacity>
         </Link>
       </View>
-      <TouchableOpacity
+      <ButtonSkip
+        text="Skip for now"
         onPress={() => router.replace("/(tabs)/play")}
-        style={styles.skipButton}
-      >
-        <Text style={styles.skipText}>Skip for now</Text>
-      </TouchableOpacity>
+      />
 
       {/* Custom Alert for Account Exists */}
       <CustomAlert
@@ -533,17 +531,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
     width: "100%",
   },
   containerInput: {
-    gap: Gaps.g8,
+    gap: Gaps.g16,
     width: "100%",
   },
   title: {
     fontSize: FontSizes.H1Fs,
     fontWeight: "bold",
-    marginBottom: Gaps.g16,
+    marginBottom: Gaps.g32,
   },
   subtitle: {
     fontSize: FontSizes.TextMediumFs,
@@ -552,10 +549,10 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: Colors.systemRed,
-    marginTop: 5,
+    marginTop: Gaps.g4,
     fontSize: FontSizes.FootnoteFS,
     alignSelf: "center",
-    marginLeft: 5,
+    marginLeft: Gaps.g4,
   },
   linkContainer: {
     flexDirection: "row",
@@ -563,18 +560,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   link: {
-    color: Colors.black,
-    marginLeft: 5,
-    fontWeight: "bold",
+    fontSize: FontSizes.TextMediumFs,
+    color: Colors.darkGreen,
+    marginLeft: Gaps.g8,
   },
-  skipButton: {
-    marginTop: Gaps.g24,
-    padding: 10,
-  },
-  skipText: {
-    color: Colors.black,
-    fontSize: FontSizes.TextSmallFs,
-  },
+
   resendButton: {
     marginTop: Gaps.g16,
     padding: Gaps.g8,
