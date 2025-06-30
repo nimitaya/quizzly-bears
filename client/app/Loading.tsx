@@ -20,17 +20,14 @@ const Loading = () => {
       if (!isGloballyLoading && isMounted) {
         // Get the lastScreen from storage if no returnTo is provided
         let destination = returnTo;
-
         if (!destination) {
           try {
             destination =
-              (await AsyncStorage.getItem("last_screen")) || "/(tabs)";
+              (await AsyncStorage.getItem("last_screen")) || "/(tabs)/play";
           } catch (err) {
-            destination = "/(tabs)";
+            destination = "/(tabs)/play";
           }
         }
-
-        // Wait a bit to show the loading screen
         timer = setTimeout(() => {
           if (isMounted) {
             router.replace(destination as any);
@@ -38,7 +35,6 @@ const Loading = () => {
         }, 1500);
       }
     };
-
     checkAndNavigate();
 
     return () => {

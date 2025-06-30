@@ -5,20 +5,21 @@ import {
   TouchableOpacity,
   View,
   StyleSheet,
-  Alert,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import React, { useState } from "react";
-import { Colors, FontSizes, Gaps, Radius } from "@/styles/theme";
+import { Colors, FontSizes, Gaps } from "@/styles/theme";
 import { SearchInput } from "@/components/Inputs";
-import { ButtonPrimary, ButtonPrimaryDisabled } from "@/components/Buttons";
+import { ButtonPrimary } from "@/components/Buttons";
 import CustomAlert from "@/components/CustomAlert";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 
 export default function LogIn() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const router = useRouter();
+  const { refreshGlobalState } = useGlobalLoading();
 
   // State management
   const [emailAddress, setEmailAddress] = useState("");
@@ -35,7 +36,7 @@ export default function LogIn() {
     if (isLoading && Platform.OS === "web") {
       setTimeout(() => {
         setIsLoading(false);
-      }, 15000); // 15-second timeout
+      }, 15000);
     }
   };
 
@@ -79,7 +80,20 @@ export default function LogIn() {
 
       if (signInAttempt.status === "complete") {
         await setActive({ session: signInAttempt.createdSessionId });
-        router.replace("/(tabs)/play");
+
+        // IMPORTANT: Update global auth state
+        await refreshGlobalState();
+
+        // IMPORTANT: Use AuthNavigationHelper pattern
+        if (Platform.OS !== "web") {
+          await AsyncStorage.setItem("auth_navigation_pending", "true");
+          await AsyncStorage.setItem(
+            "auth_navigation_destination",
+            "/(tabs)/play"
+          );
+        } else {
+          router.replace("/(tabs)/play");
+        }
       } else {
         setError("Sign in failed. Please check your email and password.");
       }
@@ -212,20 +226,30 @@ export default function LogIn() {
       </View>
 
       <TouchableOpacity
-        onPress={() => router.replace("/(tabs)/play")}
+        onPress={async () => {
+          if (Platform.OS !== "web") {
+            await AsyncStorage.setItem("auth_navigation_pending", "true");
+            await AsyncStorage.setItem(
+              "auth_navigation_destination",
+              "/(tabs)/play"
+            );
+          } else {
+            router.replace("/(tabs)/play");
+          }
+        }}
         style={styles.skipButton}
       >
         <Text style={styles.skipText}>Skip for now</Text>
       </TouchableOpacity>
 
-      {/* Custom Alert for Password Reset */}
+      {/* Password Reset Alert */}
       <CustomAlert
         visible={showResetAlert}
         onClose={() => setShowResetAlert(false)}
         title="Reset Password"
         message="Do you want to reset your password?"
         cancelText="Cancel"
-        confirmText="Reset Password"
+        confirmText="Reset"
         onConfirm={handleResetPassword}
         noInternet={false}
       />
