@@ -6,7 +6,7 @@ import {
   sendPointsToDatabase,
   checkCache,
 } from "@/utilities/quiz-logic/pointsUtils";
-import { loadCacheData } from "./cacheUtils";
+import { loadCacheData } from "@/utilities/quiz-logic/cacheUtils";
 import {
   GameState,
   AnswerState,
@@ -25,7 +25,7 @@ export function useQuizLogic() {
   };
   // Timer duration/ delays TODO
   const READ_TIMER_DURATION = 2000;
-  const ANSWER_TIMER_DURATION = 5000;
+  const ANSWER_TIMER_DURATION = 10000;
   const NEXT_QUESTION_DELAY = 3000;
 
   // To reset Timers
@@ -155,7 +155,7 @@ export function useQuizLogic() {
       // Start - you have 10 seconds to choose an answer
       answerTimeout.current = setTimeout(() => {
         setAnswerState((prevState) => ({ ...prevState, isLocked: true }));
-        handleAnswerCheck();
+        handleAnswerCheck();       
         if (gameState.playStyle === "group" || "duel") {
           handleNextQuestion();
         }
@@ -217,7 +217,7 @@ export function useQuizLogic() {
 };
 
   // ----- Handle ANSWER CHECK -----
-  const handleAnswerCheck = (): void => {
+  const handleAnswerCheck = (): void => {   
     const isCorrect = getIsCorrect();    
     if (isCorrect) {
       const newChosenCorrect = pointsState.chosenCorrect + 1;
