@@ -135,6 +135,7 @@ const ProfileScreen = () => {
   return (
     <ScrollView
       style={styles.container}
+      showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.contentContainer}
     >
       <View style={{ marginBottom: Gaps.g24 }}>
