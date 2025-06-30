@@ -63,7 +63,10 @@ const StatisticsScreen = () => {
           <Text style={{ fontSize: FontSizes.TextLargeFs }}>
             Category performance
           </Text>
-          <ButtonSecondary text="History" />
+          <ButtonSecondary
+            text="FAQ"
+            onPress={() => router.push("/(tabs)/statistics/FaqScreen")}
+          />
           <ButtonSecondary text="Science" />
           <ButtonSecondary text="Sports" />
           <ButtonSecondary text="Geography" />
