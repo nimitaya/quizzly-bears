@@ -98,7 +98,7 @@ export const generateMultipleQuizQuestions = async (
       },
       {
         headers: {
-          Authorization: `Bearer ${GROQ_API_KEY.trim()}`,
+          Authorization: `Bearer ${GROQ_API_KEY?.trim() || ""}`,
           "Content-Type": "application/json",
         },
       }
@@ -268,7 +268,7 @@ export const generateQuizQuestion = async (
       },
       {
         headers: {
-          Authorization: `Bearer ${GROQ_API_KEY.trim()}`,
+          Authorization: `Bearer ${(GROQ_API_KEY ?? "").trim()}`,
           "Content-Type": "application/json",
         },
       }
