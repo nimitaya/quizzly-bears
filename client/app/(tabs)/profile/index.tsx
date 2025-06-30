@@ -9,7 +9,7 @@ import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Loading from "@/app/Loading";
 import { Logo } from "@/components/Logos";
-
+import { useUser } from "@clerk/clerk-expo";
 import { Toggle } from "@/components/Toggle";
 import { ButtonSecondary } from "@/components/Buttons";
 import { useRouter } from "expo-router";
@@ -25,7 +25,7 @@ const ProfileScreen = () => {
   const [passwordResetFlag, setPasswordResetFlag] = useState<string | null>(
     null
   );
-
+  const { user } = useUser();
   // Check for password reset flag on mount and refresh
   useEffect(() => {
     let isMounted = true;
@@ -140,7 +140,11 @@ const ProfileScreen = () => {
       <View style={{ marginBottom: Gaps.g24 }}>
         <Logo size="small" />
       </View>
-
+      <Text>
+        {user?.firstName ||
+          (user?.emailAddresses && user.emailAddresses[0]?.emailAddress) ||
+          "User"}
+      </Text>
       {/* IMPORTANT: Always render ClerkSettings to maintain ref connection */}
       <ClerkSettings ref={clerkSettingsRef} refreshKey={refreshKey} />
 
