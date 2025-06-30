@@ -7,16 +7,25 @@ import React, {
 } from "react";
 import { useUser, useAuth } from "@clerk/clerk-expo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import LoadingOverlay from "../app/Loading";
+
 type GlobalLoadingContextType = {
   isGloballyLoading: boolean;
   isAuthenticated: boolean;
   refreshGlobalState: () => Promise<void>;
+  showLoading: (show: boolean) => void;
+  withLoading: <T>(promise: Promise<T>) => Promise<T>;
 };
 
+// type assertion
 const GlobalLoadingContext = createContext<GlobalLoadingContextType>({
   isGloballyLoading: true,
   isAuthenticated: false,
   refreshGlobalState: async () => {},
+  showLoading: () => {},
+  withLoading: (async (promise) => promise) as <T>(
+    promise: Promise<T>
+  ) => Promise<T>,
 });
 
 export const useGlobalLoading = () => useContext(GlobalLoadingContext);
@@ -29,8 +38,43 @@ export const GlobalLoadingProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isGloballyLoading, setIsGloballyLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [manualLoading, setManualLoading] = useState(false);
 
   const isRefreshingRef = useRef(false);
+  const isMountedRef = useRef(true);
+
+  // Set isMounted to false on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Helper function to safely update state only when mounted
+  const safeSetState = (
+    setter: React.Dispatch<React.SetStateAction<any>>,
+    value: any
+  ) => {
+    if (isMountedRef.current) {
+      setter(value);
+    }
+  };
+
+  // Helper function to manually show/hide loading
+  const showLoading = (show: boolean) => {
+    safeSetState(setManualLoading, show);
+  };
+
+  // Helper function to wrap any Promise with loading state - fix implementation
+  const withLoading = async <T,>(promise: Promise<T>): Promise<T> => {
+    safeSetState(setManualLoading, true);
+    try {
+      const result = await promise;
+      return result;
+    } finally {
+      safeSetState(setManualLoading, false);
+    }
+  };
 
   const refreshGlobalState = async () => {
     if (isRefreshingRef.current) return;
@@ -39,22 +83,22 @@ export const GlobalLoadingProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       if (!isInitializing) {
-        setIsGloballyLoading(true);
+        safeSetState(setIsGloballyLoading, true);
       }
 
       // check for password reset flag
       const resetFlag = await AsyncStorage.getItem("password_recently_reset");
       if (resetFlag === "true") {
-        setIsAuthenticated(true);
+        safeSetState(setIsAuthenticated, true);
       } else if (userLoaded && authLoaded) {
-        setIsAuthenticated(!!isSignedIn);
+        safeSetState(setIsAuthenticated, !!isSignedIn);
       }
 
       await new Promise((resolve) => setTimeout(resolve, 100));
     } catch (error) {
       console.error("Error refreshing global state:", error);
     } finally {
-      setIsGloballyLoading(false);
+      safeSetState(setIsGloballyLoading, false);
       isRefreshingRef.current = false;
     }
   };
@@ -69,17 +113,19 @@ export const GlobalLoadingProvider: React.FC<{ children: React.ReactNode }> = ({
         //check for password reset flag during initialization
         const resetFlag = await AsyncStorage.getItem("password_recently_reset");
         if (resetFlag === "true") {
-          setIsAuthenticated(true);
+          safeSetState(setIsAuthenticated, true);
         } else {
-          setIsAuthenticated(!!isSignedIn);
+          safeSetState(setIsAuthenticated, !!isSignedIn);
         }
 
         await new Promise((resolve) => setTimeout(resolve, 300));
       } catch (error) {
         console.error("Error during app initialization:", error);
       } finally {
-        setIsGloballyLoading(false);
-        setIsInitializing(false);
+        if (isMountedRef.current) {
+          safeSetState(setIsGloballyLoading, false);
+          safeSetState(setIsInitializing, false);
+        }
       }
     };
 
@@ -92,11 +138,17 @@ export const GlobalLoadingProvider: React.FC<{ children: React.ReactNode }> = ({
     isGloballyLoading,
     isAuthenticated,
     refreshGlobalState,
+    showLoading,
+    withLoading,
   };
+
+  // Show loading overlay when either global loading or manual loading is active
+  const shouldShowLoading = isGloballyLoading || manualLoading;
 
   return (
     <GlobalLoadingContext.Provider value={contextValue}>
       {children}
+      {shouldShowLoading && <LoadingOverlay />}
     </GlobalLoadingContext.Provider>
   );
 };

@@ -15,6 +15,7 @@ import { ButtonPrimary } from "@/components/Buttons";
 import CustomAlert from "@/components/CustomAlert";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
+import { Feather } from "@expo/vector-icons";
 
 export default function LogIn() {
   const { signIn, setActive, isLoaded } = useSignIn();
@@ -28,6 +29,7 @@ export default function LogIn() {
   const [error, setError] = useState("");
   const [isEmailError, setIsEmailError] = useState(false);
   const [showResetAlert, setShowResetAlert] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Safe loading state with timeout to prevent infinite loading
   const safeSetLoading = (isLoading: boolean) => {
@@ -186,7 +188,7 @@ export default function LogIn() {
         <SearchInput
           value={password}
           placeholder="Enter password"
-          secureTextEntry={true}
+          secureTextEntry={!showPassword}
           onChangeText={(pwd) => {
             setPassword(pwd);
             if (
@@ -198,6 +200,17 @@ export default function LogIn() {
             }
           }}
         />
+        <TouchableOpacity
+          style={styles.eyeIcon}
+          onPress={() => setShowPassword(!showPassword)}
+          activeOpacity={0.7}
+        >
+          <Feather
+            name={showPassword ? "eye" : "eye-off"}
+            size={22}
+            color={Colors.black}
+          />
+        </TouchableOpacity>
       </View>
 
       {error !== "" && <Text style={styles.errorText}>{error}</Text>}
@@ -307,5 +320,13 @@ const styles = StyleSheet.create({
     color: Colors.black,
     fontSize: FontSizes.TextSmallFs,
     textDecorationLine: "underline",
+  },
+  eyeIcon: {
+    position: "absolute",
+    right: 15,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+    zIndex: 1,
   },
 });

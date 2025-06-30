@@ -6,7 +6,7 @@ import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const Loading = () => {
+const LoadingOverlay = () => {
   const { isGloballyLoading } = useGlobalLoading();
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -44,27 +44,37 @@ const Loading = () => {
   }, [isGloballyLoading, router, returnTo]);
 
   return (
-    <View style={styles.container}>
-      <Logo size="big" />
-      <Image
-        source={{
-          uri: "https://media.tenor.com/On7kvXhzml4AAAAj/loading-gif.gif",
-        }}
-        style={{ width: 100, height: 100, alignSelf: "center" }}
-        accessibilityLabel="Loading animation"
-      />
+    <View style={styles.overlay}>
+      <View style={styles.container}>
+        <Logo size="big" />
+        <Image
+          source={{
+            uri: "https://media.tenor.com/On7kvXhzml4AAAAj/loading-gif.gif",
+          }}
+          style={{ width: 100, height: 100, alignSelf: "center" }}
+          accessibilityLabel="Loading animation"
+        />
+      </View>
     </View>
   );
 };
 
-export default Loading;
+export default LoadingOverlay;
 
 const styles = StyleSheet.create({
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: Colors.bgGray,
+    zIndex: 9999,
+  },
   container: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     gap: Gaps.g40,
-    backgroundColor: Colors.white,
   },
 });
