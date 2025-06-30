@@ -150,7 +150,7 @@ const ProfileScreen = () => {
         <Text
           style={{
             fontSize: FontSizes.H3Fs,
-            paddingHorizontal: 32,
+            paddingHorizontal: Gaps.g32,
           }}
         >
           Language !!!! create
