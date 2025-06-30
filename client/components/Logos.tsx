@@ -7,7 +7,7 @@ interface LogoProps {
   size?: LogoSize;
 }
 
-const logoImage = require("../assets/images/Logo-Bear-green-black.png");
+const logoImage = require("../assets/images/Logo-Bear-green-black.webp");
 const textImage = require("../assets/images/Logo-Text.webp");
 
 export const Logo: React.FC<LogoProps> = ({ size = "medium" }) => {
