@@ -1,4 +1,4 @@
-import { Colors, FontSizes } from "@/styles/theme";
+import { Colors, FontSizes, Gaps } from "@/styles/theme";
 import React, { useState } from "react";
 import { Pressable, Text, View, StyleSheet } from "react-native";
 
@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     width: "100%",
-    paddingHorizontal: 32,
+    paddingHorizontal: Gaps.g32,
   },
   toggleTrack: {
     width: 56,
@@ -60,5 +60,5 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: Colors.white,
   },
-  label: { fontSize: FontSizes.TextLargeFs, color: Colors.black },
+  label: { fontSize: FontSizes.H3Fs, color: Colors.black },
 });

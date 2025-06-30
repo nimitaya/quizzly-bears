@@ -23,7 +23,7 @@ export default function WelcomeScreen() {
   return (
     <View style={styles.container}>
       <View style={{ marginBottom: Gaps.g16 }}>
-        <Logo size="big" />
+        <Logo size="start" />
       </View>
       <View style={styles.descriptionContainer}>
         <Text
