@@ -26,6 +26,10 @@ export default function AuthNavigationHelper() {
             if (isMounted) {
               try {
                 router.replace(destination as any);
+                AsyncStorage.setItem(
+                  "auth_navigation_destination",
+                  "/(tabs)/play"
+                );
               } catch (e) {
                 console.log("Navigation failed:", e);
               }
