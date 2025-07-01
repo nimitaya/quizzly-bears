@@ -1,13 +1,14 @@
+import { Colors } from "@/styles/theme";
 import React, { useEffect, useRef } from "react";
 import { View, Animated, StyleSheet } from "react-native";
 
 interface TimerBarProps {
-  duration?: number; // Gesamtdauer in Sekunden
-  delay?: number; // Verzögerung vor Start in Sekunden
-  onTimeUp?: () => void; // Callback wenn Zeit abgelaufen ist
-  width?: number; // Breite des Balkens
-  height?: number; // Höhe des Balkens
-  isPaused?: boolean; // Pausiert die Animation
+  duration?: number; // Total duration in seconds
+  delay?: number; // Delay before start in seconds
+  onTimeUp?: () => void; // Callback when time is up
+  width?: number; // Width of the bar
+  height?: number; // Height of the bar
+  isPaused?: boolean; // Pauses the animation
 }
 
 const TimerBar: React.FC<TimerBarProps> = ({
@@ -59,14 +60,21 @@ const TimerBar: React.FC<TimerBarProps> = ({
       ]}
     >
       {/* Background bar (green) */}
-      <View style={[styles.backgroundBar, { backgroundColor: "#cdf546" }]} />
-      
-      {/* Progress bar (gray growing from left to right) */}
+      <View
+        style={[
+          styles.barBase,
+          styles.backgroundBar,
+          { backgroundColor: Colors.primaryLimo },
+        ]}
+      />
+
+      {/* Progress bar (gray, grows from left to right) */}
       <Animated.View
         style={[
+          styles.barBase,
           styles.progressBar,
           {
-            backgroundColor: "#CFD0CD",
+            backgroundColor: Colors.disable,
             width: progressAnimation.interpolate({
               inputRange: [0, 1],
               outputRange: ["0%", "100%"],
@@ -84,21 +92,19 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     overflow: "hidden",
   },
-  backgroundBar: {
+  barBase: {
     position: "absolute",
     top: 0,
     left: 0,
-    right: 0,
     bottom: 0,
     borderRadius: 5,
   },
+  backgroundBar: {
+    right: 0,
+  },
   progressBar: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    bottom: 0,
-    borderRadius: 5,
+    // Inherits barBase styles
   },
 });
 
-export default TimerBar; 
+export default TimerBar;
