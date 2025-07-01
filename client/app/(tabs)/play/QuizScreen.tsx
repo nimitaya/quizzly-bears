@@ -1,5 +1,12 @@
-import React from "react";
-import { ScrollView, View, Text, StyleSheet, useWindowDimensions } from "react-native";
+import React, { useState } from "react";
+import {
+  ScrollView,
+  View,
+  Text,
+  StyleSheet,
+  useWindowDimensions,
+  TouchableOpacity,
+} from "react-native";
 import { QuizButton } from "@/components/QuizButtons";
 import {
   ButtonPrimary,
@@ -12,8 +19,10 @@ import { Logo } from "@/components/Logos";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
+import IconArrowBack from "@/assets/icons/IconArrowBack";
 import TimerBar from "@/components/TimerBar";
 import { clearCacheData, CACHE_KEY } from "@/utilities/cacheUtils";
+import CustomAlert from "@/components/CustomAlert";
 
 const QuizLogic = () => {
   const {
@@ -49,6 +58,8 @@ const QuizLogic = () => {
     settings: CACHE_KEY.quizSettings,
   };
 
+  const [showAlert, setShowAlert] = useState(false);
+
   const handleRoundAgain = () => {
     clearCacheData(cacheKey.questions);
     clearCacheData(cacheKey.points);
@@ -63,8 +74,27 @@ const QuizLogic = () => {
     router.push("./");
   };
 
+  const handleBackButton = () => {
+    if (!showResult) {
+      setShowAlert(true);
+    } 
+  };
+
+  const handleCloseAlert = () => {
+    setShowAlert(false);
+  }
+
+  const handleConfirmAlert = () => {
+    setShowAlert(false);
+    clearCacheData(cacheKey.questions);
+    clearCacheData(cacheKey.points);
+    clearCacheData(cacheKey.settings);
+    router.push("./");
+  }
+
   return (
     <>
+    {/* ---------- SHOW RESULT ---------- */}
       {showResult ? (
         <ScrollView
           style={styles.containerResult}
@@ -114,6 +144,28 @@ const QuizLogic = () => {
           ]}
           keyboardShouldPersistTaps="handled"
         >
+          {/* ---------- BACK BUTTON ---------- */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => handleBackButton()}
+            accessibilityLabel="Go back"
+          >
+            <IconArrowBack />
+          </TouchableOpacity>
+
+          {/* ---------- ALERT ---------- */}
+          <CustomAlert
+            visible={showAlert}
+            onClose={handleCloseAlert}
+            title="Quit game"
+            message="Do you really want to leave?"
+            cancelText="Continue"
+            confirmText="Quit"
+            onConfirm={handleConfirmAlert}
+            noInternet={false}
+          />
+
+          {/* ---------- QUESTIONS ---------- */}
           <View style={styles.questionScreenContainer}>
             <Text style={styles.questionNumber}>
               {currQuestionIndex + 1} from 10
@@ -125,16 +177,14 @@ const QuizLogic = () => {
           {/* Show only if readTimer true */}
           {readTimer && (
             <View style={styles.answerSection}>
-
               <View style={styles.timerContainer}>
-                <TimerBar 
+                <TimerBar
                   key={`timer-${currQuestionIndex}`}
                   duration={30}
                   delay={0}
                   width={timerBarWidth} // Gleiche Breite wie die Antworten
                   isPaused={answerState.isSubmitted}
                 />
-
               </View>
               <View style={styles.questionAnswerContainer}>
                 <View style={styles.answerContainer}>
@@ -203,6 +253,12 @@ const styles = StyleSheet.create({
     marginVertical: Gaps.g80,
   },
 
+  backButton: {
+    position: "absolute",
+    top: -8,
+    left: 16,
+    zIndex: 10,
+  },
   questionNumber: {
     textAlign: "center",
     color: Colors.black,
