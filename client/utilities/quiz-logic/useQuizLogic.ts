@@ -6,26 +6,25 @@ import {
   sendPointsToDatabase,
   checkCache,
 } from "@/utilities/quiz-logic/pointsUtils";
-import { loadCacheData } from "./cacheUtils";
+import { loadCacheData, CACHE_KEY } from "@/utilities/cacheUtils";
 import {
   GameState,
   AnswerState,
   PointsState,
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
 // Dummy data: TODO
-import { AiQuestions, aiQuestions, QuestionStructure
- } from "@/utilities/quiz-logic/data";
+import {
+  AiQuestions,
+  aiQuestions,
+  QuestionStructure,
+} from "@/utilities/quiz-logic/data";
 
 // ========================================================== START OF HOOK ==========================================================
 export function useQuizLogic() {
-  const CACHE_KEY = {
-    aiQuestions: "aiQuestions",
-    quizSettings: "quizSettings",
-    gameData: "currGameData",
-  };
+  const key = CACHE_KEY;
   // Timer duration/ delays TODO
   const READ_TIMER_DURATION = 2000;
-  const ANSWER_TIMER_DURATION = 5000;
+  const ANSWER_TIMER_DURATION = 30000; // 30 Sekunden für Antworten
   const NEXT_QUESTION_DELAY = 3000;
 
   // To reset Timers
@@ -35,11 +34,12 @@ export function useQuizLogic() {
   // ========================================================== STATE MANAGEMENT ==========================================================
   // TODO combine states
   const [language, setLanguage] = useState("de");
-  const [currQuestionsArray, setCurrQuestionsArray] = useState<QuestionStructure[]>([]);
+  const [currQuestionsArray, setCurrQuestionsArray] = useState<
+    QuestionStructure[]
+  >([]);
   const [currentQuestionData, setCurrentQuestionData] =
     useState<QuestionStructure | null>(null);
   const [currQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
-  // TODO setGameState
   const [gameState, setGameState] = useState<GameState>({
     difficulty: "medium",
     category: "",
@@ -66,7 +66,7 @@ export function useQuizLogic() {
   const [showResult, setShowResult] = useState<boolean>(false);
 
   // ========================================================== FUNCTIONS ==========================================================
-  // ===== FETCHING FROM CACHE TODO =====
+  // ===== FETCHING FROM CACHE =====
   const fetchFromCache = async (key: string) => {
     try {
       const cachedData = await loadCacheData(key);
@@ -83,7 +83,7 @@ export function useQuizLogic() {
   // ----- fetch Data and set Game State -----
   const fetchGameInfo = async () => {
     try {
-      const cachedInfo = await loadCacheData(CACHE_KEY.quizSettings);
+      const cachedInfo = await loadCacheData(key.quizSettings);
       if (cachedInfo) {
         setGameState((prev) => ({
           ...prev,
@@ -100,7 +100,7 @@ export function useQuizLogic() {
   // ----- fetch Data and set all Questions Array -----
   const fetchAiData = async () => {
     try {
-      const cachedInfo = await loadCacheData(CACHE_KEY.aiQuestions);
+      const cachedInfo = await loadCacheData(key.aiQuestions);
       if (cachedInfo) {
         setCurrQuestionsArray(cachedInfo.questionArray);
       }
@@ -114,9 +114,9 @@ export function useQuizLogic() {
   const loadQuestions = async (): Promise<void> => {
     try {
       // fetch questions from cache
-      let questions = await fetchFromCache(CACHE_KEY.aiQuestions);
+      let questions = await fetchFromCache(key.aiQuestions);
       if (!questions) {
-        // Fallback to dummy data if cache is empty
+        // Fallback to dummy data if cache is empty TODO delete later
         questions = aiQuestions;
         setCurrQuestionsArray(questions.questionArray);
       }
@@ -156,8 +156,10 @@ export function useQuizLogic() {
       answerTimeout.current = setTimeout(() => {
         setAnswerState((prevState) => ({ ...prevState, isLocked: true }));
         handleAnswerCheck();
-        if (gameState.playStyle === "group" || "duel") {
-          handleNextQuestion();
+        if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
+          setTimeout(() => {
+            handleNextQuestion();
+          }, NEXT_QUESTION_DELAY);
         }
       }, ANSWER_TIMER_DURATION);
     }, READ_TIMER_DURATION);
@@ -207,18 +209,20 @@ export function useQuizLogic() {
 
   // ----- HELPER for finding correct answer -----
   const getIsCorrect = (): boolean => {
-  if (!currentQuestionData || !answerState.chosenAnswer) return false;
-  const { optionA, optionB, optionC, optionD } = currentQuestionData;
-  const options = [optionA, optionB, optionC, optionD];
-  const chosenText = answerState.chosenAnswer;
-  // Find the matching option (in the current language)
-  const matchedOption = options.find((option) => option[language] === chosenText);  
-  return !!matchedOption?.isCorrect;
-};
+    if (!currentQuestionData || !answerState.chosenAnswer) return false;
+    const { optionA, optionB, optionC, optionD } = currentQuestionData;
+    const options = [optionA, optionB, optionC, optionD];
+    const chosenText = answerState.chosenAnswer;
+    // Find the matching option (in the current language)
+    const matchedOption = options.find(
+      (option) => option[language] === chosenText
+    );
+    return !!matchedOption?.isCorrect;
+  };
 
   // ----- Handle ANSWER CHECK -----
   const handleAnswerCheck = (): void => {
-    const isCorrect = getIsCorrect();    
+    const isCorrect = getIsCorrect();
     if (isCorrect) {
       const newChosenCorrect = pointsState.chosenCorrect + 1;
 
@@ -249,7 +253,8 @@ export function useQuizLogic() {
         perfectGame: prevPoints.perfectGame + gainedPoints?.bonusAllCorrect,
         total: prevPoints.total + gainedPoints?.totalPoints,
         chosenCorrect: newChosenCorrect,
-      }));          }
+      }));
+    }
     // Logic for SOLO Play
     if (
       currQuestionIndex < currQuestionsArray.length - 1 &&
@@ -287,6 +292,7 @@ export function useQuizLogic() {
       clearTimeout(answerTimeout.current);
       answerTimeout.current = null;
     }
+
     // Logic for Solo Play
     if (
       currQuestionIndex < currQuestionsArray.length - 1 &&
@@ -299,13 +305,14 @@ export function useQuizLogic() {
     else if (
       (currQuestionIndex < currQuestionsArray.length - 1 &&
         gameState.playStyle === "group") ||
-      "duel"
+      gameState.playStyle === "duel"
     ) {
       setTimeout(() => {
         setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
         setReadTimer(false);
       }, NEXT_QUESTION_DELAY);
     }
+    // ---------------------------------
     // if last question done
     else {
       setShowResult(true);
@@ -325,6 +332,15 @@ export function useQuizLogic() {
     sendPointsToDatabase();
     // clear cached data
     clearCachePoints();
+    // Clear all timers
+    if (answerTimeout.current) {
+      clearTimeout(answerTimeout.current);
+      answerTimeout.current = null;
+    }
+    if (readTimeout.current) {
+      clearTimeout(readTimeout.current);
+      readTimeout.current = null;
+    }
   };
 
   // ========================================================== USE EFFECTS ==========================================================

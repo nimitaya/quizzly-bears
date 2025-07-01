@@ -11,10 +11,11 @@ import {
 import { router, useLocalSearchParams } from "expo-router";
 import { useClerk, useAuth } from "@clerk/clerk-expo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ButtonPrimary } from "@/components/Buttons";
+import { ButtonPrimary, ButtonSkip } from "@/components/Buttons";
 import { SearchInput, PasswordInput } from "@/components/Inputs";
 import { Colors, FontSizes, Gaps } from "@/styles/theme";
-
+import { Logo } from "@/components/Logos";
+import IconArrowBack from "@/assets/icons/IconArrowBack";
 // Email validation regex
 const validateEmail = (email: string) => {
   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -269,6 +270,16 @@ export default function ForgotPassword() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.back()}
+        accessibilityLabel="Go back"
+      >
+        <IconArrowBack />
+      </TouchableOpacity>
+      <View style={{ marginBottom: Gaps.g16 }}>
+        <Logo size="small" />
+      </View>
       <Text style={styles.title}>Reset Password</Text>
 
       {resetComplete ? (
@@ -361,9 +372,9 @@ export default function ForgotPassword() {
                 : "Resend Code"}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.backButton} onPress={goBack}>
-            <Text style={styles.backButtonText}>Go Back</Text>
-          </TouchableOpacity>
+          <View style={{ marginTop: Gaps.g16 }}>
+            <ButtonSkip text="Go Back" onPress={goBack} />
+          </View>
         </View>
       ) : (
         <>
@@ -406,12 +417,11 @@ export default function ForgotPassword() {
             <ButtonPrimary
               text="Send Verification Code"
               onPress={handleResetPasswordRequest}
-              style={{ marginTop: Gaps.g16 }}
             />
           )}
-          <TouchableOpacity style={styles.backButton} onPress={goBack}>
-            <Text style={styles.backButtonText}>Go Back</Text>
-          </TouchableOpacity>
+          <View style={{ marginTop: Gaps.g16 }}>
+            <ButtonSkip text="Go Back" onPress={goBack} />
+          </View>
         </>
       )}
     </KeyboardAvoidingView>
@@ -424,7 +434,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     alignItems: "center",
     paddingHorizontal: 24,
-    paddingTop: 60,
+    paddingTop: Gaps.g80,
   },
   title: {
     fontSize: FontSizes.H1Fs,
@@ -457,7 +467,10 @@ const styles = StyleSheet.create({
     marginBottom: Gaps.g16,
   },
   backButton: {
-    marginTop: Gaps.g32,
+    position: "absolute",
+    top: Gaps.g80,
+    left: 16,
+    zIndex: 10,
   },
   backButtonText: {
     color: Colors.darkGreen,
@@ -491,6 +504,7 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
     marginTop: Gaps.g24,
+    gap: Gaps.g16,
   },
   alternateButton: {
     marginTop: Gaps.g8,

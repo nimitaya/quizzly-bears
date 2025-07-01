@@ -2,13 +2,13 @@ import {
   loadCacheData,
   saveDataToCache,
   clearCacheData,
-} from "@/utilities/quiz-logic/cacheUtils";
+} from "@/utilities/cacheUtils";
 import {
   GameInformation,
   CalculatePointsParams,
   CachePointsParams,
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
-import { CACHE_KEY } from "@/utilities/quiz-logic/cacheStructure";
+import { CACHE_KEY } from "@/utilities/cacheUtils";
 
 const cacheKey = CACHE_KEY.gameData;
 
