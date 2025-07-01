@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, Text, ScrollView } from "react-native";
+import { View, TouchableOpacity, Text, ScrollView, Alert } from "react-native";
 import IconArrowBack from "@/assets/icons/IconArrowBack";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
@@ -11,35 +11,48 @@ import { useEffect, useState } from "react";
 import {
   saveDataToCache,
   loadCacheData,
-  CACHE_KEY
 } from "@/utilities/cacheUtils";
 import {
   QuizSettings,
   PlayStyle,
   Difficulty,
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
+import { CACHE_KEY } from "@/utilities/cacheUtils";
+
+//vadim der Funktion
+import { categorizeTopic } from "@/utilities/api/quizApi";
 
 const LEVELS = [
   { label: "Easy: Cub Curious", value: "easy" },
   { label: "Medium: Bearly Brainy", value: "medium" },
   { label: "Hard: Grizzly Guru", value: "hard" },
 ];
-const cacheKey = CACHE_KEY.quizSettings; 
+const PREDEFINED_CATEGORIES = [
+  "History",
+  "Science", 
+  "Sports",
+  "Geography",
+  "Media",
+  "Culture",
+  "Daily life"
+];
+
+const cacheKey = CACHE_KEY.quizSettings;
 
 const CategoryScreen = () => {
   const router = useRouter();
   const [selectedLevel, setSelectedLevel] = useState<Difficulty>("medium");
   const [selectedTopic, setSelectedTopic] = useState<string>("");
   const [playStyle, setPlayStyle] = useState<PlayStyle>("solo");
+  const [suggestedCategory, setSuggestedCategory] = useState<string>("");
 
   // ---------- FUNCTIONS ----------
-  // Send selected quiz info to cache
-  const sendInformationToCache = async (category: string) => {
+  const sendInformationToCache = async (category: string, topic?: string) => {
     const chosenSpecs: QuizSettings = {
-      quizCategory: "",
+      quizCategory: category, // Kategorie wird jetzt das Thema sein
       quizLevel: selectedLevel,
       quizPlayStyle: playStyle,
-      chosenTopic: category
+      chosenTopic: topic || category, // User eingegebenes Topic
     };
     try {
       await saveDataToCache(cacheKey, chosenSpecs);
@@ -49,11 +62,45 @@ const CategoryScreen = () => {
   };
 
   // Set the selected category, call cache function and navigate to StartQuizScreen
-  const handleChosenCategory = (category: string) => {
-    setSelectedTopic(category);
-    sendInformationToCache(category);
+  const handleChosenCategory = async (category: string) => {
+    let finalCategory = category;
+    let specificTopic = category;
+  
+    // user eingibt ein Thema, das kategorisiert werden muss
+    if (category === selectedTopic && selectedTopic.trim()) {
+      try {
+        finalCategory = await categorizeTopic(selectedTopic);
+        specificTopic = selectedTopic;
+        console.log(`Thema "${selectedTopic}" wird als: ${finalCategory} kategorisiert.`);
+      } catch (error) {
+        console.error("Error categorizing topic:", error);
+        finalCategory = "Culture"; // Fallback
+        specificTopic = selectedTopic; // Behalte das eingegebene Thema bei obwol es nicht kategorisiert werden konnte
+      }
+    }
+    
+    setSelectedTopic(selectedTopic || finalCategory);
+    sendInformationToCache(finalCategory, specificTopic);
     router.push("/(tabs)/play/StartQuizScreen");
   };
+  
+  //vadim: auto analyze wenn user hat aufgehört zu tippen, wichtig JA / NEIN? Mal prüfen
+  useEffect(() => {
+    if (selectedTopic.trim().length >= 3) {
+      const delayedAnalysis = setTimeout(async () => {
+        try {
+          const category = await categorizeTopic(selectedTopic);
+          setSuggestedCategory(category);
+        } catch (error) {
+          console.error("Error in background analysis:", error);
+        }
+      }, 1000); // nach 1 Sekunde
+
+      return () => clearTimeout(delayedAnalysis);
+    } else {
+      setSuggestedCategory("");
+    }
+  }, [selectedTopic]);
 
   // ---------- USE EFFECT ----------
   useEffect(() => {
@@ -70,6 +117,7 @@ const CategoryScreen = () => {
     };
     fetchCachedQuizSpecs();
   }, []);
+
   // ----------------------------------------
   return (
     <View style={styles.container}>
