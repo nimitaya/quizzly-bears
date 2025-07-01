@@ -7,6 +7,7 @@ import { FontSizes, Gaps } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import { StyleSheet } from "react-native";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
+import { Redirect } from "expo-router";
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -105,3 +106,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
 });
+
+export function Index() {
+  return <Redirect href="/(tabs)/play" />;
+}
