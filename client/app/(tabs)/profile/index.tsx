@@ -156,7 +156,10 @@ const ProfileScreen = () => {
         </Text>
       </View>
       <View style={styles.buttonsBox}>
-        <ButtonSecondary text="Invitations" />
+        <ButtonSecondary
+          text="Invitations"
+          onPress={() => router.push("/profile/ProfileInvitationsScreen")}
+        />
         <ButtonSecondary text="Friends" />
         <ButtonSecondary
           text="Account"
