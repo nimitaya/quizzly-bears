@@ -10,11 +10,11 @@ import {
   loadCacheData,
   saveDataToCache,
   clearCacheData,
-} from "@/utilities/quiz-logic/cacheUtils";
+  CACHE_KEY
+} from "@/utilities/cacheUtils";
 import { generateMultipleQuizQuestions } from "@/utilities/api/quizApi";
 import { Difficulty } from "@/utilities/types";
 import { PlayStyle } from "@/utilities/quiz-logic/quizTypesInterfaces";
-import { CACHE_KEY } from "@/utilities/quiz-logic/cacheStructure";
 
 const StartQuizScreen = () => {
   const router = useRouter();

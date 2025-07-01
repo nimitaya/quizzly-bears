@@ -1,5 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { QuizSettings, PlayStyle, Difficulty } from "@/utilities/quiz-logic/quizTypesInterfaces";
+
+export const CACHE_KEY = {
+    aiQuestions: "aiQuestions",
+    quizSettings: "quizSettings",
+    gameData: "currGameData",
+  }
 
 // ---------- LOAD CACHE DATA ----------
 export const loadCacheData = async <T = any>(

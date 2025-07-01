@@ -11,13 +11,13 @@ import { useEffect, useState } from "react";
 import {
   saveDataToCache,
   loadCacheData,
-} from "@/utilities/quiz-logic/cacheUtils";
+  CACHE_KEY
+} from "@/utilities/cacheUtils";
 import {
   QuizSettings,
   PlayStyle,
   Difficulty,
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
-import { CACHE_KEY } from "@/utilities/quiz-logic/cacheStructure";
 
 const LEVELS = [
   { label: "Easy: Cub Curious", value: "easy" },

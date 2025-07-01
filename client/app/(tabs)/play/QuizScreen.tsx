@@ -11,8 +11,7 @@ import { Logo } from "@/components/Logos";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
-import { clearCacheData } from "@/utilities/quiz-logic/cacheUtils";
-import { CACHE_KEY } from "@/utilities/quiz-logic/cacheStructure";
+import { clearCacheData, CACHE_KEY } from "@/utilities/cacheUtils";
 
 const QuizLogic = () => {
   const {
