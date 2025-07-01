@@ -42,10 +42,6 @@ const GoogleSignInButton = () => {
 
         // IMPORTANT: Set navigation flags for AuthNavigationHelper
         await AsyncStorage.setItem("auth_navigation_pending", "true");
-        await AsyncStorage.setItem(
-          "auth_navigation_destination",
-          "/(tabs)/play"
-        );
 
         // Special case for web platforms
         if (Platform.OS === "web") {
@@ -54,10 +50,6 @@ const GoogleSignInButton = () => {
       } else {
         if (Platform.OS !== "web") {
           await AsyncStorage.setItem("auth_navigation_pending", "true");
-          await AsyncStorage.setItem(
-            "auth_navigation_destination",
-            "/(auth)/LogInScreen"
-          );
         } else {
           router.replace("/(auth)/LogInScreen");
         }
@@ -67,10 +59,6 @@ const GoogleSignInButton = () => {
 
       if (Platform.OS !== "web") {
         await AsyncStorage.setItem("auth_navigation_pending", "true");
-        await AsyncStorage.setItem(
-          "auth_navigation_destination",
-          "/(auth)/LogInScreen"
-        );
       } else {
         router.replace("/(auth)/LogInScreen");
       }

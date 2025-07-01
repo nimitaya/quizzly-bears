@@ -1,8 +1,8 @@
 import { Text, View, TouchableOpacity, StyleSheet } from "react-native";
 import GoogleSignInButton from "@/app/(auth)/GoogleSignInButton";
 import FacebookInButton from "@/app/(auth)/FacebookSignInButton";
-import { Gaps, FontSizes } from "@/styles/theme";
-import { ButtonSecondary } from "@/components/Buttons";
+import { Gaps, FontSizes, Colors } from "@/styles/theme";
+import { ButtonSecondary, ButtonSkip } from "@/components/Buttons";
 import Fontisto from "@expo/vector-icons/Fontisto";
 import { useRouter } from "expo-router";
 
@@ -43,7 +43,7 @@ const LogInScreen = () => {
       <FacebookInButton />
       <ButtonSecondary
         text="Log in with e-mail"
-        icon={<Fontisto name="email" size={24} color="black" />}
+        icon={<Fontisto name="email" size={24} color={Colors.darkGreen} />}
         onPress={EmailLogIn}
       />
       <ButtonSecondary
@@ -51,9 +51,7 @@ const LogInScreen = () => {
         onPress={SignUp}
         style={{ marginTop: Gaps.g16 }}
       />
-      <TouchableOpacity onPress={Skip}>
-        <Text style={styles.text}>Skip</Text>
-      </TouchableOpacity>
+      <ButtonSkip text="Skip" onPress={Skip} />
     </View>
   );
 };
@@ -68,7 +66,6 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: FontSizes.TextLargeFs,
-    fontWeight: "400",
     textAlign: "center",
     marginTop: Gaps.g16,
     marginHorizontal: Gaps.g16,

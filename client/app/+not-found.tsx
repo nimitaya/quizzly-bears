@@ -7,12 +7,6 @@ export default function NotFoundScreen() {
     <>
       <Stack.Screen options={{ title: "Oops! This screen doesn't exist." }} />
       <View style={styles.container}>
-        <ButtonSecondary
-          text="Go to home screen"
-          onPress={() => {
-            window.location.href = "/";
-          }}
-        />
         <Link href="/">Go to home screen</Link>
       </View>
     </>

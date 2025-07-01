@@ -11,7 +11,7 @@ import {
 import React, { useState } from "react";
 import { Colors, FontSizes, Gaps } from "@/styles/theme";
 import { SearchInput } from "@/components/Inputs";
-import { ButtonPrimary } from "@/components/Buttons";
+import { ButtonPrimary, ButtonSkip } from "@/components/Buttons";
 import CustomAlert from "@/components/CustomAlert";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
@@ -79,10 +79,6 @@ export default function LogIn() {
         // Use AuthNavigationHelper pattern for navigation
         if (Platform.OS !== "web") {
           await AsyncStorage.setItem("auth_navigation_pending", "true");
-          // await AsyncStorage.setItem(
-          //   "auth_navigation_destination",
-          //   "/(tabs)/play"
-          // );
         } else {
           router.replace("/(tabs)/play");
         }
@@ -209,22 +205,16 @@ export default function LogIn() {
         </Link>
       </View>
 
-      <TouchableOpacity
+      <ButtonSkip
+        text="Skip for now"
         onPress={async () => {
           if (Platform.OS !== "web") {
             await AsyncStorage.setItem("auth_navigation_pending", "true");
-            // await AsyncStorage.setItem(
-            //   "auth_navigation_destination",
-            //   "/(tabs)/play"
-            // );
           } else {
             router.replace("/(tabs)/play");
           }
         }}
-        style={styles.skipButton}
-      >
-        <Text style={styles.skipText}>Skip for now</Text>
-      </TouchableOpacity>
+      />
 
       <CustomAlert
         visible={showResetAlert}
@@ -245,24 +235,23 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
     width: "100%",
   },
   containerInput: {
-    gap: Gaps.g8,
+    gap: Gaps.g16,
     width: "100%",
   },
   title: {
     fontSize: FontSizes.H1Fs,
     fontWeight: "bold",
-    marginBottom: Gaps.g16,
+    marginBottom: Gaps.g32,
   },
   errorText: {
     color: Colors.systemRed,
-    marginTop: 5,
+    marginTop: Gaps.g4,
     fontSize: FontSizes.FootnoteFS,
     alignSelf: "center",
-    marginLeft: 5,
+    marginLeft: Gaps.g4,
   },
   linkContainer: {
     flexDirection: "row",
@@ -270,13 +259,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   link: {
+    fontSize: FontSizes.TextMediumFs,
     color: Colors.black,
-    marginLeft: 5,
+    marginLeft: Gaps.g8,
     fontWeight: "bold",
   },
   skipButton: {
     marginTop: Gaps.g24,
-    padding: 10,
   },
   skipText: {
     color: Colors.black,
@@ -289,6 +278,6 @@ const styles = StyleSheet.create({
   forgotPasswordText: {
     color: Colors.black,
     fontSize: FontSizes.TextSmallFs,
-    textDecorationLine: "underline",
+    marginTop: Gaps.g8,
   },
 });

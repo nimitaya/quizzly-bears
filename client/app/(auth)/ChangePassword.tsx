@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useUser } from "@clerk/clerk-expo";
-import { ButtonPrimary, ButtonSmallSecondary } from "@/components/Buttons";
+import {
+  ButtonPrimary,
+  ButtonSecondary,
+  ButtonSmallSecondary,
+} from "@/components/Buttons";
 import { PasswordInput } from "@/components/Inputs";
 import CustomAlert from "@/components/CustomAlert";
 import { Colors, Gaps, FontSizes } from "@/styles/theme";
@@ -64,10 +68,9 @@ const ChangePassword = () => {
 
   if (!showForm) {
     return (
-      <ButtonSmallSecondary
+      <ButtonSecondary
         text="Change Password"
         onPress={() => setShowForm(true)}
-        style={{ marginTop: Gaps.g16 }}
       />
     );
   }

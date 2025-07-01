@@ -1,21 +1,19 @@
-import { View, StyleSheet, Text, ScrollView } from "react-native";
+import { View, TouchableOpacity, StyleSheet, Text } from "react-native";
 import ClerkSettings, {
   ClerkSettingsRefType,
 } from "@/app/(auth)/ClerkSettings";
-import { useFocusEffect } from "expo-router";
+import { useUser } from "@clerk/clerk-expo";
+import IconArrowBack from "@/assets/icons/IconArrowBack";
+import { Logo } from "@/components/Logos";
+import { Gaps } from "@/styles/theme";
+import { useRouter } from "expo-router";
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import { FontSizes, Gaps } from "@/styles/theme";
+import { useFocusEffect } from "expo-router";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Loading from "@/app/Loading";
-import { Logo } from "@/components/Logos";
-import { useUser } from "@clerk/clerk-expo";
-import { Toggle } from "@/components/Toggle";
-import { ButtonSecondary } from "@/components/Buttons";
-import { useRouter } from "expo-router";
-import GreetingsScreen from "./GreetngsScreen";
 
-const ProfileScreen = () => {
+const AccountScreen = () => {
   const router = useRouter();
   const { isAuthenticated, refreshGlobalState, isGloballyLoading } =
     useGlobalLoading();
@@ -132,61 +130,41 @@ const ProfileScreen = () => {
   if (isGloballyLoading) {
     return <Loading />;
   }
-
   return (
-    <ScrollView
-      style={styles.container}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.contentContainer}
-    >
-      <View style={{ marginBottom: Gaps.g24 }}>
+    <View style={styles.container}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.back()}
+        accessibilityLabel="Go back"
+      >
+        <IconArrowBack />
+      </TouchableOpacity>
+      <View style={{ marginBottom: Gaps.g16 }}>
         <Logo size="small" />
       </View>
-      <GreetingsScreen ref={clerkSettingsRef} refreshKey={refreshKey} />
-      <View style={styles.toggleBox}>
-        <Toggle label="Sound" />
-        <Toggle label="Music" />
-        <Text
-          style={{
-            fontSize: FontSizes.H3Fs,
-            paddingHorizontal: Gaps.g32,
-          }}
-        >
-          Language !!!! create
-        </Text>
+
+      <View style={styles.buttonContainer}>
+        <ClerkSettings ref={clerkSettingsRef} refreshKey={refreshKey} />
       </View>
-      <View style={styles.buttonsBox}>
-        <ButtonSecondary text="Invitations" />
-        <ButtonSecondary text="Friends" />
-        <ButtonSecondary
-          text="Account"
-          onPress={() => router.push("/profile/AccountScreen")}
-        />
-        <ButtonSecondary
-          text="FAQ"
-          onPress={() => router.push("/profile/FaqScreen")}
-        />
-      </View>
-    </ScrollView>
+    </View>
   );
 };
-
-export default ProfileScreen;
+export default AccountScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     marginTop: Gaps.g80,
-  },
-  contentContainer: {
     alignItems: "center",
-    paddingBottom: Gaps.g24,
   },
-  toggleBox: {
-    gap: Gaps.g8,
+  backButton: {
+    position: "absolute",
+    top: -8,
+    left: 16,
+    zIndex: 10,
   },
-  buttonsBox: {
-    marginTop: Gaps.g40,
+  buttonContainer: {
+    marginTop: Gaps.g8,
     gap: Gaps.g16,
   },
 });
