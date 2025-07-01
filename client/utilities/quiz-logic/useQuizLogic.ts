@@ -13,19 +13,18 @@ import {
   PointsState,
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
 // Dummy data: TODO
-import { AiQuestions, aiQuestions, QuestionStructure
- } from "@/utilities/quiz-logic/data";
+import {
+  AiQuestions,
+  aiQuestions,
+  QuestionStructure,
+} from "@/utilities/quiz-logic/data";
 
 // ========================================================== START OF HOOK ==========================================================
 export function useQuizLogic() {
-  const key = CACHE_KEY
+  const key = CACHE_KEY;
   // Timer duration/ delays TODO
   const READ_TIMER_DURATION = 2000;
-
   const ANSWER_TIMER_DURATION = 30000; // 30 Sekunden für Antworten
-
- 
-
   const NEXT_QUESTION_DELAY = 3000;
 
   // To reset Timers
@@ -35,7 +34,9 @@ export function useQuizLogic() {
   // ========================================================== STATE MANAGEMENT ==========================================================
   // TODO combine states
   const [language, setLanguage] = useState("de");
-  const [currQuestionsArray, setCurrQuestionsArray] = useState<QuestionStructure[]>([]);
+  const [currQuestionsArray, setCurrQuestionsArray] = useState<
+    QuestionStructure[]
+  >([]);
   const [currentQuestionData, setCurrentQuestionData] =
     useState<QuestionStructure | null>(null);
   const [currQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
@@ -154,9 +155,11 @@ export function useQuizLogic() {
       // Start - you have 10 seconds to choose an answer
       answerTimeout.current = setTimeout(() => {
         setAnswerState((prevState) => ({ ...prevState, isLocked: true }));
-        handleAnswerCheck();       
-        if (gameState.playStyle === "group" || "duel") {
-          handleNextQuestion();
+        handleAnswerCheck();
+        if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
+          setTimeout(() => {
+            handleNextQuestion();
+          }, NEXT_QUESTION_DELAY);
         }
       }, ANSWER_TIMER_DURATION);
     }, READ_TIMER_DURATION);
@@ -206,18 +209,20 @@ export function useQuizLogic() {
 
   // ----- HELPER for finding correct answer -----
   const getIsCorrect = (): boolean => {
-  if (!currentQuestionData || !answerState.chosenAnswer) return false;
-  const { optionA, optionB, optionC, optionD } = currentQuestionData;
-  const options = [optionA, optionB, optionC, optionD];
-  const chosenText = answerState.chosenAnswer;
-  // Find the matching option (in the current language)
-  const matchedOption = options.find((option) => option[language] === chosenText);  
-  return !!matchedOption?.isCorrect;
-};
+    if (!currentQuestionData || !answerState.chosenAnswer) return false;
+    const { optionA, optionB, optionC, optionD } = currentQuestionData;
+    const options = [optionA, optionB, optionC, optionD];
+    const chosenText = answerState.chosenAnswer;
+    // Find the matching option (in the current language)
+    const matchedOption = options.find(
+      (option) => option[language] === chosenText
+    );
+    return !!matchedOption?.isCorrect;
+  };
 
   // ----- Handle ANSWER CHECK -----
-  const handleAnswerCheck = (): void => {   
-    const isCorrect = getIsCorrect();    
+  const handleAnswerCheck = (): void => {
+    const isCorrect = getIsCorrect();
     if (isCorrect) {
       const newChosenCorrect = pointsState.chosenCorrect + 1;
 
@@ -248,7 +253,8 @@ export function useQuizLogic() {
         perfectGame: prevPoints.perfectGame + gainedPoints?.bonusAllCorrect,
         total: prevPoints.total + gainedPoints?.totalPoints,
         chosenCorrect: newChosenCorrect,
-      }));          }
+      }));
+    }
     // Logic for SOLO Play
     if (
       currQuestionIndex < currQuestionsArray.length - 1 &&
@@ -286,6 +292,7 @@ export function useQuizLogic() {
       clearTimeout(answerTimeout.current);
       answerTimeout.current = null;
     }
+
     // Logic for Solo Play
     if (
       currQuestionIndex < currQuestionsArray.length - 1 &&
@@ -298,13 +305,14 @@ export function useQuizLogic() {
     else if (
       (currQuestionIndex < currQuestionsArray.length - 1 &&
         gameState.playStyle === "group") ||
-      "duel"
+      gameState.playStyle === "duel"
     ) {
       setTimeout(() => {
         setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
         setReadTimer(false);
       }, NEXT_QUESTION_DELAY);
     }
+    // ---------------------------------
     // if last question done
     else {
       setShowResult(true);
@@ -324,6 +332,15 @@ export function useQuizLogic() {
     sendPointsToDatabase();
     // clear cached data
     clearCachePoints();
+    // Clear all timers
+    if (answerTimeout.current) {
+      clearTimeout(answerTimeout.current);
+      answerTimeout.current = null;
+    }
+    if (readTimeout.current) {
+      clearTimeout(readTimeout.current);
+      readTimeout.current = null;
+    }
   };
 
   // ========================================================== USE EFFECTS ==========================================================
