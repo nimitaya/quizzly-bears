@@ -1,4 +1,5 @@
-import { ScrollView, View, Text, StyleSheet } from "react-native";
+import React from "react";
+import { ScrollView, View, Text, StyleSheet, useWindowDimensions } from "react-native";
 import { QuizButton } from "@/components/QuizButtons";
 import {
   ButtonPrimary,
@@ -11,6 +12,7 @@ import { Logo } from "@/components/Logos";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
+import TimerBar from "@/components/TimerBar";
 import { clearCacheData, CACHE_KEY } from "@/utilities/cacheUtils";
 
 const QuizLogic = () => {
@@ -31,6 +33,8 @@ const QuizLogic = () => {
   } = useQuizLogic();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const timerBarWidth = Math.min(348, width - 32); // Gleiche Breite wie QuizButtons
 
   const options = [
     { key: "A", data: currentQuestionData?.optionA },
@@ -121,12 +125,16 @@ const QuizLogic = () => {
           {/* Show only if readTimer true */}
           {readTimer && (
             <View style={styles.answerSection}>
-              <View>
-                <Text>Timer Anzeige TODO</Text>
-                <Text>
-                  Taste „Close“ oben links, die das Quiz beendet. TODO
-                </Text>
-                <Text>Time left: {remainingTime}s</Text>
+
+              <View style={styles.timerContainer}>
+                <TimerBar 
+                  key={`timer-${currQuestionIndex}`}
+                  duration={30}
+                  delay={0}
+                  width={timerBarWidth} // Gleiche Breite wie die Antworten
+                  isPaused={answerState.isSubmitted}
+                />
+
               </View>
               <View style={styles.questionAnswerContainer}>
                 <View style={styles.answerContainer}>
@@ -203,6 +211,10 @@ const styles = StyleSheet.create({
   },
   answerSection: {
     flexGrow: 1,
+  },
+  timerContainer: {
+    alignItems: "center",
+    marginBottom: Gaps.g16,
   },
   buttonsWrapper: {},
   answerContainer: {},

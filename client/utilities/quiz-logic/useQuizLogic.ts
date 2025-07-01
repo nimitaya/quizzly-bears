@@ -21,7 +21,11 @@ export function useQuizLogic() {
   const key = CACHE_KEY
   // Timer duration/ delays TODO
   const READ_TIMER_DURATION = 2000;
-  const ANSWER_TIMER_DURATION = 10000;
+
+  const ANSWER_TIMER_DURATION = 30000; // 30 Sekunden für Antworten
+
+ 
+
   const NEXT_QUESTION_DELAY = 3000;
 
   // To reset Timers
