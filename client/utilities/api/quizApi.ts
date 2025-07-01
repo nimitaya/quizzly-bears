@@ -25,65 +25,114 @@ export const generateMultipleQuizQuestions = async (
   "anwendungsbezogen",
   ];
   
-  const prompt = `Du bist ein Generator für Bildungsquiz-Fragen.
 
-  SPEZIFISCHE ANWEISUNGEN:
-  - Erstelle GENAU ${questionCount} völlig NEUE UND EINZIGARTIGE Fragen über das spezifische Thema: "${topic}"
-  - Schwierigkeitsgrad: ${difficulty}
-  - Verwende verschiedene Fragetypen: ${questionTypes.join(', ')}
-  
-  WICHTIGE FOKUSSIERUNG:
-  - ALLE Fragen müssen DIREKT mit "${topic}" zu tun haben
-  - Verwende spezifische Details, Charaktere, Ereignisse oder Aspekte von "${topic}"
-  - Die Fragen sollen das Wissen über "${topic}" testen, nicht nur allgemeine Kenntnisse
-  
-  BEISPIELE FÜR SPEZIFISCHE FRAGEN:
-  - Wenn "${topic}" = "Harry Potter": Frage nach Charakteren wie Hermione, Zaubersprüchen wie Expelliarmus, Häusern wie Gryffindor
-  - Wenn "${topic}" = "Einstein": Frage nach E=mc², Relativitätstheorie, Nobelpreis
-  - Wenn "${topic}" = "Fußball": Frage nach FIFA, Weltmeisterschaft, bekannten Spielern
-  
-  WEITERE REGELN:
-  - Jede Frage muss VÖLLIG ANDERS sein als alle anderen
-  - Verwende verschiedene Konzepte, Zahlen, Beispiele und Ansätze
-  - Die Frage darf maximal 120 Zeichen lang sein
-  - Die Antwortoptionen müssen klar und eindeutig sein. Weniger als 50 Zeichen pro Option
-  
-  Du musst GENAU in diesem JSON-Array-Format antworten:
-  [
+// ============== SONJA PROMPT ==============
+const prompt = `Du bist ein Generator für hochwertige Bildungsquiz-Fragen.
+
+AUFGABE:
+Erstelle GENAU ${questionCount} völlig neue, originelle Fragen zum Thema "${topic}" mit dem Schwierigkeitsgrad "${difficulty}". Verwende dabei abwechslungsreiche Fragetypen: ${questionTypes.join(', ')}.
+
+FORMAT:
+Antworte ausschließlich mit einem JSON-Array im folgenden Format:
+[
   {
-  "question": {
-  "de": "Spezifische Frage über ${topic} auf Deutsch",
-  "en": "Specific question about ${topic} in English"
+    "question": {
+      "de": "Frage auf Deutsch (max. 120 Zeichen)",
+      "en": "Question in English (max. 120 characters)"
+    },
+    "optionA": {
+      "isCorrect": true/false,
+      "de": "Antwort A auf Deutsch (max. 50 Zeichen)",
+      "en": "Answer A in English (max. 50 characters)"
+    },
+    "optionB": { ... },
+    "optionC": { ... },
+    "optionD": { ... }
   },
-  "optionA": {
-  "isCorrect": true,
-  "de": "Korrekte Antwort auf Deutsch",
-  "en": "Correct answer in English"
-  },
-  "optionB": {
-  "isCorrect": false,
-  "de": "Falsche Antwort auf Deutsch", 
-  "en": "Wrong answer in English"
-  },
-  "optionC": {
-  "isCorrect": false,
-  "de": "Falsche Antwort auf Deutsch",
-  "en": "Wrong answer in English"
-  },
-  "optionD": {
-  "isCorrect": false,
-  "de": "Falsche Antwort auf Deutsch",
-  "en": "Wrong answer in English"
-  }
-  }
-  ]
+  ...
+]
+
+REGELN:
+- ${questionCount} Fragen exakt, keine mehr oder weniger
+- Nur EINE Antwort pro Frage darf isCorrect: true sein
+- Die richtige Antwort muss zufällig auf A, B, C oder D verteilt sein und muss die korrekte Antwort auf die Frage sein
+- Alle Antwortoptionen müssen plausibel, eindeutig und unterscheidbar sein
+- Es dürfen KEINE doppelten oder sinngleichen Antwortoptionen auftreten. Jede Option muss einzigartig, eindeutig und sinnvoll unterscheidbar sein.
+- Fragen dürfen sich **nicht** ähneln: verschiedene Zahlen, Konzepte, Beispiele
+- Frage max. 120 Zeichen, Antworten je max. 50 Zeichen
+- Bei Mathe: immer andere Zahlen und Rechenarten
+- Bei Geschichte: verschiedene Epochen, Personen, Ereignisse
+- Keine Duplikate oder inhaltlichen Wiederholungen
+- Die anderen Sprachen sollen natürlich und lokalisiert sein, **keine** Wort für Wort Übersetzung
+
+METADATEN:
+- Referenznummer: ${randomSeed}
+- Zeitstempel: ${timestamp}
+
+WICHTIG:
+Antworte ausschließlich mit dem JSON-Array, ohne Erläuterungen, Kommentare oder zusätzlichen Text.
+`;
+// ==========================================
+
+  // const prompt = `Du bist ein Generator für Bildungsquiz-Fragen.
+
+  // SPEZIFISCHE ANWEISUNGEN:
+  // - Erstelle GENAU ${questionCount} völlig NEUE UND EINZIGARTIGE Fragen über das spezifische Thema: "${topic}"
+  // - Schwierigkeitsgrad: ${difficulty}
+  // - Verwende verschiedene Fragetypen: ${questionTypes.join(', ')}
   
-  REGELN:
-  - Generiere GENAU ${questionCount} Fragen im Array
-  - Nur eine Option pro Frage darf "isCorrect: true" sein
-  - Alle Optionen müssen unterschiedlich und plausibel sein
-  - Konzentriere dich ausschließlich auf "${topic}"
-  - Antworte NUR mit dem JSON-Array, ohne zusätzlichen Text`;
+  // WICHTIGE FOKUSSIERUNG:
+  // - ALLE Fragen müssen DIREKT mit "${topic}" zu tun haben
+  // - Verwende spezifische Details, Charaktere, Ereignisse oder Aspekte von "${topic}"
+  // - Die Fragen sollen das Wissen über "${topic}" testen, nicht nur allgemeine Kenntnisse
+  
+  // BEISPIELE FÜR SPEZIFISCHE FRAGEN:
+  // - Wenn "${topic}" = "Harry Potter": Frage nach Charakteren wie Hermione, Zaubersprüchen wie Expelliarmus, Häusern wie Gryffindor
+  // - Wenn "${topic}" = "Einstein": Frage nach E=mc², Relativitätstheorie, Nobelpreis
+  // - Wenn "${topic}" = "Fußball": Frage nach FIFA, Weltmeisterschaft, bekannten Spielern
+  
+  // WEITERE REGELN:
+  // - Jede Frage muss VÖLLIG ANDERS sein als alle anderen
+  // - Verwende verschiedene Konzepte, Zahlen, Beispiele und Ansätze
+  // - Die Frage darf maximal 120 Zeichen lang sein
+  // - Die Antwortoptionen müssen klar und eindeutig sein. Weniger als 50 Zeichen pro Option
+  
+  // Du musst GENAU in diesem JSON-Array-Format antworten:
+  // [
+  // {
+  // "question": {
+  // "de": "Spezifische Frage über ${topic} auf Deutsch",
+  // "en": "Specific question about ${topic} in English"
+  // },
+  // "optionA": {
+  // "isCorrect": true,
+  // "de": "Korrekte Antwort auf Deutsch",
+  // "en": "Correct answer in English"
+  // },
+  // "optionB": {
+  // "isCorrect": false,
+  // "de": "Falsche Antwort auf Deutsch", 
+  // "en": "Wrong answer in English"
+  // },
+  // "optionC": {
+  // "isCorrect": false,
+  // "de": "Falsche Antwort auf Deutsch",
+  // "en": "Wrong answer in English"
+  // },
+  // "optionD": {
+  // "isCorrect": false,
+  // "de": "Falsche Antwort auf Deutsch",
+  // "en": "Wrong answer in English"
+  // }
+  // }
+  // ]
+  
+  // REGELN:
+  // - Generiere GENAU ${questionCount} Fragen im Array
+  // - Nur eine Option pro Frage darf "isCorrect: true" sein
+  // - Alle Optionen müssen unterschiedlich und plausibel sein
+  // - Konzentriere dich ausschließlich auf "${topic}"
+  // - Antworte NUR mit dem JSON-Array, ohne zusätzlichen Text`;
   
   const response = await axios.post(
   GROQ_API_URL,
