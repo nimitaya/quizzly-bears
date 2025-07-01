@@ -5,7 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "go": "nodemon --exec \"tsx --env-file=.env server.ts\"",
-    "start": "tsxt server.ts",
+    "start": "tsx server.ts",
     "dev": "npx ts-node-dev server.js"
   },
   "keywords": [],
