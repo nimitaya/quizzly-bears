@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import connectDB from "./database/connectDB.js";
+import connectDB from "./database/connectDB";
 import clerkWebhookRouter from "./routes/ClerkWebhook";
 
 const app = express();
