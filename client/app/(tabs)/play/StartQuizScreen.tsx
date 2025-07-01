@@ -65,6 +65,20 @@ const StartQuizScreen = () => {
     // Clear AI questions cache
     clearCacheData(cacheAi);
     fetchCachedQuizSpecs();
+    // Timeout for fetching AI Questions
+    const timeout = setTimeout(() => {
+      // Fetch AI questions after 1 second
+      console.log("Topic:",topic, level, rounds);
+      
+      generateMultipleQuizQuestions(topic, level, rounds)
+        .then((questions) => {
+          saveDataToCache(cacheAi, questions);
+          console.log("AI Questions fetched and saved:", questions);
+        })
+        .catch((error) => {
+          console.error("Error fetching AI questions:", error);
+        });
+    }, 1000);
   }, []);
 
   return (
@@ -104,7 +118,7 @@ const StartQuizScreen = () => {
         <ButtonPrimary
           text="Start"
           onPress={() => {
-            handleStartQuiz(topic, level, rounds);
+            router.push("/(tabs)/play/QuizScreen");;
           }}
         />
       </View>

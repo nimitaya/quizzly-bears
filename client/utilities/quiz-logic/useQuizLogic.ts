@@ -150,9 +150,13 @@ export function useQuizLogic() {
       // Start - you have 10 seconds to choose an answer
       answerTimeout.current = setTimeout(() => {
         setAnswerState((prevState) => ({ ...prevState, isLocked: true }));
-        handleAnswerCheck();       
+        handleAnswerCheck();    
+          // --------------NEW---------------  TODO
         if (gameState.playStyle === "group" || "duel") {
-          handleNextQuestion();
+          setTimeout(() => {
+        handleNextQuestion();
+      }, NEXT_QUESTION_DELAY);
+      // -----------------------------  
         }
       }, ANSWER_TIMER_DURATION);
     }, READ_TIMER_DURATION);
@@ -282,25 +286,33 @@ export function useQuizLogic() {
       clearTimeout(answerTimeout.current);
       answerTimeout.current = null;
     }
-    // Logic for Solo Play
-    if (
-      currQuestionIndex < currQuestionsArray.length - 1 &&
-      gameState.playStyle === "solo"
-    ) {
+
+    // ----------------NEW----------------- TODO
+    if (currQuestionIndex < currQuestionsArray.length - 1) {
       setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
-      setReadTimer(false);
+          setReadTimer(false);
     }
-    // Logic for Group Play
-    else if (
-      (currQuestionIndex < currQuestionsArray.length - 1 &&
-        gameState.playStyle === "group") ||
-      "duel"
-    ) {
-      setTimeout(() => {
-        setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
-        setReadTimer(false);
-      }, NEXT_QUESTION_DELAY);
-    }
+    // ---------------------------------
+    // Logic for Solo Play
+    // if (
+    //   currQuestionIndex < currQuestionsArray.length - 1 &&
+    //   gameState.playStyle === "solo"
+    // ) {
+    //   setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
+    //   setReadTimer(false);
+    // }
+    // // Logic for Group Play
+    // else if (
+    //   (currQuestionIndex < currQuestionsArray.length - 1 &&
+    //     gameState.playStyle === "group"||
+    //   "duel") 
+    // ) {
+    //   setTimeout(() => {
+    //     setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
+    //     setReadTimer(false);
+    //   }, NEXT_QUESTION_DELAY);
+    // }
+    // ---------------------------------
     // if last question done
     else {
       setShowResult(true);
@@ -320,6 +332,7 @@ export function useQuizLogic() {
     sendPointsToDatabase();
     // clear cached data
     clearCachePoints();
+    // Clear all timers TODO
   };
 
   // ========================================================== USE EFFECTS ==========================================================
