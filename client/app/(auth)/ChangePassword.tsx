@@ -1,11 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useUser } from "@clerk/clerk-expo";
-import {
-  ButtonPrimary,
-  ButtonSecondary,
-  ButtonSmallSecondary,
-} from "@/components/Buttons";
+import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 import { PasswordInput } from "@/components/Inputs";
 import CustomAlert from "@/components/CustomAlert";
 import { Colors, Gaps, FontSizes } from "@/styles/theme";
@@ -81,30 +77,28 @@ const ChangePassword = () => {
       <PasswordInput
         value={currentPassword}
         onChangeText={setCurrentPassword}
-        placeholder="Current password"
+        placeholder="current password"
       />
       <PasswordInput
         value={newPassword}
         onChangeText={setNewPassword}
-        placeholder="New password"
+        placeholder="new password"
       />
       <PasswordInput
         value={repeatPassword}
         onChangeText={setRepeatPassword}
-        placeholder="Repeat new password"
+        placeholder="repeat new password"
       />
       {error !== "" && <Text style={styles.errorText}>{error}</Text>}
-      <ButtonPrimary
-        text={isProcessing ? "Changing..." : "Change Password"}
-        onPress={handleChangePassword}
-        disabled={isProcessing}
-        style={{ marginTop: Gaps.g16 }}
-      />
-      <ButtonSmallSecondary
-        text="Cancel"
-        onPress={handleCancel}
-        style={{ marginTop: Gaps.g8 }}
-      />
+      <View style={styles.buttonBox}>
+        <ButtonPrimary
+          text={isProcessing ? "Changing..." : "Change password"}
+          onPress={handleChangePassword}
+          disabled={isProcessing}
+        />
+        <ButtonSecondary text="Cancel" onPress={handleCancel} />
+      </View>
+
       <CustomAlert
         visible={success}
         onClose={() => setSuccess(false)}
@@ -120,20 +114,24 @@ const ChangePassword = () => {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 24,
-    backgroundColor: Colors.white,
+    padding: Gaps.g24,
+    gap: Gaps.g16,
   },
   title: {
     fontSize: FontSizes.H1Fs,
     fontWeight: "bold",
-    marginBottom: Gaps.g24,
+    marginBottom: Gaps.g16,
     textAlign: "center",
   },
   errorText: {
     color: Colors.systemRed,
-    marginTop: 8,
-    marginBottom: 8,
+    marginTop: Gaps.g8,
+    marginBottom: Gaps.g8,
     textAlign: "center",
+  },
+  buttonBox: {
+    gap: Gaps.g16,
+    marginTop: Gaps.g24,
   },
 });
 

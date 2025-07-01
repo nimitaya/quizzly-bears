@@ -19,9 +19,7 @@ const _Layout = () => {
   const insets = useSafeAreaInsets();
   return (
     <View style={{ flex: 1, backgroundColor: Colors.bgGray }}>
-      <View
-        style={{ height: 4, backgroundColor: Colors.darkGreen, width: "100%" }}
-      />
+      <View />
       <Tabs
         screenOptions={{
           tabBarShowLabel: false,

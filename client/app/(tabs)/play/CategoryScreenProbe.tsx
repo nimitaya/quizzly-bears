@@ -15,7 +15,7 @@ import {
   QuizSpecs,
   loadCacheData,
   PlayStyle,
-} from "@/utilities/quiz-logic/cacheUtils";
+} from "@/utilities/cacheUtils";
 
 const LEVELS = [
   { label: "Easy: Cub Curious", value: "easy" },

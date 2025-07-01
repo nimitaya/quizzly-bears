@@ -476,30 +476,34 @@ export default function SignUpScreen() {
       {error !== "" && error !== "Passwords don't match" && (
         <Text style={styles.errorText}>{error}</Text>
       )}
-      <ButtonPrimary
-        text={isLoading ? "Creating Account..." : "Continue"}
-        onPress={() => {
-          if (isLoading) {
-            Alert.alert(
-              "Processing",
-              "Your request is being processed. Please wait..."
-            );
+      <View style={styles.buttonBox}>
+        <ButtonPrimary
+          text={isLoading ? "Creating Account..." : "Continue"}
+          onPress={() => {
+            if (isLoading) {
+              Alert.alert(
+                "Processing",
+                "Your request is being processed. Please wait..."
+              );
 
-            if (new Date().getTime() - loadingStartTime > 10000) {
-              setIsLoading(false);
-              setError("Request timed out. Please try again.");
+              if (new Date().getTime() - loadingStartTime > 10000) {
+                setIsLoading(false);
+                setError("Request timed out. Please try again.");
+              }
+            } else {
+              setLoadingStartTime(new Date().getTime());
+              onSignUpPress();
             }
-          } else {
-            setLoadingStartTime(new Date().getTime());
-            onSignUpPress();
-          }
-        }}
-        style={{ marginTop: Gaps.g16 }}
-        disabled={isLoading}
-      />
+          }}
+          style={{ marginTop: Gaps.g16 }}
+          disabled={isLoading}
+        />
+      </View>
 
       <View style={styles.linkContainer}>
-        <Text>Already have an account?</Text>
+        <Text style={{ fontSize: FontSizes.TextMediumFs }}>
+          Already have an account?
+        </Text>
         <Link href="/(auth)/LogInScreen" asChild>
           <TouchableOpacity>
             <Text style={styles.link}>Log in</Text>
@@ -556,11 +560,12 @@ const styles = StyleSheet.create({
   },
   linkContainer: {
     flexDirection: "row",
-    marginTop: Gaps.g16,
+    marginTop: Gaps.g32,
+    marginBottom: Gaps.g8,
     alignItems: "center",
   },
   link: {
-    fontSize: FontSizes.TextMediumFs,
+    fontSize: FontSizes.TextLargeFs,
     color: Colors.darkGreen,
     marginLeft: Gaps.g8,
   },
@@ -576,5 +581,8 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.5,
+  },
+  buttonBox: {
+    marginTop: Gaps.g16,
   },
 });

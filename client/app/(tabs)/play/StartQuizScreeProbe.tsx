@@ -8,13 +8,13 @@ import { FontSizes, Gaps } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
 import { useState, useEffect } from "react";
-import { loadCacheData } from "@/utilities/quiz-logic/cacheUtils";
+import { loadCacheData } from "@/utilities/cacheUtils";
 import { generateMultipleQuizQuestions } from "@/utilities/api/quizApi";
 import { Difficulty } from "@/utilities/types";
 import { PlayStyle } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { CACHE_KEY } from "@/utilities/quiz-logic/cacheStructure";
 //vadim
-import { saveDataToCache } from "@/utilities/quiz-logic/cacheUtils";
+import { saveDataToCache } from "@/utilities/cacheUtils";
 
 const StartQuizScreen = () => {
   const router = useRouter();
