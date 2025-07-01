@@ -4,10 +4,8 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "go": "nodemon --exec \"tsx --env-file=.env server.ts\"",
-    "dev": "npx ts-node-dev server.js",
-    "start": "ts-node-dev server.ts",
-    "build": "tsc"
+    "start": "nodemon --exec \"tsx --env-file=.env server.ts\"",
+    "dev": "npx ts-node-dev server.js"
   },
   "keywords": [],
   "author": "",
