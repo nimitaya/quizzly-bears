@@ -11,6 +11,8 @@ import { Logo } from "@/components/Logos";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
+import { clearCacheData } from "@/utilities/quiz-logic/cacheUtils";
+import { CACHE_KEY } from "@/utilities/quiz-logic/cacheStructure";
 
 const QuizLogic = () => {
   const {
@@ -38,6 +40,17 @@ const QuizLogic = () => {
     {key: "D", data: currentQuestionData?.optionD}
   ]
 
+  const cacheKey = CACHE_KEY.aiQuestions;
+
+  const handleRoundAgain = () => {
+    clearCacheData(cacheKey)
+    router.push("./CategoryScreen")
+  }
+
+  const handleHome = ()=> {
+    clearCacheData(cacheKey)
+    router.push("./")
+  }
 
   return (
     <>
@@ -55,29 +68,29 @@ const QuizLogic = () => {
             <View style={styles.pointsRow}>
               <IconCheckbox />
               <Text style={styles.pointsText}>
-                Total Points: {pointsState.timePoints + pointsState.score}
+                Total Quizzly-Points: {pointsState.timePoints + pointsState.score}
               </Text>
             </View>
             <View style={styles.pointsRow}>
               <IconCheckbox />
               <Text style={styles.pointsText}>
-                has earned {pointsState.score} Quizzly-Points
+                Earned {pointsState.score} Knowledge-Points
               </Text>
             </View>
             <View style={styles.pointsRow}>
               <IconCheckbox />
               <Text style={styles.pointsText}>
-                plus extra {pointsState.timePoints} Quizzly-Points
+                Plus extra {pointsState.timePoints} Timing-Points
               </Text>
             </View>
           </View>
 
           <View style={styles.buttonsContainer}>
             <ButtonPrimary
-              text="Round again?"
-              onPress={() => router.push("./CategoryScreen")}
+              text="Play again"
+              onPress={() => handleRoundAgain()}
             />
-            <ButtonSecondary text="Home" onPress={() => router.push("./")} />
+            <ButtonSecondary text="Home" onPress={() => handleHome()} />
           </View>
         </ScrollView>
       ) : (
