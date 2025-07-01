@@ -5,7 +5,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon --exec \"tsx --env-file=.env server.ts\"",
-    "dev": "ts-node src/server.ts"
+    "dev": "ts-node src/server.ts",
+    "start render": "nodemon server.ts"
   },
   "keywords": [],
   "author": "",
