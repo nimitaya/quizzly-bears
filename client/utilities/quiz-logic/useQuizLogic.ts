@@ -6,7 +6,7 @@ import {
   sendPointsToDatabase,
   checkCache,
 } from "@/utilities/quiz-logic/pointsUtils";
-import { loadCacheData } from "./cacheUtils";
+import { loadCacheData, CACHE_KEY } from "@/utilities/cacheUtils";
 import {
   GameState,
   AnswerState,
@@ -18,14 +18,10 @@ import { AiQuestions, aiQuestions, QuestionStructure
 
 // ========================================================== START OF HOOK ==========================================================
 export function useQuizLogic() {
-  const CACHE_KEY = {
-    aiQuestions: "aiQuestions",
-    quizSettings: "quizSettings",
-    gameData: "currGameData",
-  };
+  const key = CACHE_KEY
   // Timer duration/ delays TODO
   const READ_TIMER_DURATION = 2000;
-  const ANSWER_TIMER_DURATION = 5000;
+  const ANSWER_TIMER_DURATION = 10000;
   const NEXT_QUESTION_DELAY = 3000;
 
   // To reset Timers
@@ -39,7 +35,6 @@ export function useQuizLogic() {
   const [currentQuestionData, setCurrentQuestionData] =
     useState<QuestionStructure | null>(null);
   const [currQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
-  // TODO setGameState
   const [gameState, setGameState] = useState<GameState>({
     difficulty: "medium",
     category: "",
@@ -66,7 +61,7 @@ export function useQuizLogic() {
   const [showResult, setShowResult] = useState<boolean>(false);
 
   // ========================================================== FUNCTIONS ==========================================================
-  // ===== FETCHING FROM CACHE TODO =====
+  // ===== FETCHING FROM CACHE =====
   const fetchFromCache = async (key: string) => {
     try {
       const cachedData = await loadCacheData(key);
@@ -83,7 +78,7 @@ export function useQuizLogic() {
   // ----- fetch Data and set Game State -----
   const fetchGameInfo = async () => {
     try {
-      const cachedInfo = await loadCacheData(CACHE_KEY.quizSettings);
+      const cachedInfo = await loadCacheData(key.quizSettings);
       if (cachedInfo) {
         setGameState((prev) => ({
           ...prev,
@@ -100,7 +95,7 @@ export function useQuizLogic() {
   // ----- fetch Data and set all Questions Array -----
   const fetchAiData = async () => {
     try {
-      const cachedInfo = await loadCacheData(CACHE_KEY.aiQuestions);
+      const cachedInfo = await loadCacheData(key.aiQuestions);
       if (cachedInfo) {
         setCurrQuestionsArray(cachedInfo.questionArray);
       }
@@ -114,9 +109,9 @@ export function useQuizLogic() {
   const loadQuestions = async (): Promise<void> => {
     try {
       // fetch questions from cache
-      let questions = await fetchFromCache(CACHE_KEY.aiQuestions);
+      let questions = await fetchFromCache(key.aiQuestions);
       if (!questions) {
-        // Fallback to dummy data if cache is empty
+        // Fallback to dummy data if cache is empty TODO delete later
         questions = aiQuestions;
         setCurrQuestionsArray(questions.questionArray);
       }
@@ -155,7 +150,7 @@ export function useQuizLogic() {
       // Start - you have 10 seconds to choose an answer
       answerTimeout.current = setTimeout(() => {
         setAnswerState((prevState) => ({ ...prevState, isLocked: true }));
-        handleAnswerCheck();
+        handleAnswerCheck();       
         if (gameState.playStyle === "group" || "duel") {
           handleNextQuestion();
         }
@@ -217,7 +212,7 @@ export function useQuizLogic() {
 };
 
   // ----- Handle ANSWER CHECK -----
-  const handleAnswerCheck = (): void => {
+  const handleAnswerCheck = (): void => {   
     const isCorrect = getIsCorrect();    
     if (isCorrect) {
       const newChosenCorrect = pointsState.chosenCorrect + 1;

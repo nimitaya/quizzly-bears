@@ -11,6 +11,7 @@ import { Logo } from "@/components/Logos";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
+import { clearCacheData, CACHE_KEY } from "@/utilities/cacheUtils";
 
 const QuizLogic = () => {
   const {
@@ -32,12 +33,31 @@ const QuizLogic = () => {
   const insets = useSafeAreaInsets();
 
   const options = [
-    {key: "A", data: currentQuestionData?.optionA},
-    {key: "B", data: currentQuestionData?.optionB},
-    {key: "C", data: currentQuestionData?.optionC},
-    {key: "D", data: currentQuestionData?.optionD}
-  ]
+    { key: "A", data: currentQuestionData?.optionA },
+    { key: "B", data: currentQuestionData?.optionB },
+    { key: "C", data: currentQuestionData?.optionC },
+    { key: "D", data: currentQuestionData?.optionD },
+  ];
 
+  const cacheKey = {
+    questions: CACHE_KEY.aiQuestions,
+    points: CACHE_KEY.gameData,
+    settings: CACHE_KEY.quizSettings,
+  };
+
+  const handleRoundAgain = () => {
+    clearCacheData(cacheKey.questions);
+    clearCacheData(cacheKey.points);
+    clearCacheData(cacheKey.settings);
+    router.push("./CategoryScreen");
+  };
+
+  const handleHome = () => {
+    clearCacheData(cacheKey.questions);
+    clearCacheData(cacheKey.points);
+    clearCacheData(cacheKey.settings);
+    router.push("./");
+  };
 
   return (
     <>
@@ -55,29 +75,30 @@ const QuizLogic = () => {
             <View style={styles.pointsRow}>
               <IconCheckbox />
               <Text style={styles.pointsText}>
-                Total Points: {pointsState.timePoints + pointsState.score}
+                Total Quizzly-Points:{" "}
+                {pointsState.timePoints + pointsState.score}
               </Text>
             </View>
             <View style={styles.pointsRow}>
               <IconCheckbox />
               <Text style={styles.pointsText}>
-                has earned {pointsState.score} Quizzly-Points
+                Earned {pointsState.score} Knowledge-Points
               </Text>
             </View>
             <View style={styles.pointsRow}>
               <IconCheckbox />
               <Text style={styles.pointsText}>
-                plus extra {pointsState.timePoints} Quizzly-Points
+                Plus extra {pointsState.timePoints} Timing-Points
               </Text>
             </View>
           </View>
 
           <View style={styles.buttonsContainer}>
             <ButtonPrimary
-              text="Round again?"
-              onPress={() => router.push("./CategoryScreen")}
+              text="Play again"
+              onPress={() => handleRoundAgain()}
             />
-            <ButtonSecondary text="Home" onPress={() => router.push("./")} />
+            <ButtonSecondary text="Home" onPress={() => handleHome()} />
           </View>
         </ScrollView>
       ) : (
@@ -102,34 +123,39 @@ const QuizLogic = () => {
             <View style={styles.answerSection}>
               <View>
                 <Text>Timer Anzeige TODO</Text>
-                <Text>Taste „Close“ oben links, die das Quiz beendet. TODO</Text>
+                <Text>
+                  Taste „Close“ oben links, die das Quiz beendet. TODO
+                </Text>
                 <Text>Time left: {remainingTime}s</Text>
               </View>
               <View style={styles.questionAnswerContainer}>
                 <View style={styles.answerContainer}>
                   {/* show one quiz button for each option */}
                   {options &&
-                    options.map(({key, data}) => (
+                    options.map(({ key, data }) => (
                       <QuizButton
                         key={key}
                         text={data?.[language] ?? data?.["en"] ?? ""}
-                        selected={handleSelection(data?.[language]?? "")}
+                        selected={handleSelection(data?.[language] ?? "")}
                         checked={
-                          (answerState.isLocked &&
-                            data?.isCorrect) ||
+                          (answerState.isLocked && data?.isCorrect) ||
                           (answerState.isLocked &&
                             answerState.isSubmitted &&
-                            answerState.chosenAnswer === (data?.[language] ?? ""))
+                            answerState.chosenAnswer ===
+                              (data?.[language] ?? ""))
                         }
                         isCorrect={!!data?.isCorrect}
-                        onPress={() => handleAnswerSelect(data?.[language] ?? "")}
+                        onPress={() =>
+                          handleAnswerSelect(data?.[language] ?? "")
+                        }
                       />
                     ))}
                 </View>
                 <View style={styles.buttonsWrapper}>
                   {answerState.isLocked && gameState.playStyle === "solo" ? (
                     <ButtonPrimary text="Next" onPress={handleNextQuestion} />
-                  ) : answerState.isLocked && gameState.playStyle === "group" ? (
+                  ) : answerState.isLocked &&
+                    gameState.playStyle === "group" ? (
                     <ButtonPrimaryDisabled text="Waiting for other bears..." />
                   ) : answerState.isSelected ? (
                     <ButtonPrimary text="Answer" onPress={handleAnswerSubmit} />

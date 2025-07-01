@@ -5,9 +5,8 @@ import { Logo } from "@/components/Logos";
 import { Gaps } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { saveDataToCache } from "@/utilities/quiz-logic/cacheUtils";
+import { saveDataToCache, CACHE_KEY } from "@/utilities/cacheUtils";
 import { QuizSettings, PlayStyle } from "@/utilities/quiz-logic/quizTypesInterfaces";
-import { CACHE_KEY } from "@/utilities/quiz-logic/cacheStructure";
 
 // Use the cache key for quiz settings
 const cacheKey = CACHE_KEY.quizSettings; 

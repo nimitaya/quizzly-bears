@@ -1,8 +1,5 @@
-export const CACHE_KEY = {
-    aiQuestions: "aiQuestions",
-    quizSettings: "quizSettings",
-    gameData: "currGameData",
-  }
+// Don't use! Just for visualising the structure!
+// Nicht benutzen, nur zur Visualisierung der Struktur!
 
 const quizSettings = {
     quizCategory: "",
@@ -19,21 +16,27 @@ const gameData = {
   };
 
 const aiQuestions = {
-    category: "Fantasy",
-    questionArray: 
-    [{
-      question: {de: "Welche Jahreszeit hat die kältesten Temperaturen?", en: "Which season has the coldest temperatures?"},
-      optionA: {isCorrect: true, en: "Winter", de: "Winter"},
-      optionB: {isCorrect: false, en: "Spring", de: "Frühling"},
-      optionC: {isCorrect: false, en: "Autumn", de: "Herbst"},
-      optionD: {isCorrect: false, en: "Summer", de: "Sommer"},
+    category: "Media",
+    questionArray: [
+    {
+      question: {
+        de: "Welcher Drache bewacht den Schatz in der 'Nibelungensage'?",
+        en: "Which dragon guards the treasure in the 'Nibelungenlied'?",
+      },
+      optionA: { isCorrect: false, en: "Smaug", de: "Smaug" },
+      optionB: { isCorrect: false, en: "Drogon", de: "Drogon" },
+      optionC: { isCorrect: true, en: "Fafnir", de: "Fafnir" },
+      optionD: { isCorrect: false, en: "Norbert", de: "Norbert" },
     },
     {
-      question: {de: "Welche Jahreszeit hat die wärmsten Temperaturen?", en: "Which season has the warmest temperatures?"},
-      optionA: {isCorrect: false, en: "Winter", de: "Winter"},
-      optionB: {isCorrect: false, en: "Spring", de: "Frühling"},
-      optionC: {isCorrect: false, en: "Autumn", de: "Herbst"},
-      optionD: {isCorrect: true, en: "Summer", de: "Sommer"},
+      question: {
+        de: "Wie heißt der Drache in J.R.R. Tolkiens 'Der Hobbit'?",
+        en: "What is the name of the dragon in J.R.R. Tolkien's 'The Hobbit'?",
+      },
+      optionA: { isCorrect: false, en: "Drogon", de: "Drogon" },
+      optionB: { isCorrect: false, en: "Falkor", de: "Fuchur" },
+      optionC: { isCorrect: false, en: "Toothless", de: "Ohnezahn" },
+      optionD: { isCorrect: true, en: "Smaug", de: "Smaug" },
     },
     // ... weitere Fragen ...
     ]
