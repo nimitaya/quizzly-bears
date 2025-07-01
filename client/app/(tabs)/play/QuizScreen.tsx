@@ -1,4 +1,12 @@
-import { ScrollView, View, Text, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import {
+  ScrollView,
+  View,
+  Text,
+  StyleSheet,
+  useWindowDimensions,
+  TouchableOpacity,
+} from "react-native";
 import { QuizButton } from "@/components/QuizButtons";
 import {
   ButtonPrimary,
@@ -11,6 +19,10 @@ import { Logo } from "@/components/Logos";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
+import IconArrowBack from "@/assets/icons/IconArrowBack";
+import TimerBar from "@/components/TimerBar";
+import { clearCacheData, CACHE_KEY } from "@/utilities/cacheUtils";
+import CustomAlert from "@/components/CustomAlert";
 
 const QuizLogic = () => {
   const {
@@ -30,17 +42,59 @@ const QuizLogic = () => {
   } = useQuizLogic();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const timerBarWidth = Math.min(348, width - 32); // Gleiche Breite wie QuizButtons
 
   const options = [
-    {key: "A", data: currentQuestionData?.optionA},
-    {key: "B", data: currentQuestionData?.optionB},
-    {key: "C", data: currentQuestionData?.optionC},
-    {key: "D", data: currentQuestionData?.optionD}
-  ]
+    { key: "A", data: currentQuestionData?.optionA },
+    { key: "B", data: currentQuestionData?.optionB },
+    { key: "C", data: currentQuestionData?.optionC },
+    { key: "D", data: currentQuestionData?.optionD },
+  ];
 
+  const cacheKey = {
+    questions: CACHE_KEY.aiQuestions,
+    points: CACHE_KEY.gameData,
+    settings: CACHE_KEY.quizSettings,
+  };
+
+  const [showAlert, setShowAlert] = useState(false);
+
+  const handleRoundAgain = () => {
+    clearCacheData(cacheKey.questions);
+    clearCacheData(cacheKey.points);
+    clearCacheData(cacheKey.settings);
+    router.push("./CategoryScreen");
+  };
+
+  const handleHome = () => {
+    clearCacheData(cacheKey.questions);
+    clearCacheData(cacheKey.points);
+    clearCacheData(cacheKey.settings);
+    router.push("./");
+  };
+
+  const handleBackButton = () => {
+    if (!showResult) {
+      setShowAlert(true);
+    } 
+  };
+
+  const handleCloseAlert = () => {
+    setShowAlert(false);
+  }
+
+  const handleConfirmAlert = () => {
+    setShowAlert(false);
+    clearCacheData(cacheKey.questions);
+    clearCacheData(cacheKey.points);
+    clearCacheData(cacheKey.settings);
+    router.push("./");
+  }
 
   return (
     <>
+    {/* ---------- SHOW RESULT ---------- */}
       {showResult ? (
         <ScrollView
           style={styles.containerResult}
@@ -55,29 +109,30 @@ const QuizLogic = () => {
             <View style={styles.pointsRow}>
               <IconCheckbox />
               <Text style={styles.pointsText}>
-                Total Points: {pointsState.timePoints + pointsState.score}
+                Total Quizzly-Points:{" "}
+                {pointsState.timePoints + pointsState.score}
               </Text>
             </View>
             <View style={styles.pointsRow}>
               <IconCheckbox />
               <Text style={styles.pointsText}>
-                has earned {pointsState.score} Quizzly-Points
+                Earned {pointsState.score} Knowledge-Points
               </Text>
             </View>
             <View style={styles.pointsRow}>
               <IconCheckbox />
               <Text style={styles.pointsText}>
-                plus extra {pointsState.timePoints} Quizzly-Points
+                Plus extra {pointsState.timePoints} Timing-Points
               </Text>
             </View>
           </View>
 
           <View style={styles.buttonsContainer}>
             <ButtonPrimary
-              text="Round again?"
-              onPress={() => router.push("./CategoryScreen")}
+              text="Play again"
+              onPress={() => handleRoundAgain()}
             />
-            <ButtonSecondary text="Home" onPress={() => router.push("./")} />
+            <ButtonSecondary text="Home" onPress={() => handleHome()} />
           </View>
         </ScrollView>
       ) : (
@@ -89,6 +144,28 @@ const QuizLogic = () => {
           ]}
           keyboardShouldPersistTaps="handled"
         >
+          {/* ---------- BACK BUTTON ---------- */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => handleBackButton()}
+            accessibilityLabel="Go back"
+          >
+            <IconArrowBack />
+          </TouchableOpacity>
+
+          {/* ---------- ALERT ---------- */}
+          <CustomAlert
+            visible={showAlert}
+            onClose={handleCloseAlert}
+            title="Quit game"
+            message="Do you really want to leave?"
+            cancelText="Continue"
+            confirmText="Quit"
+            onConfirm={handleConfirmAlert}
+            noInternet={false}
+          />
+
+          {/* ---------- QUESTIONS ---------- */}
           <View style={styles.questionScreenContainer}>
             <Text style={styles.questionNumber}>
               {currQuestionIndex + 1} from 10
@@ -100,36 +177,43 @@ const QuizLogic = () => {
           {/* Show only if readTimer true */}
           {readTimer && (
             <View style={styles.answerSection}>
-              <View>
-                <Text>Timer Anzeige TODO</Text>
-                <Text>Taste „Close“ oben links, die das Quiz beendet. TODO</Text>
-                <Text>Time left: {remainingTime}s</Text>
+              <View style={styles.timerContainer}>
+                <TimerBar
+                  key={`timer-${currQuestionIndex}`}
+                  duration={30}
+                  delay={0}
+                  width={timerBarWidth} // Gleiche Breite wie die Antworten
+                  isPaused={answerState.isSubmitted}
+                />
               </View>
               <View style={styles.questionAnswerContainer}>
                 <View style={styles.answerContainer}>
                   {/* show one quiz button for each option */}
                   {options &&
-                    options.map(({key, data}) => (
+                    options.map(({ key, data }) => (
                       <QuizButton
                         key={key}
                         text={data?.[language] ?? data?.["en"] ?? ""}
-                        selected={handleSelection(data?.[language]?? "")}
+                        selected={handleSelection(data?.[language] ?? "")}
                         checked={
-                          (answerState.isLocked &&
-                            data?.isCorrect) ||
+                          (answerState.isLocked && data?.isCorrect) ||
                           (answerState.isLocked &&
                             answerState.isSubmitted &&
-                            answerState.chosenAnswer === (data?.[language] ?? ""))
+                            answerState.chosenAnswer ===
+                              (data?.[language] ?? ""))
                         }
                         isCorrect={!!data?.isCorrect}
-                        onPress={() => handleAnswerSelect(data?.[language] ?? "")}
+                        onPress={() =>
+                          handleAnswerSelect(data?.[language] ?? "")
+                        }
                       />
                     ))}
                 </View>
                 <View style={styles.buttonsWrapper}>
                   {answerState.isLocked && gameState.playStyle === "solo" ? (
                     <ButtonPrimary text="Next" onPress={handleNextQuestion} />
-                  ) : answerState.isLocked && gameState.playStyle === "group" ? (
+                  ) : answerState.isLocked &&
+                    gameState.playStyle === "group" ? (
                     <ButtonPrimaryDisabled text="Waiting for other bears..." />
                   ) : answerState.isSelected ? (
                     <ButtonPrimary text="Answer" onPress={handleAnswerSubmit} />
@@ -169,6 +253,12 @@ const styles = StyleSheet.create({
     marginVertical: Gaps.g80,
   },
 
+  backButton: {
+    position: "absolute",
+    top: -8,
+    left: 16,
+    zIndex: 10,
+  },
   questionNumber: {
     textAlign: "center",
     color: Colors.black,
@@ -177,6 +267,10 @@ const styles = StyleSheet.create({
   },
   answerSection: {
     flexGrow: 1,
+  },
+  timerContainer: {
+    alignItems: "center",
+    marginBottom: Gaps.g16,
   },
   buttonsWrapper: {},
   answerContainer: {},

@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import { StyleSheet } from "react-native";
 import IconMedal1Place from "@/assets/icons/IconMedal1Place";
 import CircularProgress from "@/components/CircularProgress";
+import { CategoryProgressBar } from "@/components/CategoryProgressBar";
 const StatisticsScreen = () => {
   const router = useRouter();
 
@@ -13,6 +14,24 @@ const StatisticsScreen = () => {
   const correctAnswers = 250;
   const totalAnswers = 300;
   const accuracyPercentage = (correctAnswers / totalAnswers) * 100;
+
+  // Example category performance data - replace with real data
+  const categoryPerformance = {
+    history: 85, // 85% correct answers in history
+    science: 72,
+    sport: 45,
+    geography: 90,
+    medien: 30,
+    culture: 65,
+    dailyLife: 78,
+  };
+
+  //   const categoryPerformance = {
+  //   history: (userHistoryCorrect / userHistoryTotal) * 100,
+  //   science: (userScienceCorrect / userScienceTotal) * 100,
+  //   // ...
+  //   //
+  // };
 
   return (
     <View style={styles.container}>
@@ -63,13 +82,34 @@ const StatisticsScreen = () => {
           <Text style={{ fontSize: FontSizes.TextLargeFs }}>
             Category performance
           </Text>
-          <ButtonSecondary text="History" />
-          <ButtonSecondary text="Science" />
-          <ButtonSecondary text="Sports" />
-          <ButtonSecondary text="Geography" />
-          <ButtonSecondary text="Media" />
-          <ButtonSecondary text="Culture" />
-          <ButtonSecondary text="Daily life" />
+          <CategoryProgressBar
+            text="History"
+            progress={categoryPerformance.history}
+          />
+          <CategoryProgressBar
+            text="Science"
+            progress={categoryPerformance.science}
+          />
+          <CategoryProgressBar
+            text="Sport"
+            progress={categoryPerformance.sport}
+          />
+          <CategoryProgressBar
+            text="Geography"
+            progress={categoryPerformance.geography}
+          />
+          <CategoryProgressBar
+            text="Medien"
+            progress={categoryPerformance.medien}
+          />
+          <CategoryProgressBar
+            text="Culture"
+            progress={categoryPerformance.culture}
+          />
+          <CategoryProgressBar
+            text="Daily life"
+            progress={categoryPerformance.dailyLife}
+          />
         </View>
       </ScrollView>
     </View>
