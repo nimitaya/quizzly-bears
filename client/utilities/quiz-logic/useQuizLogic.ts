@@ -25,7 +25,7 @@ export function useQuizLogic() {
   };
   // Timer duration/ delays TODO
   const READ_TIMER_DURATION = 2000;
-  const ANSWER_TIMER_DURATION = 5000;
+  const ANSWER_TIMER_DURATION = 30000; // 30 Sekunden für Antworten
   const NEXT_QUESTION_DELAY = 3000;
 
   // To reset Timers
