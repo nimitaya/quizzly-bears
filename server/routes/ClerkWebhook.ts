@@ -40,6 +40,8 @@ router.post("/clerk-webhook", async (req: Request, res: Response) => {
     }
 
     if (event.type === "user.deleted") {
+      console.log("User deleted:", clerkUser.id);
+
       await User.findOneAndDelete({ clerkUserId: clerkUser.id });
       return res.status(200).json({ success: true });
     }
