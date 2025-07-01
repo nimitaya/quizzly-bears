@@ -10,6 +10,7 @@ import { Logo } from "@/components/Logos";
 import { FontSizes, Gaps, Colors } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import { ButtonPrimary } from "@/components/Buttons";
+import { SearchFriendInput } from "@/components/Inputs";
 
 const ProfilInvitationsScreen = () => {
   const router = useRouter();
@@ -27,26 +28,25 @@ const ProfilInvitationsScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={{ marginBottom: Gaps.g40 }}>
-          <Logo size="big" />
+        <View style={{ marginBottom: Gaps.g16 }}>
+          <Logo size="small" />
         </View>
 
-        {/*==== if there are no invitations yet ====*/}
-        <View style={styles.textBox}>
-          <Text style={{ fontSize: FontSizes.H3Fs }}>
-            No invitations right now.
-          </Text>
-          <Text style={{ fontSize: FontSizes.H3Fs }}>
-            You can start a game yourself!
-          </Text>
-          <ButtonPrimary
-            text="Play"
-            onPress={() => router.push("../play/QuizTypeSelectionScreen")}
-            style={{ marginTop: Gaps.g40 }}
-          />
+        {/*==== if you don't have friends yet ====*/}
+        <View style={styles.searchFriendsBox}>
+          <Text style={{ fontSize: FontSizes.H2Fs }}>Friends</Text>
+          <SearchFriendInput placeholder="e-mail..." />
+          <View style={styles.textBox}>
+            <Text style={{ fontSize: FontSizes.TextLargeFs }}>
+              Unfortunately, it's empty so far...?
+            </Text>
+            <Text style={{ fontSize: FontSizes.TextLargeFs }}>
+              Invite someone over.
+            </Text>
+          </View>
         </View>
 
-        {/*==== if the invitations are availablet ====*/}
+        {/*==== if you already have friends ====*/}
         {/* CODE HERE */}
       </ScrollView>
     </View>
@@ -69,8 +69,15 @@ const styles = StyleSheet.create({
     left: 16,
     zIndex: 10,
   },
-  textBox: {
+  searchFriendsBox: {
+    textAlign: "center",
     alignItems: "center",
-    gap: Gaps.g4,
+    justifyContent: "center",
+    gap: Gaps.g32,
+  },
+  textBox: {
+    textAlign: "center",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

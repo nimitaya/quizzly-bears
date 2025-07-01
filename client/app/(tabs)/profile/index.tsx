@@ -160,7 +160,10 @@ const ProfileScreen = () => {
           text="Invitations"
           onPress={() => router.push("/profile/ProfileInvitationsScreen")}
         />
-        <ButtonSecondary text="Friends" />
+        <ButtonSecondary
+          text="Friends"
+          onPress={() => router.push("/profile/ProfileFriendsScreen")}
+        />
         <ButtonSecondary
           text="Account"
           onPress={() => router.push("/profile/AccountScreen")}
