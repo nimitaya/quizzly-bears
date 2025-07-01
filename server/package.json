@@ -1,13 +1,13 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "main": "server.ts",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "go": "nodemon --exec \"tsx --env-file=.env server.ts\"",
-    "build": "tsc",
+    "dev": "ts-node src/server.ts",
     "start": "node dist/server.js",
-    "dev": "ts-node src/server.ts"
+    "build": "tsc --project tsconfig.json"
   },
   "keywords": [],
   "author": "",
