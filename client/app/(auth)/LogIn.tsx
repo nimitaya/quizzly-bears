@@ -197,7 +197,9 @@ export default function LogIn() {
       </TouchableOpacity>
 
       <View style={styles.linkContainer}>
-        <Text>Don't have an account?</Text>
+        <Text style={{ fontSize: FontSizes.TextMediumFs }}>
+          Don't have an account?
+        </Text>
         <Link href="/(auth)/SignUp" asChild>
           <TouchableOpacity>
             <Text style={styles.link}>Sign up</Text>
@@ -259,8 +261,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   link: {
-    fontSize: FontSizes.TextMediumFs,
-    color: Colors.black,
+    fontSize: FontSizes.TextLargeFs,
+    color: Colors.darkGreen,
     marginLeft: Gaps.g8,
     fontWeight: "bold",
   },
