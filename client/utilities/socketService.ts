@@ -1,5 +1,5 @@
-import { io, Socket } from 'socket.io-client';
-import { Platform } from 'react-native';
+import { io, Socket } from "socket.io-client";
+import { Platform } from "react-native";
 
 // Types (can be moved to a separate file)
 export interface QuizRoom {
@@ -30,7 +30,7 @@ export interface QuizQuestion {
   options: string[];
   correctAnswer: string;
   category: string;
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty: "easy" | "medium" | "hard";
   timeLimit: number;
 }
 
@@ -38,33 +38,33 @@ export interface QuizSettings {
   questionCount: number;
   timePerQuestion: number;
   categories: string[];
-  difficulty: 'easy' | 'medium' | 'hard' | 'mixed';
+  difficulty: "easy" | "medium" | "hard" | "mixed";
 }
 
 // Configuration
 // Platform-specific URLs for React Native development
 const getSocketUrls = () => {
-  if (Platform.OS === 'android') {
+  if (Platform.OS === "android") {
     return [
-      'http://10.0.2.2:3000',        // Android emulator
-      'http://192.168.0.226:3000',   // Current local IP for real device
+      "http://10.0.2.2:5000", // Android emulator
+      "http://192.168.0.226:5000", // Current local IP for real device
     ];
-  } else if (Platform.OS === 'ios') {
+  } else if (Platform.OS === "ios") {
     return [
-      'http://localhost:3000',       // iOS simulator
-      'http://127.0.0.1:3000',      // iOS simulator fallback
-      'http://192.168.0.226:3000',   // Current local IP for real device
+      "http://localhost:5000", // iOS simulator
+      "http://127.0.0.1:5000", // iOS simulator fallback
+      "http://192.168.0.226:5000", // Current local IP for real device
     ];
   } else {
     return [
-      'http://localhost:3000',       // Web
-      'http://127.0.0.1:3000',
+      "http://localhost:5000", // Web
+      "http://127.0.0.1:5000",
     ];
   }
 };
 
 const SOCKET_URLS = getSocketUrls();
-const SOCKET_URL = __DEV__ ? SOCKET_URLS[0] : 'YOUR_PRODUCTION_URL';
+const SOCKET_URL = __DEV__ ? SOCKET_URLS[0] : "YOUR_PRODUCTION_URL";
 
 class SocketService {
   private socket: Socket | null = null;
@@ -86,7 +86,7 @@ class SocketService {
             continue;
           }
         }
-        reject(new Error('Could not connect to any Socket.IO server'));
+        reject(new Error("Could not connect to any Socket.IO server"));
       } else {
         // In production, use the configured URL
         try {
@@ -102,7 +102,7 @@ class SocketService {
   private connectToUrl(url: string): Promise<void> {
     return new Promise((resolve, reject) => {
       this.socket = io(url, {
-        transports: ['websocket', 'polling'], // Try both transports
+        transports: ["websocket", "polling"], // Try both transports
         timeout: 5000,
         reconnection: true,
         reconnectionDelay: 1000,
@@ -114,16 +114,16 @@ class SocketService {
           this.socket.disconnect();
           this.socket = null;
         }
-        reject(new Error('Connection timeout'));
+        reject(new Error("Connection timeout"));
       }, 6000);
 
-      this.socket.on('connect', () => {
+      this.socket.on("connect", () => {
         clearTimeout(timeout);
         console.log(`Connected to Socket.IO server at ${url}`);
         resolve();
       });
 
-      this.socket.on('connect_error', (error) => {
+      this.socket.on("connect_error", (error) => {
         clearTimeout(timeout);
         console.error(`Socket.IO connection error for ${url}:`, error);
         if (this.socket) {
@@ -133,8 +133,8 @@ class SocketService {
         reject(error);
       });
 
-      this.socket.on('disconnect', () => {
-        console.log('Disconnected from Socket.IO server');
+      this.socket.on("disconnect", () => {
+        console.log("Disconnected from Socket.IO server");
       });
     });
   }
@@ -156,36 +156,46 @@ class SocketService {
   }
 
   // Methods for working with rooms
-  createRoom(roomName: string, hostName: string, hostId: string, settings: QuizSettings) {
-    this.emit('create-room', { roomName, hostName, hostId, settings });
+  createRoom(
+    roomName: string,
+    hostName: string,
+    hostId: string,
+    settings: QuizSettings
+  ) {
+    this.emit("create-room", { roomName, hostName, hostId, settings });
   }
 
   joinRoom(roomId: string, playerId: string, playerName: string) {
-    this.emit('join-room', { roomId, playerId, playerName });
+    this.emit("join-room", { roomId, playerId, playerName });
   }
 
   leaveRoom(roomId: string, playerId: string) {
-    this.emit('leave-room', { roomId, playerId });
+    this.emit("leave-room", { roomId, playerId });
   }
 
   togglePlayerReady(roomId: string, playerId: string) {
-    this.emit('player-ready', { roomId, playerId });
+    this.emit("player-ready", { roomId, playerId });
   }
 
   startGame(roomId: string, questions: QuizQuestion[]) {
-    this.emit('start-game', { roomId, questions });
+    this.emit("start-game", { roomId, questions });
   }
 
   questionsReady(roomId: string) {
-    this.emit('questions-ready', { roomId });
+    this.emit("questions-ready", { roomId });
   }
 
   nextQuestion(roomId: string) {
-    this.emit('next-question', { roomId });
+    this.emit("next-question", { roomId });
   }
 
-  submitAnswer(roomId: string, playerId: string, answer: string, timeRemaining: number) {
-    this.emit('submit-answer', { roomId, playerId, answer, timeRemaining });
+  submitAnswer(
+    roomId: string,
+    playerId: string,
+    answer: string,
+    timeRemaining: number
+  ) {
+    this.emit("submit-answer", { roomId, playerId, answer, timeRemaining });
   }
 
   // Universal methods for working with events
@@ -229,51 +239,76 @@ class SocketService {
 
   // Specific methods for subscribing to events
   onRoomCreated(callback: (data: { roomId: string; room: QuizRoom }) => void) {
-    this.on('room-created', callback);
+    this.on("room-created", callback);
   }
 
   onRoomJoined(callback: (data: { room: QuizRoom }) => void) {
-    this.on('room-joined', callback);
+    this.on("room-joined", callback);
   }
 
   onPlayerJoined(callback: (data: { player: Player; room: QuizRoom }) => void) {
-    this.on('player-joined', callback);
+    this.on("player-joined", callback);
   }
 
-  onPlayerLeft(callback: (data: { playerId: string; playerName: string; room: QuizRoom }) => void) {
-    this.on('player-left', callback);
+  onPlayerLeft(
+    callback: (data: {
+      playerId: string;
+      playerName: string;
+      room: QuizRoom;
+    }) => void
+  ) {
+    this.on("player-left", callback);
   }
 
-  onPlayerReadyUpdated(callback: (data: { playerId: string; isReady: boolean; room: QuizRoom }) => void) {
-    this.on('player-ready-updated', callback);
+  onPlayerReadyUpdated(
+    callback: (data: {
+      playerId: string;
+      isReady: boolean;
+      room: QuizRoom;
+    }) => void
+  ) {
+    this.on("player-ready-updated", callback);
   }
 
-  onPlayerAnswered(callback: (data: { playerId: string; playerName: string; isCorrect: boolean; currentScores: any[] }) => void) {
-    this.on('player-answered', callback);
+  onPlayerAnswered(
+    callback: (data: {
+      playerId: string;
+      playerName: string;
+      isCorrect: boolean;
+      currentScores: any[];
+    }) => void
+  ) {
+    this.on("player-answered", callback);
   }
 
   onHostChanged(callback: (data: { newHost: Player }) => void) {
-    this.on('host-changed', callback);
+    this.on("host-changed", callback);
   }
 
   onGameStarted(callback: (data: { room: QuizRoom }) => void) {
-    this.on('game-started', callback);
+    this.on("game-started", callback);
   }
 
   onShowStartQuiz(callback: (data: { room: QuizRoom }) => void) {
-    this.on('show-start-quiz', callback);
+    this.on("show-start-quiz", callback);
   }
 
-  onQuestion(callback: (data: { question: QuizQuestion; questionNumber: number; totalQuestions: number }) => void) {
-    this.on('question', callback);
+  onQuestion(
+    callback: (data: {
+      question: QuizQuestion;
+      questionNumber: number;
+      totalQuestions: number;
+    }) => void
+  ) {
+    this.on("question", callback);
   }
 
   onGameEnded(callback: (data: { finalScores: Player[] }) => void) {
-    this.on('game-ended', callback);
+    this.on("game-ended", callback);
   }
 
   onError(callback: (data: { message: string; code?: string }) => void) {
-    this.on('error', callback);
+    this.on("error", callback);
   }
 }
 
