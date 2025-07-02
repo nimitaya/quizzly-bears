@@ -3,7 +3,6 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import connectDB from "./database/connectDB";
 import clerkWebhookRouter from "./routes/ClerkWebhook";
-import friendRequestRouter from "./routes/friendRequestRoutes";
 
 const app = express();
 const port = process.env.PORTNUMMER || 3000;
@@ -14,7 +13,6 @@ app.use(cors());
 
 app.use("/api/clerk-webhook", cors());
 app.use("/api", clerkWebhookRouter);
-app.use("/friends-requests", friendRequestRouter)
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
