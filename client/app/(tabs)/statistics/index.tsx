@@ -1,37 +1,86 @@
-import { View, TouchableOpacity, Text, ScrollView } from "react-native";
-import { ButtonSecondary } from "@/components/Buttons";
+import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { Logo } from "@/components/Logos";
+import React, { useEffect, useState } from "react";
 import { FontSizes, Gaps } from "@/styles/theme";
-import { useRouter } from "expo-router";
-import { StyleSheet } from "react-native";
 import IconMedal1Place from "@/assets/icons/IconMedal1Place";
 import CircularProgress from "@/components/CircularProgress";
 import { CategoryProgressBar } from "@/components/CategoryProgressBar";
+import { useUser } from "@clerk/clerk-expo";
+import { useRouter } from "expo-router";
+import axios from "axios";
+import CustomAlert from "@/components/CustomAlert";
+import Loading from "../../Loading";
+
 const StatisticsScreen = () => {
+  const API_BASE_URL =
+    process.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+
+  const { user } = useUser();
+  const [userData, setUserData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
   const router = useRouter();
 
-  // Example data - replace with real data from your API/state
-  const correctAnswers = 250;
-  const totalAnswers = 300;
-  const accuracyPercentage = (correctAnswers / totalAnswers) * 100;
+  useEffect(() => {
+    if (!user) return;
 
-  // Example category performance data - replace with real data
-  const categoryPerformance = {
-    history: 85, // 85% correct answers in history
-    science: 72,
-    sport: 45,
-    geography: 90,
-    medien: 30,
-    culture: 65,
-    dailyLife: 78,
-  };
+    const fetchUserData = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/users/${user.id}`);
+        setUserData(res.data);
+      } catch (err) {
+        console.error("Failed to load user data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  //   const categoryPerformance = {
-  //   history: (userHistoryCorrect / userHistoryTotal) * 100,
-  //   science: (userScienceCorrect / userScienceTotal) * 100,
-  //   // ...
-  //   //
-  // };
+    fetchUserData();
+  }, [user]);
+
+  if (loading) {
+    return (
+      <>
+        <Loading />
+      </>
+    );
+  }
+
+  if (!userData) {
+    setShowForm(true);
+  }
+
+  const {
+    points,
+    medals,
+    categoryStats,
+  }: {
+    points: {
+      correctAnswers: number;
+      totalAnswers: number;
+      totalPoints: number;
+    };
+    medals: { gold: number; silver: number; bronze: number };
+    categoryStats: {
+      categoryName: string;
+      correctAnswers: number;
+      totalAnswers: number;
+    }[];
+  } = userData;
+
+  const accuracy =
+    points.totalAnswers === 0
+      ? 0
+      : (points.correctAnswers / points.totalAnswers) * 100;
+
+  const categoryPerformance = categoryStats.reduce((acc, cat) => {
+    const percent =
+      cat.totalAnswers === 0
+        ? 0
+        : Math.round((cat.correctAnswers / cat.totalAnswers) * 100);
+    acc[cat.categoryName] = percent;
+    return acc;
+  }, {} as Record<string, number>);
 
   return (
     <View style={styles.container}>
@@ -45,7 +94,7 @@ const StatisticsScreen = () => {
         <Text style={{ fontSize: FontSizes.H2Fs }}>My statistics</Text>
         <View style={styles.allPointsMedalenBlock}>
           <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-            Quizzly Points: (link)
+            Quizzly Points: {points.totalPoints}
           </Text>
           <Text style={{ fontSize: FontSizes.TextLargeFs }}>
             My rank: (link)/(link)
@@ -53,24 +102,30 @@ const StatisticsScreen = () => {
           <View style={styles.allMedalenBlock}>
             <View style={styles.MedalenBlock}>
               <IconMedal1Place />
-              <Text style={{ fontSize: FontSizes.TextLargeFs }}>(link)</Text>
+              <Text style={{ fontSize: FontSizes.TextLargeFs }}>
+                {medals.gold}
+              </Text>
             </View>
             <View style={styles.MedalenBlock}>
               <IconMedal1Place />
-              <Text style={{ fontSize: FontSizes.TextLargeFs }}>(link)</Text>
+              <Text style={{ fontSize: FontSizes.TextLargeFs }}>
+                {medals.silver}
+              </Text>
             </View>
             <View style={styles.MedalenBlock}>
               <IconMedal1Place />
-              <Text style={{ fontSize: FontSizes.TextLargeFs }}>(link)</Text>
+              <Text style={{ fontSize: FontSizes.TextLargeFs }}>
+                {medals.bronze}
+              </Text>
             </View>
           </View>
         </View>
         <View style={styles.accuracyBlock}>
           <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-            {correctAnswers}/{totalAnswers} correct answers
+            {points.correctAnswers}/{points.totalAnswers} correct answers
           </Text>
           <CircularProgress
-            percentage={accuracyPercentage}
+            percentage={accuracy}
             size={150}
             strokeWidth={8}
             animated={true}
@@ -82,7 +137,7 @@ const StatisticsScreen = () => {
           <Text style={{ fontSize: FontSizes.TextLargeFs }}>
             Category performance
           </Text>
-          <CategoryProgressBar
+          {/* <CategoryProgressBar
             text="History"
             progress={categoryPerformance.history}
           />
@@ -109,9 +164,20 @@ const StatisticsScreen = () => {
           <CategoryProgressBar
             text="Daily life"
             progress={categoryPerformance.dailyLife}
-          />
+          /> */}
+          {Object.entries(categoryPerformance).map(([name, progress]) => (
+            <CategoryProgressBar key={name} text={name} progress={progress} />
+          ))}
         </View>
       </ScrollView>
+      <CustomAlert
+        visible={showForm}
+        onClose={() => setShowForm(false)}
+        message="Such user isn't registered yet. Please try again later."
+        cancelText={null}
+        confirmText="OK"
+        noInternet={false}
+      />
     </View>
   );
 };
