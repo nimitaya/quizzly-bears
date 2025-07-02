@@ -30,60 +30,167 @@ export const generateMultipleQuizQuestions = async (
   SPEZIFISCHE ANWEISUNGEN:
   - Erstelle GENAU ${questionCount} völlig NEUE UND EINZIGARTIGE Fragen über das spezifische Thema: "${topic}"
   - Schwierigkeitsgrad: ${difficulty}
+  - SCHWIERIGKEITSGRADE (ERKLÄRUNG):
+- easy (einfach):
+  • Zielgruppe: Anfänger:innen, Kinder, Laien
+  • Fragen mit offensichtlicher Antwort oder Basiswissen
+  • Antwort erkennbar ohne Fachwissen
+  • Keine Fachbegriffe, keine Mehrdeutigkeit
+  • Beispiele: „Wie viele Beine hat ein Hund?“ oder „Wer war der erste Mensch auf dem Mond?“
+
+- medium (mittel):
+  • Zielgruppe: Fortgeschrittene, interessierte Laien
+  • Allgemeinbildung, schulisches Wissen, kontextbezogen
+  • Braucht etwas Nachdenken oder Kontextkenntnis
+  • Beispiele: „Welche chemische Formel hat Wasser?“ oder „In welchem Jahr fiel die Berliner Mauer?“
+
+- hard (schwierig):
+  • Zielgruppe: Expert:innen, Studierende, Fachleute
+  • Komplexes Fachwissen, seltene Details, tiefes Verständnis
+  • Erfordert Analyse, Vergleich oder konkretes Wissen über Teilaspekte
+  • Beispiele: „Welche Rolle spielte das Phlogiston in der frühen Chemietheorie?“ oder „Was unterscheidet den Utilitarismus von der Deontologie?“
+
   - Verwende verschiedene Fragetypen: ${questionTypes.join(', ')}
+  - Referenznummer: ${randomSeed}
+  - Zeitstempel: ${timestamp}
   
   WICHTIGE FOKUSSIERUNG:
   - ALLE Fragen müssen DIREKT mit "${topic}" zu tun haben
   - Verwende spezifische Details, Charaktere, Ereignisse oder Aspekte von "${topic}"
   - Die Fragen sollen das Wissen über "${topic}" testen, nicht nur allgemeine Kenntnisse
   
-  BEISPIELE FÜR SPEZIFISCHE FRAGEN:
-  - Wenn "${topic}" = "Harry Potter": Frage nach Charakteren wie Hermione, Zaubersprüchen wie Expelliarmus, Häusern wie Gryffindor
-  - Wenn "${topic}" = "Einstein": Frage nach E=mc², Relativitätstheorie, Nobelpreis
-  - Wenn "${topic}" = "Fußball": Frage nach FIFA, Weltmeisterschaft, bekannten Spielern
+  🚨 ABSOLUT KRITISCH - ANTWORT-POSITION RANDOMISIERUNG:
+  Du MUSST die korrekte Antwort in verschiedenen Positionen platzieren!
+  
+  PFLICHTVERTEILUNG FÜR ${questionCount} FRAGEN:
+  - Fragen 1, 5, 9: Korrekte Antwort bei optionA (isCorrect: true)
+  - Fragen 2, 6, 10: Korrekte Antwort bei optionB (isCorrect: true)  
+  - Fragen 3, 7: Korrekte Antwort bei optionC (isCorrect: true)
+  - Fragen 4, 8: Korrekte Antwort bei optionD (isCorrect: true)
+  
+  ❌ VERBOTEN: Alle korrekten Antworten nur bei optionA, oder bei Optionen A, B, C, D in derselben Position
+  ❌ VERBOTEN: Alle korrekten Antworten bei derselben Position
+  ✅ PFLICHT: Korrekte Antworten müssen auf A, B, C, D verteilt sein
+  
+  KONKRETE BEISPIELE:
+  
+  FRAGE 1 - Korrekte Antwort bei optionA:
+  {
+  "optionA": {"isCorrect": true, "de": "Richtige Antwort", "en": "Correct answer"},
+  "optionB": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"},
+  "optionC": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"},
+  "optionD": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"}
+  }
+  
+  FRAGE 2 - Korrekte Antwort bei optionB:
+  {
+  "optionA": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"},
+  "optionB": {"isCorrect": true, "de": "Richtige Antwort", "en": "Correct answer"},
+  "optionC": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"},
+  "optionD": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"}
+  }
+  
+  FRAGE 3 - Korrekte Antwort bei optionC:
+  {
+  "optionA": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"},
+  "optionB": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"},
+  "optionC": {"isCorrect": true, "de": "Richtige Antwort", "en": "Correct answer"},
+  "optionD": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"}
+  }
+  
+  FRAGE 4 - Korrekte Antwort bei optionD:
+  {
+  "optionA": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"},
+  "optionB": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"},
+  "optionC": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"},
+  "optionD": {"isCorrect": true, "de": "Richtige Antwort", "en": "Correct answer"}
+  }
+  
+  🎯 VALIDIERUNGSCHECK:
+  Bevor du antwortest, überprüfe:
+  - Haben alle ${questionCount} Fragen nur EINE korrekte Antwort?
+  - Sind die korrekten Antworten auf optionA, optionB, optionC, optionD verteilt?
+  - Steht NICHT jede korrekte Antwort bei optionA?
   
   WEITERE REGELN:
   - Jede Frage muss VÖLLIG ANDERS sein als alle anderen
-  - Verwende verschiedene Konzepte, Zahlen, Beispiele und Ansätze
   - Die Frage darf maximal 120 Zeichen lang sein
   - Die Antwortoptionen müssen klar und eindeutig sein. Weniger als 50 Zeichen pro Option
+  - Alle falschen Antworten müssen plausibel aber eindeutig falsch sein
   
   Du musst GENAU in diesem JSON-Array-Format antworten:
   [
   {
   "question": {
-  "de": "Spezifische Frage über ${topic} auf Deutsch",
-  "en": "Specific question about ${topic} in English"
+  "de": "Erste Frage über ${topic}",
+  "en": "First question about ${topic}"
   },
   "optionA": {
   "isCorrect": true,
-  "de": "Korrekte Antwort auf Deutsch",
-  "en": "Correct answer in English"
+  "de": "Korrekte Antwort für Frage 1",
+  "en": "Correct answer for question 1"
   },
   "optionB": {
   "isCorrect": false,
-  "de": "Falsche Antwort auf Deutsch", 
-  "en": "Wrong answer in English"
+  "de": "Falsche Antwort",
+  "en": "Wrong answer"
   },
   "optionC": {
   "isCorrect": false,
-  "de": "Falsche Antwort auf Deutsch",
-  "en": "Wrong answer in English"
+  "de": "Falsche Antwort",
+  "en": "Wrong answer"
   },
   "optionD": {
   "isCorrect": false,
-  "de": "Falsche Antwort auf Deutsch",
-  "en": "Wrong answer in English"
+  "de": "Falsche Antwort",
+  "en": "Wrong answer"
+  }
+  },
+  {
+  "question": {
+  "de": "Zweite Frage über ${topic}",
+  "en": "Second question about ${topic}"
+  },
+  "optionA": {
+  "isCorrect": false,
+  "de": "Falsche Antwort",
+  "en": "Wrong answer"
+  },
+  "optionB": {
+  "isCorrect": true,
+  "de": "Korrekte Antwort für Frage 2",
+  "en": "Correct answer for question 2"
+  },
+  "optionC": {
+  "isCorrect": false,
+  "de": "Falsche Antwort",
+  "en": "Wrong answer"
+  },
+  "optionD": {
+  "isCorrect": false,
+  "de": "Falsche Antwort",
+  "en": "Wrong answer"
   }
   }
   ]
   
+  🔥 FINALE ERINNERUNG:
+  - Frage 1: Antwort A korrekt
+  - Frage 2: Antwort B korrekt  
+  - Frage 3: Antwort C korrekt
+  - Frage 4: Antwort D korrekt
+  - Frage 5: Antwort A korrekt
+  - etc.
+  
   REGELN:
   - Generiere GENAU ${questionCount} Fragen im Array
-  - Nur eine Option pro Frage darf "isCorrect: true" sein
+  - RANDOMISIERE die Position der korrekten Antwort in jeder Frage
+  - Verteile die korrekten Antworten ungefähr gleichmäßig auf optionA, optionB, optionC, optionD
   - Alle Optionen müssen unterschiedlich und plausibel sein
+  - Jede Frage muss völlig originell und unterschiedlich sein
   - Konzentriere dich ausschließlich auf "${topic}"
-  - Antworte NUR mit dem JSON-Array, ohne zusätzlichen Text`;
+  - Antworte NUR mit dem JSON-Array, ohne zusätzlichen Text am ende des Arrays
+  - Keine zusätzlichen Erklärungen oder Kommentare`;
   
   const response = await axios.post(
   GROQ_API_URL,
@@ -110,16 +217,22 @@ export const generateMultipleQuizQuestions = async (
   );
   
   let responseContent = response.data.choices[0].message.content;
-  //wir suchen nach den ersten Satz, den die KI generiert hat
-  const jsonStartIndex = responseContent.indexOf("[");
 
+  //=====WICHTIG: JSON Datei ist damit sauber und wird keine zusätlichen Kommentare von der KI hinzugefügt (Problem gelöst)
   responseContent = responseContent.replace(/```json\n?/g, "");
   responseContent = responseContent.replace(/```\n?/g, "");
-  responseContent = responseContent.substring(jsonStartIndex).trim(); // Entferne alles vor dem JSON-Array
-  console.log("API Response for Multiple Questions:", response.data);
   
-  const questionsData = JSON.parse(responseContent);
-  console.log("Parsed Questions Data:", questionsData);
+  // Nutze eine robuste RegEx, um NUR das JSON-Array zu extrahieren
+  const jsonMatch = responseContent.match(/\[\s*{[\s\S]*?}\s*\]/);
+  
+  if (!jsonMatch) {
+    console.error(" Kein gültiges JSON-Array im Modell-Output gefunden:", responseContent);
+    throw new Error("Das Modell hat kein valides JSON-Array geliefert.");
+  }
+  
+  const cleanJson = jsonMatch[0].trim();
+  console.log("Sauberes JSON:", cleanJson);
+  const questionsData = JSON.parse(cleanJson);
   
   // Array validieren
   if (!Array.isArray(questionsData)) {
