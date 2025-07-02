@@ -1,0 +1,478 @@
+import { Router, Request, Response } from "express";
+import { User, IUser } from "../models/User";
+import { FriendRequest, IFriendRequest } from "../models/FriendRequest";
+
+const router = Router();
+
+// ==================== Search user by email ====================
+export const searchUser = async (req: Request, res: Response): Promise<void> => {
+    try {
+        // we need the user input email and the current userId
+        const {email, currClerkUserId} = req.query;
+
+        if (!email || !currClerkUserId) {
+      res.status(400).json({ error: "Email address is required" });
+      return;
+    }
+
+    // Find the requesting user
+    const requestingUser = await User.findOne({ currClerkUserId }) as IUser;
+    if (!requestingUser) {
+      res.status(404).json({ error: "Requesting user not found" });
+      return;
+    }
+
+    // Find user by email (exclude the requesting user)
+    const user = await User.findOne({ 
+      email: email.toString().toLowerCase(),
+      _id: { $ne: requestingUser._id } // TODO KI fragen was $ne bedeutet
+    }).select("email bearPawIcon") as IUser;
+
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+        
+    // Check if already friends
+    const isAlreadyFriend = requestingUser.friends.some(friendId => 
+      friendId.toString() === user._id.toString()
+    );
+    if (isAlreadyFriend) {
+      res.status(400).json({ error: "Already friends with this user" });
+      return;
+    }
+
+     // Check if friend request already exists
+    const existingRequest = await FriendRequest.findOne({
+      $or: [ // TODO KI fragen $or
+        { from: requestingUser._id, to: user._id },
+        { from: user._id, to: requestingUser._id }
+      ],
+      status: "pending"
+    });
+
+    if (existingRequest) {
+      res.status(400).json({ error: "Friend request already exists" });
+      return;
+    }
+
+    // ----- Response -----
+res.json({
+      user: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        bearPawIcon: user.bearPawIcon
+      }
+    });
+
+
+    } catch (error) {
+        console.error("Error searching user:", error);
+    res.status(500).json({ error: "Internal server error" });
+    }
+}
+
+
+
+// ====================================================================================================
+// ==================== Search user by email ====================
+// router.get("/search", async (req: Request, res: Response): Promise<void> => {
+//   try {
+//     const { email, clerkUserId } = req.query;
+
+//     if (!email || !clerkUserId) {
+//       res.status(400).json({ error: "Email and clerkUserId are required" });
+//       return;
+//     }
+
+//     // Find the requesting user
+//     const requestingUser = await User.findOne({ clerkUserId }) as IUser;
+//     if (!requestingUser) {
+//       res.status(404).json({ error: "Requesting user not found" });
+//       return;
+//     }
+
+//     // Find user by email (exclude the requesting user)
+//     const user = await User.findOne({ 
+//       email: email.toString().toLowerCase(),
+//       _id: { $ne: requestingUser._id }
+//     }).select("username email bearPawIcon") as IUser;
+
+//     if (!user) {
+//       res.status(404).json({ error: "User not found" });
+//       return;
+//     }
+
+//     // Check if already friends
+//     const isAlreadyFriend = requestingUser.friends.some(friendId => 
+//       friendId.toString() === user._id.toString()
+//     );
+//     if (isAlreadyFriend) {
+//       res.status(400).json({ error: "Already friends with this user" });
+//       return;
+//     }
+
+//     // Check if friend request already exists
+//     const existingRequest = await FriendRequest.findOne({
+//       $or: [
+//         { from: requestingUser._id, to: user._id },
+//         { from: user._id, to: requestingUser._id }
+//       ],
+//       status: "pending"
+//     });
+
+//     if (existingRequest) {
+//       res.status(400).json({ error: "Friend request already exists" });
+//       return;
+//     }
+
+//     res.json({
+//       user: {
+//         _id: user._id,
+//         username: user.username,
+//         email: user.email,
+//         bearPawIcon: user.bearPawIcon
+//       }
+//     });
+//   } catch (error) {
+//     console.error("Error searching user:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
+
+// ==================== Send friend request ====================
+// router.post("/send", async (req: Request, res: Response): Promise<void> => {
+//   try {
+//     const { clerkUserId, targetUserId } = req.body;
+
+//     if (!clerkUserId || !targetUserId) {
+//       res.status(400).json({ error: "clerkUserId and targetUserId are required" });
+//       return;
+//     }
+
+//     // Find the requesting user
+//     const requestingUser = await User.findOne({ clerkUserId }) as IUser;
+//     if (!requestingUser) {
+//       res.status(404).json({ error: "Requesting user not found" });
+//       return;
+//     }
+
+//     // Find the target user
+//     const targetUser = await User.findById(targetUserId) as IUser;
+//     if (!targetUser) {
+//       res.status(404).json({ error: "Target user not found" });
+//       return;
+//     }
+
+//     // Check if trying to send request to self
+//     if (requestingUser._id.toString() === targetUser._id.toString()) {
+//       res.status(400).json({ error: "Cannot send friend request to yourself" });
+//       return;
+//     }
+
+//     // Check if already friends
+//     const isAlreadyFriend = requestingUser.friends.some(friendId => 
+//       friendId.toString() === targetUser._id.toString()
+//     );
+//     if (isAlreadyFriend) {
+//       res.status(400).json({ error: "Already friends with this user" });
+//       return;
+//     }
+
+//     // Check if friend request already exists
+//     const existingRequest = await FriendRequest.findOne({
+//       $or: [
+//         { from: requestingUser._id, to: targetUser._id },
+//         { from: targetUser._id, to: requestingUser._id }
+//       ],
+//       status: "pending"
+//     });
+
+//     if (existingRequest) {
+//       res.status(400).json({ error: "Friend request already exists" });
+//       return;
+//     }
+
+//     // Create friend request
+//     const friendRequest = new FriendRequest({
+//       from: requestingUser._id,
+//       to: targetUser._id,
+//       status: "pending"
+//     });
+
+//     await friendRequest.save();
+
+//     // Add friend request to target user's friendRequests array
+//     await User.findByIdAndUpdate(
+//       targetUser._id,
+//       { $push: { friendRequests: friendRequest._id } }
+//     );
+
+//     // TODO: Send push notification to target user
+//     // You can implement this later with Expo notifications
+
+//     res.status(201).json({
+//       message: "Friend request sent successfully",
+//       friendRequest: {
+//         _id: friendRequest._id,
+//         from: {
+//           _id: requestingUser._id,
+//           username: requestingUser.username,
+//           email: requestingUser.email
+//         },
+//         to: {
+//           _id: targetUser._id,
+//           username: targetUser.username,
+//           email: targetUser.email
+//         },
+//         status: friendRequest.status,
+//         createdAt: friendRequest.createdAt
+//       }
+//     });
+//   } catch (error) {
+//     console.error("Error sending friend request:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
+
+// ==================== Get received friend requests ====================
+// router.get("/received", async (req: Request, res: Response): Promise<void> => {
+//   try {
+//     const { clerkUserId } = req.query;
+
+//     if (!clerkUserId) {
+//       res.status(400).json({ error: "clerkUserId is required" });
+//       return;
+//     }
+
+//     const user = await User.findOne({ clerkUserId }).populate({
+//       path: "friendRequests",
+//       match: { status: "pending" },
+//       populate: {
+//         path: "from",
+//         select: "username email bearPawIcon"
+//       }
+//     });
+
+//     if (!user) {
+//       res.status(404).json({ error: "User not found" });
+//       return;
+//     }
+
+//     res.json({ friendRequests: user.friendRequests });
+//   } catch (error) {
+//     console.error("Error getting friend requests:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
+
+// ==================== Get sent friend requests ====================
+// router.get("/sent", async (req: Request, res: Response): Promise<void> => {
+//   try {
+//     const { clerkUserId } = req.query;
+
+//     if (!clerkUserId) {
+//       res.status(400).json({ error: "clerkUserId is required" });
+//       return;
+//     }
+
+//     const user = await User.findOne({ clerkUserId }) as IUser;
+//     if (!user) {
+//       res.status(404).json({ error: "User not found" });
+//       return;
+//     }
+
+//     const sentRequests = await FriendRequest.find({
+//       from: user._id,
+//       status: "pending"
+//     }).populate("to", "username email bearPawIcon");
+
+//     res.json({ friendRequests: sentRequests });
+//   } catch (error) {
+//     console.error("Error getting sent friend requests:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
+
+// ==================== Accept friend request ====================
+// router.post("/accept", async (req: Request, res: Response): Promise<void> => {
+//   try {
+//     const { clerkUserId, friendRequestId } = req.body;
+
+//     if (!clerkUserId || !friendRequestId) {
+//       res.status(400).json({ error: "clerkUserId and friendRequestId are required" });
+//       return;
+//     }
+
+//     const user = await User.findOne({ clerkUserId }) as IUser;
+//     if (!user) {
+//       res.status(404).json({ error: "User not found" });
+//       return;
+//     }
+
+//     const friendRequest = await FriendRequest.findById(friendRequestId).populate("from to") as IFriendRequest;
+//     if (!friendRequest) {
+//       res.status(404).json({ error: "Friend request not found" });
+//       return;
+//     }
+
+//     // Verify that the current user is the recipient
+//     if (friendRequest.to._id.toString() !== user._id.toString()) {
+//       res.status(403).json({ error: "Not authorized to accept this request" });
+//       return;
+//     }
+
+//     if (friendRequest.status !== "pending") {
+//       res.status(400).json({ error: "Friend request is not pending" });
+//       return;
+//     }
+
+//     // Update friend request status
+//     friendRequest.status = "accepted";
+//     await friendRequest.save();
+
+//     // Add each user to the other's friends list
+//     await User.findByIdAndUpdate(
+//       friendRequest.from._id,
+//       { $push: { friends: friendRequest.to._id } }
+//     );
+
+//     await User.findByIdAndUpdate(
+//       friendRequest.to._id,
+//       { $push: { friends: friendRequest.from._id } }
+//     );
+
+//     // Remove friend request from user's friendRequests array
+//     await User.findByIdAndUpdate(
+//       user._id,
+//       { $pull: { friendRequests: friendRequestId } }
+//     );
+
+//     // TODO: Send push notification to the requester
+
+//     res.json({ message: "Friend request accepted successfully" });
+//   } catch (error) {
+//     console.error("Error accepting friend request:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
+
+// ==================== Decline friend request ====================
+// router.post("/decline", async (req: Request, res: Response): Promise<void> => {
+//   try {
+//     const { clerkUserId, friendRequestId } = req.body;
+
+//     if (!clerkUserId || !friendRequestId) {
+//       res.status(400).json({ error: "clerkUserId and friendRequestId are required" });
+//       return;
+//     }
+
+//     const user = await User.findOne({ clerkUserId }) as IUser;
+//     if (!user) {
+//       res.status(404).json({ error: "User not found" });
+//       return;
+//     }
+
+//     const friendRequest = await FriendRequest.findById(friendRequestId) as IFriendRequest;
+//     if (!friendRequest) {
+//       res.status(404).json({ error: "Friend request not found" });
+//       return;
+//     }
+
+//     // Verify that the current user is the recipient
+//     if (friendRequest.to.toString() !== user._id.toString()) {
+//       res.status(403).json({ error: "Not authorized to decline this request" });
+//       return;
+//     }
+
+//     if (friendRequest.status !== "pending") {
+//       res.status(400).json({ error: "Friend request is not pending" });
+//       return;
+//     }
+
+//     // Update friend request status
+//     friendRequest.status = "declined";
+//     await friendRequest.save();
+
+//     // Remove friend request from user's friendRequests array
+//     await User.findByIdAndUpdate(
+//       user._id,
+//       { $pull: { friendRequests: friendRequestId } }
+//     );
+
+//     res.json({ message: "Friend request declined successfully" });
+//   } catch (error) {
+//     console.error("Error declining friend request:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
+
+// ==================== Get user's friends list ====================
+// router.get("/friends", async (req: Request, res: Response): Promise<void> => {
+//   try {
+//     const { clerkUserId } = req.query;
+
+//     if (!clerkUserId) {
+//       res.status(400).json({ error: "clerkUserId is required" });
+//       return;
+//     }
+
+//     const user = await User.findOne({ clerkUserId }).populate(
+//       "friends",
+//       "username email bearPawIcon points.totalPoints"
+//     );
+
+//     if (!user) {
+//       res.status(404).json({ error: "User not found" });
+//       return;
+//     }
+
+//     res.json({ friends: user.friends });
+//   } catch (error) {
+//     console.error("Error getting friends:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
+
+// ==================== Remove friend ====================
+// router.delete("/remove", async (req: Request, res: Response): Promise<void> => {
+//   try {
+//     const { clerkUserId, friendId } = req.body;
+
+//     if (!clerkUserId || !friendId) {
+//       res.status(400).json({ error: "clerkUserId and friendId are required" });
+//       return;
+//     }
+
+//     const user = await User.findOne({ clerkUserId }) as IUser;
+//     if (!user) {
+//       res.status(404).json({ error: "User not found" });
+//       return;
+//     }
+
+//     const friend = await User.findById(friendId) as IUser;
+//     if (!friend) {
+//       res.status(404).json({ error: "Friend not found" });
+//       return;
+//     }
+
+//     // Remove each user from the other's friends list
+//     await User.findByIdAndUpdate(
+//       user._id,
+//       { $pull: { friends: friendId } }
+//     );
+
+//     await User.findByIdAndUpdate(
+//       friendId,
+//       { $pull: { friends: user._id } }
+//     );
+
+//     res.json({ message: "Friend removed successfully" });
+//   } catch (error) {
+//     console.error("Error removing friend:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
+
+export default router;
