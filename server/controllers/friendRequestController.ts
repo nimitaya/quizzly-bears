@@ -28,7 +28,7 @@ export const searchUser = async (
     // Find user by email (exclude the requesting user)
     const user = (await User.findOne({
       email: email.toString().toLowerCase(),
-      _id: { $ne: requestingUser._id }, // TODO KI fragen was $ne bedeutet
+      _id: { $ne: requestingUser._id },
     }).select("email bearPawIcon")) as IUser;
 
     if (!user) {
@@ -48,7 +48,6 @@ export const searchUser = async (
     // Check if friend request already exists
     const existingRequest = await FriendRequest.findOne({
       $or: [
-        // TODO KI fragen $or
         { from: requestingUser._id, to: user._id },
         { from: user._id, to: requestingUser._id },
       ],
