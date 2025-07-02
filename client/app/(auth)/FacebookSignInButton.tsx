@@ -1,13 +1,14 @@
 import { useOAuth, useAuth } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { ButtonSecondary } from "@/components/Buttons";
-import { Alert, Platform, ActivityIndicator } from "react-native";
+import { Platform, ActivityIndicator } from "react-native";
 import SimpleLineIcons from "@expo/vector-icons/SimpleLineIcons";
 import { useState } from "react";
 import * as WebBrowser from "expo-web-browser";
 import { Colors } from "@/styles/theme";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import CustomAlert from "@/components/CustomAlert";
 
 if (Platform.OS === "web") {
   WebBrowser.maybeCompleteAuthSession();
@@ -42,6 +43,10 @@ const FacebookSignInButton = () => {
 
         // IMPORTANT: Set navigation flags for AuthNavigationHelper
         await AsyncStorage.setItem("auth_navigation_pending", "true");
+        await AsyncStorage.setItem(
+          "auth_navigation_destination",
+          "/(tabs)/play"
+        );
 
         // Special case for web platforms
         if (Platform.OS === "web") {
@@ -50,6 +55,10 @@ const FacebookSignInButton = () => {
       } else {
         if (Platform.OS !== "web") {
           await AsyncStorage.setItem("auth_navigation_pending", "true");
+          await AsyncStorage.setItem(
+            "auth_navigation_destination",
+            "/(auth)/LogInScreen"
+          );
         } else {
           router.replace("/(auth)/LogInScreen");
         }
@@ -59,11 +68,25 @@ const FacebookSignInButton = () => {
 
       if (Platform.OS !== "web") {
         await AsyncStorage.setItem("auth_navigation_pending", "true");
+        await AsyncStorage.setItem(
+          "auth_navigation_destination",
+          "/(auth)/LogInScreen"
+        );
       } else {
         router.replace("/(auth)/LogInScreen");
       }
 
-      Alert.alert("Error", err.message || "Facebook sign-in failed");
+      <CustomAlert
+        visible={true}
+        message="Something went wrong while signing in with Facebook. Please try again later."
+        onConfirm={() => {
+          router.replace("/(auth)/LogInScreen");
+        }}
+        onClose={() => {
+          router.replace("/(auth)/LogInScreen");
+        }}
+        noInternet={false}
+      />;
     } finally {
       setIsLoading(false);
     }
