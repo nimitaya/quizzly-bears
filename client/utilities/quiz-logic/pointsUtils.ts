@@ -75,6 +75,7 @@ export const cachePoints = async ({
   };
   try {
     await saveDataToCache(cacheKey, gameInformation);
+    console.log("Answers Info:", gameInformation);
   } catch (error) {
     console.error("Failed to save points:", error);
   }
