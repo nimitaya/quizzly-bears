@@ -1,6 +1,6 @@
-import { User, FriendRequest, SearchUserResponse, FriendRequestResponse, FriendRequestsResponse, FriendsResponse } from "./friendInterfaces";
+import { SearchUserResponse, FriendRequestResponse, FriendRequestsResponse, FriendsResponse } from "./friendInterfaces";
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/api";
+const API_BASE_URL = process.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 // ======================================== Search for user by email ========================================
 export const searchUserByEmail = async (

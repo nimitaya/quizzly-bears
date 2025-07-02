@@ -11,9 +11,43 @@ import { FontSizes, Gaps, Colors } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import { ButtonPrimary } from "@/components/Buttons";
 import { SearchFriendInput } from "@/components/Inputs";
+import { getFriends } from "@/utilities/friendRequestUtils";
+import { useEffect, useState } from "react";
+import { FriendsResponse } from "@/utilities/friendInterfaces";
+import { useUser } from "@clerk/clerk-expo";
+
+const API_BASE_URL =
+    process.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 const ProfilInvitationsScreen = () => {
   const router = useRouter();
+  const [userData, setUserData] = useState(null)
+  const [isLoading, setIsLoading] = useState(false);
+  const [friendList, setFriendList] = useState<FriendsResponse>();
+  const { user } = useUser();
+
+  // ----- TODO AXIOS -----
+
+  useEffect(() => {
+    if(!user) {
+      return
+    }
+    
+    // Fetch friends list when the component mounts
+    const fetchFriends = async () => {
+      try {
+        const clerkUserId = user.id; 
+        const friends = await getFriends(clerkUserId);
+        console.log("Friends list:", friends);
+        setFriendList(friends);
+      } catch (error) {
+        console.error("Error fetching friends:", error);
+      }
+    };
+    fetchFriends();
+    console.log(friendList, "friendList");
+    
+  }, [])
 
   return (
     <View style={styles.container}>
