@@ -7,6 +7,7 @@ import connectDB from "./database/connectDB";
 import clerkWebhookRouter from "./routes/ClerkWebhook";
 import friendRequestRouter from "./routes/friendRequestRoutes";
 import quizRoomsRouter, { setRoomsReference } from "./routes/QuizRooms";
+import userRoutes from "./routes/UserStats";
 
 const app = express();
 const httpServer = createServer(app);
@@ -26,6 +27,7 @@ app.use("/api/clerk-webhook", cors());
 app.use("/api", clerkWebhookRouter);
 app.use("/api/friends-request", friendRequestRouter)
 app.use("/api/quiz", quizRoomsRouter);
+app.use("/api", userRoutes);
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
