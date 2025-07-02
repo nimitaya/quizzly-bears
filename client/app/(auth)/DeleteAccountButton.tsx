@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import CustomAlert from "@/components/CustomAlert";
 import { useUser } from "@clerk/clerk-expo";
 import { ButtonSecondary } from "@/components/Buttons";
+import { useClerk } from "@clerk/clerk-expo";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type DeleteAccountButtonProps = {
   onDelete?: () => void;
@@ -14,6 +16,7 @@ const DeleteAccountButton: React.FC<DeleteAccountButtonProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [errorAlert, setErrorAlert] = useState<string | null>(null);
+  const [reLogIn, setReLogIn] = useState(false);
 
   const handleDeleteAccount = () => {
     setShowAlert(true);
@@ -30,8 +33,39 @@ const DeleteAccountButton: React.FC<DeleteAccountButtonProps> = ({
       }
       await user.delete();
       if (onDelete) onDelete();
+    } catch (err: any) {
+      if (err?.status === 403) {
+        setReLogIn(true);
+      } else {
+        setErrorAlert("Failed to delete account. Please try again.");
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  const { signOut } = useClerk();
+  const handleSignOut = async () => {
+    if (isProcessing) return; // Prevent multiple clicks
+
+    setIsProcessing(true);
+
+    try {
+      // Clear auth-related flags
+      await Promise.all([
+        AsyncStorage.removeItem("password_recently_reset"),
+        AsyncStorage.removeItem("password_recently_reset_persist"),
+        AsyncStorage.removeItem("force_signed_in"),
+        AsyncStorage.removeItem("had_password_reset"),
+        AsyncStorage.removeItem("auth_token"),
+      ]);
+
+      // Set up navigation for AuthNavigationHelper to handle
+      await AsyncStorage.setItem("auth_navigation_pending", "true");
+
+      // Sign out from Clerk
+      await signOut();
     } catch (err) {
-      setErrorAlert("Failed to delete account. Please try again.");
+      console.error(JSON.stringify(err, null, 2));
     } finally {
       setIsProcessing(false);
     }
@@ -62,6 +96,19 @@ const DeleteAccountButton: React.FC<DeleteAccountButtonProps> = ({
         cancelText={null}
         confirmText="OK"
         onConfirm={() => setErrorAlert(null)}
+        noInternet={false}
+      />
+      <CustomAlert
+        visible={reLogIn}
+        onClose={() => setReLogIn(false)}
+        title="Re-login Required"
+        message="For security, please log in again to delete your account."
+        cancelText="Cancel"
+        confirmText="Re-login"
+        onConfirm={() => {
+          setReLogIn(false);
+          handleSignOut();
+        }}
         noInternet={false}
       />
     </>

@@ -8,7 +8,7 @@ router.post("/clerk-webhook", async (req: Request, res: Response) => {
   console.log("Webhook received:", req.body);
 
   const event = req.body;
-
+  const clerkUser = event.data;
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET || "";
 
   const headers = req.headers;
@@ -29,24 +29,28 @@ router.post("/clerk-webhook", async (req: Request, res: Response) => {
     return res.status(400).json({ error: "Invalid webhook signature" });
   }
 
-  if (event.type === "user.created") {
-    const clerkUser = event.data;
-
-    try {
+  try {
+    if (event.type === "user.created") {
       await User.create({
         clerkUserId: clerkUser.id,
         email: clerkUser.email_addresses?.[0]?.email_address,
         username: clerkUser.username || undefined,
-        // Add other fields as needed, based on your User model
       });
       return res.status(200).json({ success: true });
-    } catch (err) {
-      console.error("User creation error:", err);
-      return res.status(500).json({ error: "Failed to create user" });
     }
-  }
 
-  res.status(200).json({ received: true });
+    if (event.type === "user.deleted") {
+      console.log("User deleted:", clerkUser.id);
+
+      await User.findOneAndDelete({ clerkUserId: clerkUser.id });
+      return res.status(200).json({ success: true });
+    }
+
+    return res.status(200).json({ received: true });
+  } catch (err) {
+    console.error("Webhook handler error:", err);
+    return res.status(500).json({ error: "Webhook processing error" });
+  }
 });
 
 export default router;
