@@ -16,7 +16,7 @@ const io = new Server(httpServer, {
     methods: ["GET", "POST"],
   },
 });
-const port = process.env.PORTNUMMER || 3000;
+const port = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(cookieParser());
@@ -368,9 +368,11 @@ const startSocketServer = async () => {
         resolve(server);
       });
 
-      server.on('error', (err: any) => {
-        if (err.code === 'EADDRINUSE') {
-          console.log(`Port ${port} is busy, trying port ${Number(port) + 1}...`);
+      server.on("error", (err: any) => {
+        if (err.code === "EADDRINUSE") {
+          console.log(
+            `Port ${port} is busy, trying port ${Number(port) + 1}...`
+          );
           const newPort = Number(port) + 1;
           httpServer.listen(newPort, () => {
             console.log("Socket.IO Server running on port:", newPort);
@@ -392,10 +394,10 @@ const startServer = async () => {
   try {
     // Start database connection
     await startDatabase();
-    
+
     // Start Socket.IO server
     await startSocketServer();
-    
+
     console.log("All services started successfully");
   } catch (error) {
     console.error("Failed to start server:", error);
