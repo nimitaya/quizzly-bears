@@ -14,8 +14,8 @@ import CustomAlert from "@/components/CustomAlert";
 import Loading from "../../Loading";
 
 const StatisticsScreen = () => {
-  const API_BASE_URL =
-    process.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+  const API_BASE_URL = "https://quizzly-bears.onrender.com/api"; // or your deployed API URL
+  // const API_BASE_URL = "http://localhost:3000/api"; // or your deployed API URL
 
   const { user } = useUser();
   const [userData, setUserData] = useState<any>(null);
@@ -40,6 +40,12 @@ const StatisticsScreen = () => {
     fetchUserData();
   }, [user]);
 
+  useEffect(() => {
+    if (!userData && !loading) {
+      setShowForm(true);
+    }
+  }, [userData, loading]);
+
   if (loading) {
     return (
       <>
@@ -48,10 +54,18 @@ const StatisticsScreen = () => {
     );
   }
 
-  if (!userData) {
-    setShowForm(true);
+  if (!userData && !loading) {
+    return (
+      <CustomAlert
+        visible={showForm}
+        onClose={() => setShowForm(false)}
+        message="Such user isn't registered yet. Please try again later."
+        cancelText={null}
+        confirmText="OK"
+        noInternet={false}
+      />
+    );
   }
-
   const {
     points,
     medals,
