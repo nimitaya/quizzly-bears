@@ -3,14 +3,12 @@ import { Logo } from "@/components/Logos";
 import React, { useEffect, useState } from "react";
 import { FontSizes, Gaps } from "@/styles/theme";
 import { useRouter } from "expo-router";
-import { StyleSheet } from "react-native";
 import IconMedal1PlaceWebp from "@/assets/icons-webp/IconMedal1PlaceWebp";
 import IconMedal2PlaceWebp from "@/assets/icons-webp/IconMedal2PlaceWebp";
 import IconMedal3PlaceWebp from "@/assets/icons-webp/IconMedal3PlaceWebp";
 import CircularProgress from "@/components/CircularProgress";
 import { CategoryProgressBar } from "@/components/CategoryProgressBar";
 import { useUser } from "@clerk/clerk-expo";
-import { useRouter } from "expo-router";
 import axios from "axios";
 import CustomAlert from "@/components/CustomAlert";
 import Loading from "../../Loading";
@@ -105,7 +103,6 @@ const StatisticsScreen = () => {
           </Text>
           <View style={styles.allMedalenBlock}>
             <View style={styles.MedalenBlock}>
-
               <IconMedal1PlaceWebp />
               <Text style={{ fontSize: FontSizes.TextLargeFs }}>
                 {medals.gold}
@@ -118,11 +115,10 @@ const StatisticsScreen = () => {
               </Text>
             </View>
             <View style={styles.MedalenBlock}>
-             <IconMedal3PlaceWebp />
+              <IconMedal3PlaceWebp />
               <Text style={{ fontSize: FontSizes.TextLargeFs }}>
                 {medals.bronze}
               </Text>
-
             </View>
           </View>
         </View>
