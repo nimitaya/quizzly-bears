@@ -4,16 +4,19 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   FlatList,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
-import IconArrowBack from "@/assets/icons/IconArrowBack";
 import { FontSizes, Gaps } from "@/styles/theme";
 import { socketService, Player, QuizRoom } from "@/utilities/socketService";
-import { loadCacheData, saveDataToCache, CACHE_KEY } from "@/utilities/cacheUtils";
+import {
+  loadCacheData,
+  saveDataToCache,
+  CACHE_KEY,
+} from "@/utilities/cacheUtils";
+import CustomAlert from "@/components/CustomAlert";
 
 interface RoomInfo {
   roomId: string;
@@ -21,6 +24,8 @@ interface RoomInfo {
   questions?: any[];
   isHost: boolean;
   isAdmin?: boolean;
+  selectedCategory?: string;
+  selectedTopic?: string;
 }
 
 const MultiplayerLobby = () => {
@@ -29,11 +34,31 @@ const MultiplayerLobby = () => {
   const [currentRoom, setCurrentRoom] = useState<QuizRoom | null>(null);
   const [isReady, setIsReady] = useState(false);
 
+  // CustomAlert states
+  const [showNewHostAlert, setShowNewHostAlert] = useState(false);
+  const [newHostName, setNewHostName] = useState("");
+  const [showErrorAlert, setShowErrorAlert] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [showWarningAlert, setShowWarningAlert] = useState(false);
+  const [showCancelRoomAlert, setShowCancelRoomAlert] = useState(false);
+
   useEffect(() => {
     loadRoomInfo();
     setupSocketListeners();
 
+    // Also listen for cache updates (when admin selects category)
+    const interval = setInterval(async () => {
+      const updatedRoomInfo = await loadCacheData(CACHE_KEY.currentRoom);
+      if (
+        updatedRoomInfo &&
+        updatedRoomInfo.selectedCategory !== roomInfo?.selectedCategory
+      ) {
+        setRoomInfo(updatedRoomInfo);
+      }
+    }, 1000);
+
     return () => {
+      clearInterval(interval);
       // Clean up listeners when component unmounts
       socketService.off("player-joined");
       socketService.off("player-left");
@@ -86,12 +111,14 @@ const MultiplayerLobby = () => {
 
     socketService.onHostChanged((data) => {
       console.log("Host changed to:", data.newHost.name);
-      Alert.alert("New Host", `${data.newHost.name} is now the room host`);
+      setNewHostName(data.newHost.name);
+      setShowNewHostAlert(true);
     });
 
     socketService.onError((error) => {
       console.error("Socket error:", error);
-      Alert.alert("Error", error.message);
+      setErrorMessage(error.message);
+      setShowErrorAlert(true);
     });
   };
 
@@ -107,34 +134,75 @@ const MultiplayerLobby = () => {
     }
   };
 
-  const startGame = () => {
-    if (roomInfo && currentRoom && roomInfo.isHost && roomInfo.questions) {
+  const startGame = async () => {
+    if (
+      roomInfo &&
+      currentRoom &&
+      roomInfo.isHost &&
+      roomInfo.selectedCategory
+    ) {
       // Check that all players are ready
       const allReady = currentRoom.players.every((p) => p.isReady);
       if (!allReady) {
-        Alert.alert("Warning", "Not all players are ready for the game");
+        setShowWarningAlert(true);
         return;
       }
 
-      // Transform questions to socket format
-      const socketQuestions = roomInfo.questions.map(
-        (q: any, index: number) => ({
-          id: index.toString(),
-          question: q.question.en || q.question,
-          options: [
-            q.optionA.text.en || q.optionA.text,
-            q.optionB.text.en || q.optionB.text,
-            q.optionC.text.en || q.optionC.text,
-            q.optionD.text.en || q.optionD.text,
-          ],
-          correctAnswer: q.correctAnswer?.en || q.correctAnswer,
-          category: q.category || "general",
-          difficulty: "medium" as const,
-          timeLimit: 30,
-        })
-      );
+      try {
+        // Load questions based on selected category
+        // This should match the logic from StartQuizScreen
+        const { loadCacheData } = await import("@/utilities/cacheUtils");
+        const { generateMultipleQuizQuestions } = await import(
+          "@/utilities/api/quizApi"
+        );
 
-      socketService.startGame(roomInfo.roomId, socketQuestions);
+        const cachedQuizSpecs = await loadCacheData(CACHE_KEY.quizSettings);
+        if (!cachedQuizSpecs) {
+          setErrorMessage("Quiz settings not found");
+          setShowErrorAlert(true);
+          return;
+        }
+
+        const fetchedQuestions = await generateMultipleQuizQuestions(
+          cachedQuizSpecs.chosenTopic || cachedQuizSpecs.quizCategory,
+          cachedQuizSpecs.quizLevel,
+          10 // question count
+        );
+
+        if (
+          !fetchedQuestions ||
+          !fetchedQuestions.questionArray ||
+          fetchedQuestions.questionArray.length === 0
+        ) {
+          setErrorMessage("Failed to load quiz questions");
+          setShowErrorAlert(true);
+          return;
+        }
+
+        // Transform questions to socket format
+        const socketQuestions = fetchedQuestions.questionArray.map(
+          (q: any, index: number) => ({
+            id: index.toString(),
+            question: q.question.en || q.question,
+            options: [
+              q.optionA.text?.en || q.optionA.en,
+              q.optionB.text?.en || q.optionB.en,
+              q.optionC.text?.en || q.optionC.en,
+              q.optionD.text?.en || q.optionD.en,
+            ],
+            correctAnswer: q.correctAnswer?.en || q.correctAnswer,
+            category: q.category || "general",
+            difficulty: "medium" as const,
+            timeLimit: 30,
+          })
+        );
+
+        socketService.startGame(roomInfo.roomId, socketQuestions);
+      } catch (error) {
+        console.error("Error starting game:", error);
+        setErrorMessage("Failed to start the game");
+        setShowErrorAlert(true);
+      }
     }
   };
 
@@ -149,6 +217,28 @@ const MultiplayerLobby = () => {
       await saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
       router.push("/(tabs)/play/CategoryScreen");
     }
+  };
+
+  const cancelRoom = () => {
+    if (roomInfo?.isAdmin) {
+      setShowCancelRoomAlert(true);
+    }
+  };
+
+  const handleCancelRoomConfirm = () => {
+    if (roomInfo && currentRoom) {
+      // Get player ID and leave room
+      const playerId = currentRoom.players.find(
+        (p) => p.socketId === socketService.getSocketId()
+      )?.id;
+      if (playerId) {
+        socketService.leaveRoom(roomInfo.roomId, playerId);
+      }
+      socketService.disconnect();
+      // Go back to QuizTypeSelectionScreen
+      router.push("/(tabs)/play/QuizTypeSelectionScreen");
+    }
+    setShowCancelRoomAlert(false);
   };
 
   const leaveRoom = () => {
@@ -182,6 +272,23 @@ const MultiplayerLobby = () => {
     </View>
   );
 
+  // CustomAlert handlers
+  const handleNewHostAlertClose = () => {
+    setShowNewHostAlert(false);
+  };
+
+  const handleErrorAlertClose = () => {
+    setShowErrorAlert(false);
+  };
+
+  const handleWarningAlertClose = () => {
+    setShowWarningAlert(false);
+  };
+
+  const handleCancelRoomAlertClose = () => {
+    setShowCancelRoomAlert(false);
+  };
+
   if (!roomInfo || !currentRoom) {
     return (
       <View style={styles.container}>
@@ -196,9 +303,7 @@ const MultiplayerLobby = () => {
         style={styles.backButton}
         onPress={leaveRoom}
         accessibilityLabel="Leave room"
-      >
-        <IconArrowBack />
-      </TouchableOpacity>
+      ></TouchableOpacity>
 
       <View style={{ marginBottom: Gaps.g24 }}>
         <Logo size="small" />
@@ -206,6 +311,12 @@ const MultiplayerLobby = () => {
 
       <Text style={styles.roomTitle}>{currentRoom.name}</Text>
       <Text style={styles.roomId}>Room ID: {roomInfo.roomId}</Text>
+
+      {roomInfo.selectedCategory && (
+        <Text style={styles.selectedCategory}>
+          Selected Topic: {roomInfo.selectedTopic || roomInfo.selectedCategory}
+        </Text>
+      )}
 
       <View style={styles.playersContainer}>
         <Text style={styles.playersTitle}>
@@ -227,20 +338,65 @@ const MultiplayerLobby = () => {
           />
         )}
 
-        {roomInfo.isAdmin && !roomInfo.questions && (
-          <ButtonPrimary 
-            text="Go to Select Topic" 
-            onPress={goToSelectCategory} 
-          />
+        {roomInfo.isAdmin && !roomInfo.selectedCategory && (
+          <>
+            <ButtonPrimary text="Go" onPress={goToSelectCategory} />
+            <ButtonSecondary text="Cancel" onPress={cancelRoom} />
+          </>
         )}
 
-        {roomInfo.isAdmin && roomInfo.questions && (
-          <ButtonPrimary 
-            text="Start Game" 
-            onPress={startGame} 
-          />
+        {roomInfo.isAdmin && roomInfo.selectedCategory && (
+          <>
+            <ButtonPrimary text="Start" onPress={startGame} />
+            <ButtonSecondary text="Cancel" onPress={cancelRoom} />
+          </>
         )}
       </View>
+
+      {/* Custom Alerts */}
+      <CustomAlert
+        visible={showNewHostAlert}
+        title="New Host"
+        message={`${newHostName} is now the room host`}
+        onClose={handleNewHostAlertClose}
+        cancelText={null}
+        confirmText="OK"
+        onConfirm={handleNewHostAlertClose}
+        noInternet={false}
+      />
+
+      <CustomAlert
+        visible={showErrorAlert}
+        title="Error"
+        message={errorMessage}
+        onClose={handleErrorAlertClose}
+        cancelText={null}
+        confirmText="OK"
+        onConfirm={handleErrorAlertClose}
+        noInternet={false}
+      />
+
+      <CustomAlert
+        visible={showWarningAlert}
+        title="Warning"
+        message="Not all players are ready for the game"
+        onClose={handleWarningAlertClose}
+        cancelText={null}
+        confirmText="OK"
+        onConfirm={handleWarningAlertClose}
+        noInternet={false}
+      />
+
+      <CustomAlert
+        visible={showCancelRoomAlert}
+        title="Cancel Room"
+        message="Are you sure you want to cancel the room?"
+        onClose={handleCancelRoomAlertClose}
+        cancelText="No"
+        confirmText="Yes"
+        onConfirm={handleCancelRoomConfirm}
+        noInternet={false}
+      />
     </View>
   );
 };
@@ -268,6 +424,12 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.TextMediumFs,
     marginBottom: Gaps.g32,
     color: "#666",
+  },
+  selectedCategory: {
+    fontSize: FontSizes.TextMediumFs,
+    marginBottom: Gaps.g16,
+    color: "#4caf50",
+    fontWeight: "500",
   },
   playersContainer: {
     flex: 1,
