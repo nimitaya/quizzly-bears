@@ -46,19 +46,19 @@ export interface QuizSettings {
 const getSocketUrls = () => {
   if (Platform.OS === "android") {
     return [
-      "http://10.0.2.2:5000", // Android emulator
-      "http://192.168.0.226:5000", // Current local IP for real device
+      "http://10.0.2.2:3000", // Android emulator
+      "http://192.168.0.226:3000", // Current local IP for real device
     ];
   } else if (Platform.OS === "ios") {
     return [
-      "http://localhost:5000", // iOS simulator
-      "http://127.0.0.1:5000", // iOS simulator fallback
-      "http://192.168.0.226:5000", // Current local IP for real device
+      "http://localhost:3000", // iOS simulator
+      "http://127.0.0.1:3000", // iOS simulator fallback
+      "http://192.168.0.226:3000", // Current local IP for real device
     ];
   } else {
     return [
-      "http://localhost:5000", // Web
-      "http://127.0.0.1:5000",
+      "http://localhost:3000", // Web
+      "http://127.0.0.1:3000",
     ];
   }
 };

@@ -27,48 +27,51 @@ export default function WelcomeScreen() {
         <Logo size="start" />
       </View>
       <View style={styles.descriptionContainer}>
-        <Text
-          style={{
-            color: Colors.black,
-            fontSize: FontSizes.H1Fs,
-            marginBottom: Gaps.g16,
-          }}
-        >
-          Quizzly Bears Guide
-        </Text>
-        <View>
-          <View style={styles.IconRow}>
-            <IconCheckbox />
-            <View>
-              <Text style={styles.pointsText}>AI-Generated</Text>
-              <Text style={styles.pointsTextTwo}>
-                Get unique quizzes created by AI
-              </Text>
+        <View style={styles.TextBox}>
+          <Text
+            style={{
+              color: Colors.black,
+              fontSize: FontSizes.H1Fs,
+              marginBottom: Gaps.g16,
+              textAlign: "left",
+            }}
+          >
+            Quizzly Bears Guide
+          </Text>
+          <View>
+            <View style={styles.IconRow}>
+              <IconCheckbox />
+              <View>
+                <Text style={styles.pointsText}>AI-Generated</Text>
+                <Text style={styles.pointsTextTwo}>
+                  Get unique quizzes created by AI
+                </Text>
+              </View>
             </View>
-          </View>
-          <View style={styles.IconRow}>
-            <IconCheckbox />
-            <View>
-              <Text style={styles.pointsText}>Custom Topics</Text>
-              <Text style={styles.pointsTextTwo}>
-                Choose from our topics or enter your own (any language)
-              </Text>
+            <View style={styles.IconRow}>
+              <IconCheckbox />
+              <View>
+                <Text style={styles.pointsText}>Custom Topics</Text>
+                <Text style={styles.pointsTextTwo}>
+                  Choose from our topics or enter your own (any language)
+                </Text>
+              </View>
             </View>
-          </View>
-          <View style={styles.IconRow}>
-            <IconCheckbox />
-            <View>
-              <Text style={styles.pointsText}>Play Your Way</Text>
-              <Text style={styles.pointsTextTwo}>Solo or with friends</Text>
+            <View style={styles.IconRow}>
+              <IconCheckbox />
+              <View>
+                <Text style={styles.pointsText}>Play Your Way</Text>
+                <Text style={styles.pointsTextTwo}>Solo or with friends</Text>
+              </View>
             </View>
-          </View>
-          <View style={styles.IconRow}>
-            <IconCheckbox />
-            <View>
-              <Text style={styles.pointsText}>Compete & Win</Text>
-              <Text style={styles.pointsTextTwo}>
-                Score points, connect with friends, and become the weekly best
-              </Text>
+            <View style={styles.IconRow}>
+              <IconCheckbox />
+              <View>
+                <Text style={styles.pointsText}>Compete & Win</Text>
+                <Text style={styles.pointsTextTwo}>
+                  Score points, connect with friends, and become the weekly best
+                </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -87,10 +90,12 @@ const styles = StyleSheet.create({
   },
   descriptionContainer: {
     marginBottom: Gaps.g24,
-    alignSelf: "flex-start",
-    marginLeft: Gaps.g32,
+    alignItems: "center",
+    width: "100%",
   },
-
+  TextBox: {
+    alignItems: "flex-start",
+  },
   IconRow: {
     flexDirection: "row",
     alignItems: "flex-start",

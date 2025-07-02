@@ -2,7 +2,11 @@ import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { Logo } from "@/components/Logos";
 import React, { useEffect, useState } from "react";
 import { FontSizes, Gaps } from "@/styles/theme";
-import IconMedal1Place from "@/assets/icons/IconMedal1Place";
+import { useRouter } from "expo-router";
+import { StyleSheet } from "react-native";
+import IconMedal1PlaceWebp from "@/assets/icons-webp/IconMedal1PlaceWebp";
+import IconMedal2PlaceWebp from "@/assets/icons-webp/IconMedal2PlaceWebp";
+import IconMedal3PlaceWebp from "@/assets/icons-webp/IconMedal3PlaceWebp";
 import CircularProgress from "@/components/CircularProgress";
 import { CategoryProgressBar } from "@/components/CategoryProgressBar";
 import { useUser } from "@clerk/clerk-expo";
@@ -101,22 +105,24 @@ const StatisticsScreen = () => {
           </Text>
           <View style={styles.allMedalenBlock}>
             <View style={styles.MedalenBlock}>
-              <IconMedal1Place />
+
+              <IconMedal1PlaceWebp />
               <Text style={{ fontSize: FontSizes.TextLargeFs }}>
                 {medals.gold}
               </Text>
             </View>
             <View style={styles.MedalenBlock}>
-              <IconMedal1Place />
+              <IconMedal2PlaceWebp />
               <Text style={{ fontSize: FontSizes.TextLargeFs }}>
                 {medals.silver}
               </Text>
             </View>
             <View style={styles.MedalenBlock}>
-              <IconMedal1Place />
+             <IconMedal3PlaceWebp />
               <Text style={{ fontSize: FontSizes.TextLargeFs }}>
                 {medals.bronze}
               </Text>
+
             </View>
           </View>
         </View>

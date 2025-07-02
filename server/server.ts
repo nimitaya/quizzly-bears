@@ -5,6 +5,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import connectDB from "./database/connectDB";
 import clerkWebhookRouter from "./routes/ClerkWebhook";
+import friendRequestRouter from "./routes/friendRequestRoutes";
 import quizRoomsRouter, { setRoomsReference } from "./routes/QuizRooms";
 import userRoutes from "./routes/UserStats";
 
@@ -16,7 +17,7 @@ const io = new Server(httpServer, {
     methods: ["GET", "POST"],
   },
 });
-const port = process.env.PORTNUMMER || 3000;
+const port = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(cookieParser());
@@ -24,6 +25,7 @@ app.use(cors());
 
 app.use("/api/clerk-webhook", cors());
 app.use("/api", clerkWebhookRouter);
+app.use("/api/friends-request", friendRequestRouter)
 app.use("/api/quiz", quizRoomsRouter);
 app.use("/api", userRoutes);
 app.get("/", (req, res) => {
