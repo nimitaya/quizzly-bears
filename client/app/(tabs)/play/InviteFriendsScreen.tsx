@@ -95,7 +95,7 @@ const InviteFriendsScreen = () => {
       [
         {
           text: "Go to Lobby",
-          onPress: () => router.push("/(tabs)/play/MultiplayerLobby"),
+          onPress: () => router.push("./play/MultiplayerLobby"),
         },
       ]
     );
@@ -179,7 +179,7 @@ const InviteFriendsScreen = () => {
       <View style={styles.buttonContainer}>
         <ButtonSecondary
           text="Skip & Continue"
-          onPress={() => router.push("/(tabs)/play/MultiplayerLobby")}
+          onPress={() => router.push("./play/MultiplayerLobby")}
         />
         <ButtonPrimary
           text={`Invite ${selectedFriends.length} Friends`}
