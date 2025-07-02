@@ -11,7 +11,7 @@ export const searchUser = async (req: Request, res: Response): Promise<void> => 
         const {email, currClerkUserId} = req.query;
 
         if (!email || !currClerkUserId) {
-      res.status(400).json({ error: "Email address is required" });
+      res.status(400).json({ error: "Email address and current user id is required" });
       return;
     }
 
@@ -65,14 +65,38 @@ res.json({
         bearPawIcon: user.bearPawIcon
       }
     });
-
-
     } catch (error) {
         console.error("Error searching user:", error);
     res.status(500).json({ error: "Internal server error" });
     }
 }
 
+// ==================== Send friend request ====================
+export const send = async (req: Request, res: Response): Promise<void> => {
+try {
+    const { clerkUserId, targetUserId } = req.body;
+
+    if (!clerkUserId || !targetUserId) {
+      res.status(400).json({ error: "clerkUserId and targetUserId are required" });
+      return;
+    }
+
+    // Find the requesting user
+    const requestingUser = await User.findOne({ clerkUserId }) as IUser;
+    if (!requestingUser) {
+      res.status(404).json({ error: "Requesting user not found" });
+      return;
+    }
+
+
+
+
+
+
+} catch (error) {
+    
+}
+}
 
 
 // ====================================================================================================
@@ -142,99 +166,99 @@ res.json({
 // });
 
 // ==================== Send friend request ====================
-// router.post("/send", async (req: Request, res: Response): Promise<void> => {
-//   try {
-//     const { clerkUserId, targetUserId } = req.body;
+router.post("/send", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { clerkUserId, targetUserId } = req.body;
 
-//     if (!clerkUserId || !targetUserId) {
-//       res.status(400).json({ error: "clerkUserId and targetUserId are required" });
-//       return;
-//     }
+    if (!clerkUserId || !targetUserId) {
+      res.status(400).json({ error: "clerkUserId and targetUserId are required" });
+      return;
+    }
 
-//     // Find the requesting user
-//     const requestingUser = await User.findOne({ clerkUserId }) as IUser;
-//     if (!requestingUser) {
-//       res.status(404).json({ error: "Requesting user not found" });
-//       return;
-//     }
+    // Find the requesting user
+    const requestingUser = await User.findOne({ clerkUserId }) as IUser;
+    if (!requestingUser) {
+      res.status(404).json({ error: "Requesting user not found" });
+      return;
+    }
 
-//     // Find the target user
-//     const targetUser = await User.findById(targetUserId) as IUser;
-//     if (!targetUser) {
-//       res.status(404).json({ error: "Target user not found" });
-//       return;
-//     }
+    // Find the target user
+    const targetUser = await User.findById(targetUserId) as IUser;
+    if (!targetUser) {
+      res.status(404).json({ error: "Target user not found" });
+      return;
+    }
 
-//     // Check if trying to send request to self
-//     if (requestingUser._id.toString() === targetUser._id.toString()) {
-//       res.status(400).json({ error: "Cannot send friend request to yourself" });
-//       return;
-//     }
+    // Check if trying to send request to self
+    if (requestingUser._id.toString() === targetUser._id.toString()) {
+      res.status(400).json({ error: "Cannot send friend request to yourself" });
+      return;
+    }
 
-//     // Check if already friends
-//     const isAlreadyFriend = requestingUser.friends.some(friendId => 
-//       friendId.toString() === targetUser._id.toString()
-//     );
-//     if (isAlreadyFriend) {
-//       res.status(400).json({ error: "Already friends with this user" });
-//       return;
-//     }
+    // Check if already friends
+    const isAlreadyFriend = requestingUser.friends.some(friendId => 
+      friendId.toString() === targetUser._id.toString()
+    );
+    if (isAlreadyFriend) {
+      res.status(400).json({ error: "Already friends with this user" });
+      return;
+    }
 
-//     // Check if friend request already exists
-//     const existingRequest = await FriendRequest.findOne({
-//       $or: [
-//         { from: requestingUser._id, to: targetUser._id },
-//         { from: targetUser._id, to: requestingUser._id }
-//       ],
-//       status: "pending"
-//     });
+    // Check if friend request already exists
+    const existingRequest = await FriendRequest.findOne({
+      $or: [
+        { from: requestingUser._id, to: targetUser._id },
+        { from: targetUser._id, to: requestingUser._id }
+      ],
+      status: "pending"
+    });
 
-//     if (existingRequest) {
-//       res.status(400).json({ error: "Friend request already exists" });
-//       return;
-//     }
+    if (existingRequest) {
+      res.status(400).json({ error: "Friend request already exists" });
+      return;
+    }
 
-//     // Create friend request
-//     const friendRequest = new FriendRequest({
-//       from: requestingUser._id,
-//       to: targetUser._id,
-//       status: "pending"
-//     });
+    // Create friend request
+    const friendRequest = new FriendRequest({
+      from: requestingUser._id,
+      to: targetUser._id,
+      status: "pending"
+    });
 
-//     await friendRequest.save();
+    await friendRequest.save();
 
-//     // Add friend request to target user's friendRequests array
-//     await User.findByIdAndUpdate(
-//       targetUser._id,
-//       { $push: { friendRequests: friendRequest._id } }
-//     );
+    // Add friend request to target user's friendRequests array
+    await User.findByIdAndUpdate(
+      targetUser._id,
+      { $push: { friendRequests: friendRequest._id } }
+    );
 
-//     // TODO: Send push notification to target user
-//     // You can implement this later with Expo notifications
+    // TODO: Send push notification to target user
+    // You can implement this later with Expo notifications
 
-//     res.status(201).json({
-//       message: "Friend request sent successfully",
-//       friendRequest: {
-//         _id: friendRequest._id,
-//         from: {
-//           _id: requestingUser._id,
-//           username: requestingUser.username,
-//           email: requestingUser.email
-//         },
-//         to: {
-//           _id: targetUser._id,
-//           username: targetUser.username,
-//           email: targetUser.email
-//         },
-//         status: friendRequest.status,
-//         createdAt: friendRequest.createdAt
-//       }
-//     });
-//   } catch (error) {
-//     console.error("Error sending friend request:", error);
-//     res.status(500).json({ error: "Internal server error" });
-//   }
-// });
+    res.status(201).json({
+      message: "Friend request sent successfully",
+      friendRequest: {
+        _id: friendRequest._id,
+        from: {
+          _id: requestingUser._id,
+          username: requestingUser.username,
+          email: requestingUser.email
+        },
+        to: {
+          _id: targetUser._id,
+          username: targetUser.username,
+          email: targetUser.email
+        },
+        status: friendRequest.status,
+        createdAt: friendRequest.createdAt
+      }
+    });
+  } catch (error) {
+    console.error("Error sending friend request:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 // ==================== Get received friend requests ====================
 // router.get("/received", async (req: Request, res: Response): Promise<void> => {
