@@ -32,7 +32,6 @@ const QuizLogic = () => {
     gameState,
     answerState,
     readTimer,
-    remainingTime,
     pointsState,
     showResult,
     handleAnswerSelect,
@@ -103,7 +102,7 @@ const QuizLogic = () => {
           <Logo size="big" />
           <View style={styles.resultsContainer}>
             <Text style={{ fontSize: FontSizes.H1Fs, fontWeight: "bold" }}>
-              Cool!
+              Well done!
             </Text>
 
             <View style={styles.pointsRow}>
@@ -123,6 +122,13 @@ const QuizLogic = () => {
               <IconCheckbox />
               <Text style={styles.pointsText}>
                 Plus extra {pointsState.timePoints} Timing-Points
+              </Text>
+            </View>
+          <View style={styles.pointsRow}>
+              <IconCheckbox />
+              <Text style={styles.pointsText}>
+                Correct questions:{" "}
+                {pointsState.chosenCorrect} out of {pointsState.totalAnswers}
               </Text>
             </View>
           </View>
