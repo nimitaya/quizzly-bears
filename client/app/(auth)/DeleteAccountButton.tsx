@@ -60,7 +60,7 @@ const DeleteAccountButton: React.FC<DeleteAccountButtonProps> = ({
       ]);
 
       // Set up navigation for AuthNavigationHelper to handle
-      await AsyncStorage.setItem("auth_navigation_pending", "true");
+      // await AsyncStorage.setItem("auth_navigation_pending", "true");
 
       // Sign out from Clerk
       await signOut();
