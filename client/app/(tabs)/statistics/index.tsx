@@ -10,10 +10,24 @@ import { CategoryProgressBar } from "@/components/CategoryProgressBar";
 import { useStatistics } from "@/providers/UserProvider";
 import Loading from "../../Loading";
 import CustomAlert from "@/components/CustomAlert";
+import { useUser } from "@clerk/clerk-expo";
+import ClerkSettings from "@/app/(auth)/ClerkSettings";
 
 const StatisticsScreen = () => {
   const { userData, loading, userRank, totalUsers } = useStatistics();
   const [showForm, setShowForm] = useState(false);
+  const { user } = useUser();
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <ClerkSettings refreshKey={0} />
+        <Text style={{ fontSize: FontSizes.TextMediumFs, marginTop: Gaps.g16 }}>
+          Please log in to see your statistics.
+        </Text>
+      </View>
+    );
+  }
 
   useEffect(() => {
     if (!userData && !loading) {

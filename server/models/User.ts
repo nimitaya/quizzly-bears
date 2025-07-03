@@ -51,7 +51,7 @@ export interface IPushToken {
 
 export interface IUser extends Document {
   clerkUserId: string;
-  username?: string;
+  username: string;
   email: string;
   points: {
     totalPoints: number;
@@ -89,7 +89,7 @@ const DEFAULT_CATEGORIES = [
 const userSchema = new Schema<IUser>(
   {
     clerkUserId: { type: String, required: true, unique: true, index: true },
-    username: { type: String, index: true },
+    username: { type: String, index: true, default: "" },
     email: { type: String, required: true, unique: true, index: true },
     points: {
       totalPoints: { type: Number, default: 0 },
