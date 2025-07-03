@@ -215,7 +215,7 @@ const ProfilFriendsScreen = () => {
                 disabled={isLoading}
               >
                 <Text >
-                  {isLoading ? "Sending..." : "Send Friend Request"}
+                  {isLoading ? "Sending..." : "[Send Friend Request]"}
                 </Text>
               </TouchableOpacity>
             </View>
