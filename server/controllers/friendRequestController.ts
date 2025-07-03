@@ -356,9 +356,8 @@ export const declineRequest = async (
       return;
     }
 
-    // Update friend request status in database
-    friendRequest.status = "declined";
-    await friendRequest.save();
+    // Remove friend request from friend request collection
+    await FriendRequest.findByIdAndDelete(friendRequestId);
 
     // Remove friend request from user's friendRequests array
     await User.findByIdAndUpdate(user._id, {
@@ -436,6 +435,14 @@ export const removeFriend = async (
     await User.findByIdAndUpdate(user._id, { $pull: { friends: friendId } });
 
     await User.findByIdAndUpdate(friendId, { $pull: { friends: user._id } });
+
+    // Delete the accepted friend request that created this friendship
+    await FriendRequest.findOneAndDelete({
+      $or: [
+        { from: user._id, to: friendId, status: "accepted" },
+        { from: friendId, to: user._id, status: "accepted" }
+      ]
+    });
 
     // ----- Response -----
     res.json({ message: "Friend removed successfully" });

@@ -15,6 +15,8 @@ import { useRouter } from "expo-router";
 import GreetingsScreen from "./GreetngsScreen";
 import { useMusic } from "@/providers/MusicProvider";
 import { useSound } from "@/providers/SoundProvider";
+import { resetOnboarding } from "@/providers/OnboardingProvider";
+
 
 const ProfileScreen = () => {
   const router = useRouter();
@@ -27,8 +29,23 @@ const ProfileScreen = () => {
   const [passwordResetFlag, setPasswordResetFlag] = useState<string | null>(
     null
   );
+
   const { musicEnabled, toggleMusic } = useMusic();
   const { soundEnabled, toggleSound } = useSound();
+
+  const { user } = useUser();
+
+  // Function to test onboarding
+  const handleShowOnboarding = async () => {
+    try {
+      await resetOnboarding();
+      router.push({
+        pathname: "/onboarding",
+      } as any);
+    } catch (error) {
+      console.error("Error resetting onboarding:", error);
+    }
+  };
 
   // Check for password reset flag on mount and refresh
   useEffect(() => {
@@ -174,6 +191,10 @@ const ProfileScreen = () => {
         <ButtonSecondary
           text="FAQ"
           onPress={() => router.push("/profile/FaqScreen")}
+        />
+        <ButtonSecondary
+          text="Show Onboarding"
+          onPress={handleShowOnboarding}
         />
       </View>
     </ScrollView>

@@ -6,9 +6,9 @@ import { QuestionStructure, AiQuestions } from "@/utilities/quiz-logic/data";
 const GROQ_API_URL =
   Config.GROQ_API_URL || "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_API_KEY =
-  Config.GROQ_API_KEY ||
-  "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";
-
+  Config.GROQ_API_KEY || "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";
+  console.log("GROQ_API_KEY:", Config.GROQ_API_KEY);
+  
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const optionKeys = ["optionA", "optionB", "optionC", "optionD"];

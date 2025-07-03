@@ -25,7 +25,7 @@ app.use(cors());
 
 app.use("/api/clerk-webhook", cors());
 app.use("/api", clerkWebhookRouter);
-app.use("/api/friends-request", friendRequestRouter)
+app.use("/api/friend-request", friendRequestRouter)
 app.use("/api/quiz", quizRoomsRouter);
 app.use("/api", userRoutes);
 app.get("/", (req, res) => {
