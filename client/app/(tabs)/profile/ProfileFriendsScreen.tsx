@@ -11,50 +11,57 @@ import { FontSizes, Gaps, Colors } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import { ButtonPrimary } from "@/components/Buttons";
 import { SearchFriendInput } from "@/components/Inputs";
-import { getFriends, getReceivedFriendRequests, getSentFriendRequests } from "@/utilities/friendRequestUtils";
+import {
+  getFriends,
+  getReceivedFriendRequests,
+  getSentFriendRequests,
+} from "@/utilities/friendRequestApi";
 import { useEffect, useState } from "react";
-import { FriendsResponse } from "@/utilities/friendInterfaces";
+import {
+  FriendsState,
+} from "@/utilities/friendInterfaces";
 import { useUser } from "@clerk/clerk-expo";
 
 const API_BASE_URL =
-    process.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+  process.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 const ProfilInvitationsScreen = () => {
   const router = useRouter();
-  const [userData, setUserData] = useState(null)
+  const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [friendList, setFriendList] = useState<FriendsResponse>();
   const [friendsState, setFriendsState] = useState<FriendsState>({
-    friendList: [],
-    receivedFriendRequests: [],
-    sentFriendRequests: [],
-  })
+    friendList: { friends: [] },
+    receivedFriendRequests: { friendRequests: [] },
+    sentFriendRequests: { friendRequests: [] },
+  });
   const { user } = useUser();
 
   useEffect(() => {
-    if(!user) {
-      return
+    if (!user) {
+      return;
     }
     // Fetch friends when the component mounts
     const fetchFriends = async () => {
       try {
-        const clerkUserId = user.id; 
-        console.log("clerkUserId:",clerkUserId);
-        
+        const clerkUserId = user.id;
+
         const friends = await getFriends(clerkUserId);
         const received = await getReceivedFriendRequests(clerkUserId);
         const sent = await getSentFriendRequests(clerkUserId);
-        console.log("Friends list:", friends);
-        console.log("Received friend requests:", received);
-        setFriendList(friends);
+
+        setFriendsState({
+          friendList: friends,
+          receivedFriendRequests: received,
+          sentFriendRequests: sent,
+        });
+        console.log("FriendsState:", friendsState);
+        
       } catch (error) {
         console.error("Error fetching friends:", error);
       }
     };
     fetchFriends();
-    console.log(friendList, "friendList");
-    
-  }, [])
+  }, []);
 
   return (
     <View style={styles.container}>

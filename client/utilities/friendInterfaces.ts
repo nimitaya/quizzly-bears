@@ -54,3 +54,9 @@ export interface FriendRequestsResponse {
 export interface FriendsResponse {
   friends: User[];
 }
+
+export interface FriendsState {
+  friendList: FriendsResponse,
+    receivedFriendRequests: FriendRequestsResponse,
+    sentFriendRequests: FriendRequestsResponse,
+}
