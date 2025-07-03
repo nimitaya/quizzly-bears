@@ -149,29 +149,30 @@ export const generateMultipleQuizQuestions = async (
 
     let responseContent = response.data.choices[0].message.content;
 
-    //=====WICHTIG: JSON Datei ist damit sauber und wird keine zusätlichen Kommentare von der KI hinzugefügt (Problem gelöst)
-    responseContent = responseContent.replace(/```json\n?/g, "");
-    responseContent = responseContent.replace(/```\n?/g, "");
+// Log the raw response content for debugging
+console.log("Response Content:", responseContent);
 
-    // Nutze eine robuste RegEx, um NUR das JSON-Array zu extrahieren
-    const jsonMatch = responseContent.match(/\[\s*{[\s\S]*?}\s*\]/);
+// Zusätzliche Bereinigung des Outputs
+responseContent = responseContent.replace(/```json\n?/g, "");
+responseContent = responseContent.replace(/```\n?/g, "");
 
-    if (!jsonMatch) {
-      console.error(
-        " Kein gültiges JSON-Array im Modell-Output gefunden:",
-        responseContent
-      );
-      throw new Error("Das Modell hat kein valides JSON-Array geliefert.");
-    }
+// JSON-Array extrahieren
+const jsonMatch = responseContent.match(/\[\s*{[\s\S]*?}\s*\]/);
 
-    const cleanJson = jsonMatch[0].trim();
-    console.log("Sauberes JSON:", cleanJson);
-    const questionsData = JSON.parse(cleanJson);
+if (!jsonMatch) {
+  console.error("Kein gültiges JSON-Array im Modell-Output gefunden:", responseContent);
+  throw new Error(`Ungültige Antwort vom Modell: ${responseContent}`);
+}
 
-    // Array validieren
-    if (!Array.isArray(questionsData)) {
-      throw new Error("Response ist kein Array");
-    }
+const cleanJson = jsonMatch[0].trim();
+console.log("Sauberes JSON:", cleanJson);
+
+const questionsData = JSON.parse(cleanJson);
+
+// ist JSON ein Array?
+if (!Array.isArray(questionsData)) {
+  throw new Error("Response ist kein Array");
+}
 
     // Validierung jeder Frage
     const validatedQuestions: QuestionStructure[] = [];
@@ -295,7 +296,7 @@ Antwort:`;
           },
         ],
         temperature: 0.1, // Niedrige Temperature für konsistente Ergebnisse
-        max_tokens: 50,
+        max_tokens: 300,
         top_p: 0.9,
       },
       {
