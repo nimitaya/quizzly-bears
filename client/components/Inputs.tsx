@@ -42,19 +42,24 @@ export function SearchInput(props: SearchInputProps) {
 }
 
 // 2. Input with search button
+type SearchFriendInputProps = TextInputProps & {
+  onSearch?: () => void;
+};
 
-export function SearchFriendInput(props: TextInputProps) {
+export function SearchFriendInput({ onSearch, ...props }: SearchFriendInputProps) {
   return (
     <View style={styles.containerSearchFriend}>
       <TextInput
         style={styles.inputSearchFriend}
         placeholderTextColor={Colors.disable}
-        autoComplete="username"
-        textContentType="username"
+        autoComplete="email"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        textContentType="emailAddress"
         {...props}
       />
       <View style={{ width: 8 }} />
-      <ButtonSearchFriend />
+      <ButtonSearchFriend onPress={onSearch} />
     </View>
   );
 }

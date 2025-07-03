@@ -7,7 +7,7 @@ import {
 import axios from "axios";
 
 const API_BASE_URL =
-  process.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+  process.env.VITE_API_BASE_URL || "https://quizzly-bears.onrender.com/api";
 
 // ======================================== Search for user by email ========================================
 export const searchUserByEmail = async (
