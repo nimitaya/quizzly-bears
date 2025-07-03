@@ -11,7 +11,7 @@ import { FontSizes, Gaps, Colors } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import { ButtonPrimary } from "@/components/Buttons";
 import { SearchFriendInput } from "@/components/Inputs";
-import { getFriends } from "@/utilities/friendRequestUtils";
+import { getFriends, getReceivedFriendRequests, getSentFriendRequests } from "@/utilities/friendRequestUtils";
 import { useEffect, useState } from "react";
 import { FriendsResponse } from "@/utilities/friendInterfaces";
 import { useUser } from "@clerk/clerk-expo";
@@ -24,21 +24,28 @@ const ProfilInvitationsScreen = () => {
   const [userData, setUserData] = useState(null)
   const [isLoading, setIsLoading] = useState(false);
   const [friendList, setFriendList] = useState<FriendsResponse>();
+  const [friendsState, setFriendsState] = useState<FriendsState>({
+    friendList: [],
+    receivedFriendRequests: [],
+    sentFriendRequests: [],
+  })
   const { user } = useUser();
-
-  // ----- TODO AXIOS -----
 
   useEffect(() => {
     if(!user) {
       return
     }
-    
-    // Fetch friends list when the component mounts
+    // Fetch friends when the component mounts
     const fetchFriends = async () => {
       try {
         const clerkUserId = user.id; 
+        console.log("clerkUserId:",clerkUserId);
+        
         const friends = await getFriends(clerkUserId);
+        const received = await getReceivedFriendRequests(clerkUserId);
+        const sent = await getSentFriendRequests(clerkUserId);
         console.log("Friends list:", friends);
+        console.log("Received friend requests:", received);
         setFriendList(friends);
       } catch (error) {
         console.error("Error fetching friends:", error);
