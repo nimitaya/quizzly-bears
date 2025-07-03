@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   FlatList,
-  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
@@ -13,6 +12,7 @@ import { Logo } from "@/components/Logos";
 import IconArrowBack from "@/assets/icons/IconArrowBack";
 import { FontSizes, Gaps } from "@/styles/theme";
 import { loadCacheData, CACHE_KEY } from "@/utilities/cacheUtils";
+import CustomAlert from "@/components/CustomAlert";
 
 interface Friend {
   id: string;
@@ -30,6 +30,7 @@ interface RoomInfo {
 
 const InviteFriendsScreen = () => {
   const router = useRouter();
+  const [showNoFriendsAlert, setShowNoFriendsAlert] = useState(false);
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -73,32 +74,29 @@ const InviteFriendsScreen = () => {
     });
   };
 
+  //Custom Alert handlers
+  const handleNoFriendsAlertClose = () => {
+    setShowNoFriendsAlert(false);
+  };
+
   const handleInviteFriends = () => {
     if (selectedFriends.length === 0) {
-      Alert.alert(
-        "No Friends Selected",
-        "Please select at least one friend to invite."
-      );
+      setShowNoFriendsAlert(true);
       return;
     }
 
-    // TODO: Send invitations to selected friends
-    // For now, we'll just show an alert and proceed to lobby
+    // TODO: Send invitations to selected friends!!!!!!!!!!!!!===================
+    // For now, we'll just proceed directly to lobby
     const selectedFriendNames = friends
       .filter((friend) => selectedFriends.includes(friend.id))
       .map((friend) => friend.name)
       .join(", ");
 
-    Alert.alert(
-      "Invitations Sent",
-      `Invitations sent to: ${selectedFriendNames}`,
-      [
-        {
-          text: "Go to Lobby",
-          onPress: () => router.push("./play/MultiplayerLobby"),
-        },
-      ]
-    );
+    // Log invited friends for debugging
+    console.log(`Invitations sent to: ${selectedFriendNames}`);
+    
+    // Go directly to lobby
+    router.push("/(tabs)/play/MultiplayerLobby");
   };
 
   const renderFriendItem = ({ item }: { item: Friend }) => {
@@ -179,13 +177,25 @@ const InviteFriendsScreen = () => {
       <View style={styles.buttonContainer}>
         <ButtonSecondary
           text="Skip & Continue"
-          onPress={() => router.push("./play/MultiplayerLobby")}
+          onPress={() => router.push("/(tabs)/play/MultiplayerLobby")}
         />
         <ButtonPrimary
           text={`Invite ${selectedFriends.length} Friends`}
           onPress={handleInviteFriends}
         />
       </View>
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={showNoFriendsAlert}
+        onClose={handleNoFriendsAlertClose}
+        title="No Friends Selected"
+        message="Please select at least one friend to invite"
+        cancelText={null}
+        confirmText="OK"
+        onConfirm={handleNoFriendsAlertClose}
+        noInternet={false}
+      />
     </View>
   );
 };

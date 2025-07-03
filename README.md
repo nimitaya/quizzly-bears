@@ -1,4 +1,4 @@
-# 🐻 Quizzly Bears
+# <img src="client/assets/images/icon.png" alt="Quizzly Bears" width="36" height="36"> Quizzly Bears
 
 > **Final Project for Web Development Studies**  
 > Created by a team of 5 web development students as our capstone project.
@@ -10,12 +10,15 @@ Quizzly Bears is an interactive quiz application that combines the power of AI-g
 ## ✨ Key Features
 
 ### 🤖 AI-Powered Quiz Generation
+
 - **Custom Topics**: Enter any topic and our AI will generate a personalized quiz just for you
 - **Intelligent Questions**: Dynamic question generation ensures fresh content every time
 - **Adaptive Difficulty**: Questions tailored to provide the right level of challenge
 
 ### 📚 Predefined Categories
+
 Choose from our 7 expertly curated categories:
+
 - Science
 - History
 - Sports
@@ -25,17 +28,20 @@ Choose from our 7 expertly curated categories:
 - Daily Life
 
 ### 🏆 Gamification System
+
 - **Points System**: Earn points for correct answers and quick responses
 - **Medal Collection**: Unlock bronze, silver, and gold medals for achievements
 - **Progress Tracking**: Monitor your performance across different categories
 - **Leaderboards**: Compare your scores with friends and other players
 
 ### 👥 Social Features
+
 - **Friend System**: Connect with other quiz enthusiasts
 - **Friend Invitations**: Send and receive friend requests
 - **Social Competition**: Challenge your friends and see who's the ultimate quiz master
 
 ### 📊 Statistics & Analytics
+
 - **Performance Tracking**: Detailed statistics on your quiz performance
 - **Category Insights**: See which topics are your strongest and weakest
 - **Progress Visualization**: Beautiful charts and graphs to track your improvement
@@ -43,6 +49,7 @@ Choose from our 7 expertly curated categories:
 ## 🛠️ Technology Stack
 
 ### Frontend (Mobile App)
+
 - **React Native** with **Expo** - Cross-platform mobile development
 - **TypeScript** - Type-safe development
 - **Expo Router** - File-based navigation system
@@ -51,12 +58,14 @@ Choose from our 7 expertly curated categories:
 - **Axios** - API communication
 
 ### Backend (Server)
+
 - **Node.js** with **Express** - RESTful API server
 - **TypeScript** - Type-safe backend development
 - **MongoDB** with **Mongoose** - Database and ODM
 - **Clerk Webhooks** - User management integration
 
 ### Design & UX
+
 - **Custom Icons** - Handcrafted SVG icons for optimal performance
 - **Modern UI** - Clean, intuitive interface design
 - **Responsive Layout** - Optimized for various screen sizes
@@ -84,22 +93,22 @@ Choose from our 7 expertly curated categories:
    # Install client dependencies
    cd client
    npm install
-   
+
    # Install server dependencies
    cd ../server
    npm install
    ```
 
 3. **Environment Setup**
-   
+
    Create `.env` files in both client and server directories with necessary environment variables:
-   
+
    **Client (.env)**
    ```
    EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_key
    EXPO_PUBLIC_API_URL=your_api_url
    ```
-   
+
    **Server (.env)**
    ```
    MONGODB_URI=your_mongodb_connection_string
@@ -112,11 +121,11 @@ Choose from our 7 expertly curated categories:
    # Start the backend server
    cd server
    npm run go
-   
+
    # In a new terminal, start the mobile app
    cd client
    npm start
-   ``` 
+   ```
 
 5. **Run on your device**
    - Scan the QR code with Expo Go app (Android/iOS)
@@ -149,7 +158,7 @@ server/
 ## 🎮 How to Play
 
 1. **Sign Up/Login**: Create an account or sign in with Google/Facebook
-2. **Choose Quiz Type**: 
+2. **Choose Quiz Type**:
    - Select "Custom Topic" and enter any subject
    - Or pick from our 7 predefined categories
 3. **Take the Quiz**: Answer questions within the time limit
@@ -172,6 +181,7 @@ This project was developed by 5 dedicated web development students as our final 
 ## 🤝 Contributing
 
 While this is a student project, we welcome feedback and suggestions! Feel free to:
+
 - Report bugs or issues
 - Suggest new features
 - Provide feedback on user experience

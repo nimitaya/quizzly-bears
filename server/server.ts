@@ -5,7 +5,9 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import connectDB from "./database/connectDB";
 import clerkWebhookRouter from "./routes/ClerkWebhook";
+import friendRequestRouter from "./routes/friendRequestRoutes";
 import quizRoomsRouter, { setRoomsReference } from "./routes/QuizRooms";
+import userRoutes from "./routes/UserStats";
 
 const app = express();
 const httpServer = createServer(app);
@@ -15,7 +17,7 @@ const io = new Server(httpServer, {
     methods: ["GET", "POST"],
   },
 });
-const port = process.env.PORTNUMMER || 3000;
+const port = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(cookieParser());
@@ -23,7 +25,9 @@ app.use(cors());
 
 app.use("/api/clerk-webhook", cors());
 app.use("/api", clerkWebhookRouter);
+app.use("/api/friend-request", friendRequestRouter)
 app.use("/api/quiz", quizRoomsRouter);
+app.use("/api", userRoutes);
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
@@ -166,18 +170,24 @@ io.on("connection", (socket) => {
 
   // Start game (only host can start)
   socket.on("start-game", (data: { roomId: string; questions: any[] }) => {
-    console.log(`Start game request for room ${data.roomId} from socket ${socket.id}`);
+    console.log(
+      `Start game request for room ${data.roomId} from socket ${socket.id}`
+    );
     const room = quizRooms.get(data.roomId);
-    
+
     if (!room) {
       console.log(`Room ${data.roomId} not found`);
       socket.emit("error", { message: "Room not found" });
       return;
     }
-    
-    console.log(`Room host: ${room.hostSocketId}, requesting socket: ${socket.id}`);
+
+    console.log(
+      `Room host: ${room.hostSocketId}, requesting socket: ${socket.id}`
+    );
     if (room.hostSocketId !== socket.id) {
-      console.log(`Only host can start game. Host: ${room.hostSocketId}, Socket: ${socket.id}`);
+      console.log(
+        `Only host can start game. Host: ${room.hostSocketId}, Socket: ${socket.id}`
+      );
       socket.emit("error", { message: "Only host can start game" });
       return;
     }
@@ -194,7 +204,9 @@ io.on("connection", (socket) => {
     room.currentQuestion = 0;
     room.questions = data.questions;
 
-    console.log(`Emitting game-started to room ${data.roomId} with ${room.players.length} players`);
+    console.log(
+      `Emitting game-started to room ${data.roomId} with ${room.players.length} players`
+    );
     io.to(data.roomId).emit("game-started", { room });
     console.log(`Game started in room ${data.roomId}`);
   });
@@ -206,7 +218,9 @@ io.on("connection", (socket) => {
 
     // Notify all players that admin has selected topic and they should see StartQuizScreen
     io.to(data.roomId).emit("show-start-quiz", { room });
-    console.log(`Questions ready in room ${data.roomId}, showing StartQuizScreen to all players`);
+    console.log(
+      `Questions ready in room ${data.roomId}, showing StartQuizScreen to all players`
+    );
   });
 
   // Send next question
@@ -332,22 +346,64 @@ function leaveRoom(socket: any, roomId: string, playerId: string) {
 
   console.log(`${player.name} left room ${roomId}`);
 }
-// ==========NEW=======================Socket.IO Server Setup========
-const startServer = async () => {
-  try {
-    // Temporarily disable database connection for Socket.IO testing
-    // await connectDB();
-    console.log("Skipping database connection for Socket.IO testing");
 
+// ==========Database Setup========
+const startDatabase = async () => {
+  try {
+    await connectDB();
+    console.log("Database connected successfully");
+  } catch (error) {
+    console.error("Failed to connect to the database:", error);
+    process.exit(1);
+  }
+};
+
+// ==========Socket.IO Server Setup========
+const startSocketServer = async () => {
+  try {
     // Pass rooms reference to routes
     setRoomsReference(quizRooms);
 
-    httpServer.listen(port, () => {
-      console.log("Server running on port:", port);
+    return new Promise((resolve, reject) => {
+      const server = httpServer.listen(port, () => {
+        console.log("Socket.IO Server running on port:", port);
+        resolve(server);
+      });
+
+      server.on("error", (err: any) => {
+        if (err.code === "EADDRINUSE") {
+          console.log(
+            `Port ${port} is busy, trying port ${Number(port) + 1}...`
+          );
+          const newPort = Number(port) + 1;
+          httpServer.listen(newPort, () => {
+            console.log("Socket.IO Server running on port:", newPort);
+            resolve(server);
+          });
+        } else {
+          reject(err);
+        }
+      });
     });
   } catch (error) {
+    console.error("Failed to start Socket.IO server:", error);
+    process.exit(1);
+  }
+};
+
+// ==========Main Server Startup========
+const startServer = async () => {
+  try {
+    // Start database connection
+    await startDatabase();
+
+    // Start Socket.IO server
+    await startSocketServer();
+
+    console.log("All services started successfully");
+  } catch (error) {
     console.error("Failed to start server:", error);
-    process.exit(1); // Exit the process with failure
+    process.exit(1);
   }
 };
 

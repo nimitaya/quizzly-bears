@@ -1,56 +1,78 @@
 import axios from "axios";
 import Config from "react-native-config";
-import { Category, Difficulty, QuizQuestion } from "../types";
+import { Category, Difficulty } from "../types";
 import { QuestionStructure, AiQuestions } from "@/utilities/quiz-logic/data";
 
 const GROQ_API_URL =
   Config.GROQ_API_URL || "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_API_KEY =
-  Config.GROQ_API_KEY ||
-  "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";
+  Config.GROQ_API_KEY || "";
+  console.log("GROQ_API_KEY:", Config.GROQ_API_KEY);
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const optionKeys = ["optionA", "optionB", "optionC", "optionD"];
+let lastCorrectIndex = -1;
+let repeatCount = 0;
+
+function getNextCorrectOption(): string {
+  let nextIndex: number;
+  do {
+    nextIndex = Math.floor(Math.random() * 4);
+    if (nextIndex === lastCorrectIndex) {
+      repeatCount++;
+    } else {
+      repeatCount = 0;
+    }
+  } while (repeatCount > 1); // Vermeide zu viele Wiederholungen
+
+  lastCorrectIndex = nextIndex;
+  return optionKeys[nextIndex];
+}
 
 //========================Funktion zum Generieren mehrerer Quizfragen==================
 export const generateMultipleQuizQuestions = async (
   topic: string, // NEU: Thema anstelle von Kategorie
   difficulty: Difficulty,
-  questionCount: number = 10
-  ): Promise<AiQuestions> => {
+  questionCount: number = 10 | 11
+): Promise<AiQuestions> => {
+  await delay(5000); // Warte 1 Sekunde vor der Anfrage
   try {
-  const randomSeed = Math.floor(Math.random() * 10000);
-  const timestamp = Date.now();
-  const questionTypes = [
-  "konzeptionell",
-  "praktisch", 
-  "analytisch",
-  "anwendungsbezogen",
-  ];
-  
-  const prompt = `Du bist ein Generator für Bildungsquiz-Fragen.
+    const randomSeed = Math.floor(Math.random() * 10000);
+    const timestamp = Date.now();
+    const questionTypes = [
+      "konzeptionell",
+      "praktisch",
+      "analytisch",
+      "anwendungsbezogen",
+    ];
 
+    const prompt = `Du bist ein Generator für Bildungsquiz-Fragen.
   SPEZIFISCHE ANWEISUNGEN:
   - Erstelle GENAU ${questionCount} völlig NEUE UND EINZIGARTIGE Fragen über das spezifische Thema: "${topic}"
   - Schwierigkeitsgrad: ${difficulty}
+  
   - SCHWIERIGKEITSGRADE (ERKLÄRUNG):
-- easy (einfach):
+  
+  - easy (einfach):
   • Zielgruppe: Anfänger:innen, Kinder, Laien
   • Fragen mit offensichtlicher Antwort oder Basiswissen
   • Antwort erkennbar ohne Fachwissen
   • Keine Fachbegriffe, keine Mehrdeutigkeit
   • Beispiele: „Wie viele Beine hat ein Hund?“ oder „Wer war der erste Mensch auf dem Mond?“
-
-- medium (mittel):
+  
+  - medium (mittel):
   • Zielgruppe: Fortgeschrittene, interessierte Laien
   • Allgemeinbildung, schulisches Wissen, kontextbezogen
   • Braucht etwas Nachdenken oder Kontextkenntnis
   • Beispiele: „Welche chemische Formel hat Wasser?“ oder „In welchem Jahr fiel die Berliner Mauer?“
-
-- hard (schwierig):
+  
+  - hard (schwierig):
   • Zielgruppe: Expert:innen, Studierende, Fachleute
   • Komplexes Fachwissen, seltene Details, tiefes Verständnis
   • Erfordert Analyse, Vergleich oder konkretes Wissen über Teilaspekte
   • Beispiele: „Welche Rolle spielte das Phlogiston in der frühen Chemietheorie?“ oder „Was unterscheidet den Utilitarismus von der Deontologie?“
-
-  - Verwende verschiedene Fragetypen: ${questionTypes.join(', ')}
+  - Verwende verschiedene Fragetypen: ${questionTypes.join(", ")}
   - Referenznummer: ${randomSeed}
   - Zeitstempel: ${timestamp}
   
@@ -58,130 +80,38 @@ export const generateMultipleQuizQuestions = async (
   - ALLE Fragen müssen DIREKT mit "${topic}" zu tun haben
   - Verwende spezifische Details, Charaktere, Ereignisse oder Aspekte von "${topic}"
   - Die Fragen sollen das Wissen über "${topic}" testen, nicht nur allgemeine Kenntnisse
+  - Korrekte option muss immer in einer anderen Position sein
   
-  🚨 ABSOLUT KRITISCH - ANTWORT-POSITION RANDOMISIERUNG:
-  Du MUSST die korrekte Antwort in verschiedenen Positionen platzieren!
-  
-  PFLICHTVERTEILUNG FÜR ${questionCount} FRAGEN:
-  - Fragen 1, 5, 9: Korrekte Antwort bei optionA (isCorrect: true)
-  - Fragen 2, 6, 10: Korrekte Antwort bei optionB (isCorrect: true)  
-  - Fragen 3, 7: Korrekte Antwort bei optionC (isCorrect: true)
-  - Fragen 4, 8: Korrekte Antwort bei optionD (isCorrect: true)
-  
-  ❌ VERBOTEN: Alle korrekten Antworten nur bei optionA, oder bei Optionen A, B, C, D in derselben Position
-  ❌ VERBOTEN: Alle korrekten Antworten bei derselben Position
-  ✅ PFLICHT: Korrekte Antworten müssen auf A, B, C, D verteilt sein
-  
-  KONKRETE BEISPIELE:
-  
-  FRAGE 1 - Korrekte Antwort bei optionA:
-  {
-  "optionA": {"isCorrect": true, "de": "Richtige Antwort", "en": "Correct answer"},
-  "optionB": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"},
-  "optionC": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"},
-  "optionD": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"}
-  }
-  
-  FRAGE 2 - Korrekte Antwort bei optionB:
-  {
-  "optionA": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"},
-  "optionB": {"isCorrect": true, "de": "Richtige Antwort", "en": "Correct answer"},
-  "optionC": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"},
-  "optionD": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"}
-  }
-  
-  FRAGE 3 - Korrekte Antwort bei optionC:
-  {
-  "optionA": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"},
-  "optionB": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"},
-  "optionC": {"isCorrect": true, "de": "Richtige Antwort", "en": "Correct answer"},
-  "optionD": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"}
-  }
-  
-  FRAGE 4 - Korrekte Antwort bei optionD:
-  {
-  "optionA": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"},
-  "optionB": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"},
-  "optionC": {"isCorrect": false, "de": "Falsche Antwort", "en": "Wrong answer"},
-  "optionD": {"isCorrect": true, "de": "Richtige Antwort", "en": "Correct answer"}
-  }
-  
-  🎯 VALIDIERUNGSCHECK:
+  VALIDIERUNGSCHECK:
   Bevor du antwortest, überprüfe:
   - Haben alle ${questionCount} Fragen nur EINE korrekte Antwort?
   - Sind die korrekten Antworten auf optionA, optionB, optionC, optionD verteilt?
   - Steht NICHT jede korrekte Antwort bei optionA?
-  
   WEITERE REGELN:
   - Jede Frage muss VÖLLIG ANDERS sein als alle anderen
   - Die Frage darf maximal 120 Zeichen lang sein
   - Die Antwortoptionen müssen klar und eindeutig sein. Weniger als 50 Zeichen pro Option
   - Alle falschen Antworten müssen plausibel aber eindeutig falsch sein
   
-  Du musst GENAU in diesem JSON-Array-Format antworten:
-  [
+  FORMAT:
+  Antworte NUR mit einem JSON-Objekt im folgenden Format:
+  {
+  "category": "${topic}",
+  "questionArray": [
   {
   "question": {
-  "de": "Erste Frage über ${topic}",
-  "en": "First question about ${topic}"
+  "de": "Frage auf Deutsch",
+  "en": "Question in English"
   },
-  "optionA": {
-  "isCorrect": true,
-  "de": "Korrekte Antwort für Frage 1",
-  "en": "Correct answer for question 1"
+  "optionA": { "isCorrect": true/false, "en": "Antwort in Englisch", "de": "Antwort auf Deutsch" },
+  "optionB": { "isCorrect": true/false, "en": "Antwort in Englisch", "de": "Antwort auf Deutsch" },
+  "optionC": { "isCorrect": true/false, "en": "Antwort in Englisch", "de": "Antwort auf Deutsch" },
+  "optionD": { "isCorrect": true/false, "en": "Antwort in Englisch", "de": "Antwort auf Deutsch" }
   },
-  "optionB": {
-  "isCorrect": false,
-  "de": "Falsche Antwort",
-  "en": "Wrong answer"
-  },
-  "optionC": {
-  "isCorrect": false,
-  "de": "Falsche Antwort",
-  "en": "Wrong answer"
-  },
-  "optionD": {
-  "isCorrect": false,
-  "de": "Falsche Antwort",
-  "en": "Wrong answer"
-  }
-  },
-  {
-  "question": {
-  "de": "Zweite Frage über ${topic}",
-  "en": "Second question about ${topic}"
-  },
-  "optionA": {
-  "isCorrect": false,
-  "de": "Falsche Antwort",
-  "en": "Wrong answer"
-  },
-  "optionB": {
-  "isCorrect": true,
-  "de": "Korrekte Antwort für Frage 2",
-  "en": "Correct answer for question 2"
-  },
-  "optionC": {
-  "isCorrect": false,
-  "de": "Falsche Antwort",
-  "en": "Wrong answer"
-  },
-  "optionD": {
-  "isCorrect": false,
-  "de": "Falsche Antwort",
-  "en": "Wrong answer"
-  }
-  }
+  ...
   ]
-  
-  🔥 FINALE ERINNERUNG:
-  - Frage 1: Antwort A korrekt
-  - Frage 2: Antwort B korrekt  
-  - Frage 3: Antwort C korrekt
-  - Frage 4: Antwort D korrekt
-  - Frage 5: Antwort A korrekt
-  - etc.
-  
+  }
+
   REGELN:
   - Generiere GENAU ${questionCount} Fragen im Array
   - RANDOMISIERE die Position der korrekten Antwort in jeder Frage
@@ -190,106 +120,124 @@ export const generateMultipleQuizQuestions = async (
   - Jede Frage muss völlig originell und unterschiedlich sein
   - Konzentriere dich ausschließlich auf "${topic}"
   - Antworte NUR mit dem JSON-Array, ohne zusätzlichen Text am ende des Arrays
+  - WICHTIG: Kopiere NICHT einfach die Struktur aus den Beispielen. Generiere jede Frage ORIGINAL, mit zufälliger aber kontrollierter Platzierung der richtigen Antwort gemäß der obigen Tabelle.
   - Keine zusätzlichen Erklärungen oder Kommentare`;
-  
-  const response = await axios.post(
-  GROQ_API_URL,
-  {
-  model: "llama3-8b-8192",
-  messages: [
-  {
-  role: "user",
-  content: prompt,
-  },
-  ],
-  temperature: 0.9,
-  max_tokens: 3000, 
-  top_p: 0.9,
-  frequency_penalty: 0.8, 
-  presence_penalty: 0.6, 
-  },
-  {
-  headers: {
-  Authorization: `Bearer ${GROQ_API_KEY?.trim() || ""}`,
-  "Content-Type": "application/json",
-  },
-  }
-  );
-  
-  let responseContent = response.data.choices[0].message.content;
 
-  //=====WICHTIG: JSON Datei ist damit sauber und wird keine zusätlichen Kommentare von der KI hinzugefügt (Problem gelöst)
-  responseContent = responseContent.replace(/```json\n?/g, "");
-  responseContent = responseContent.replace(/```\n?/g, "");
-  
-  // Nutze eine robuste RegEx, um NUR das JSON-Array zu extrahieren
-  const jsonMatch = responseContent.match(/\[\s*{[\s\S]*?}\s*\]/);
-  
-  if (!jsonMatch) {
-    console.error(" Kein gültiges JSON-Array im Modell-Output gefunden:", responseContent);
-    throw new Error("Das Modell hat kein valides JSON-Array geliefert.");
-  }
-  
-  const cleanJson = jsonMatch[0].trim();
-  console.log("Sauberes JSON:", cleanJson);
-  const questionsData = JSON.parse(cleanJson);
-  
-  // Array validieren
-  if (!Array.isArray(questionsData)) {
+    const response = await axios.post(
+      GROQ_API_URL,
+      {
+        model: "llama3-8b-8192",
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.9,
+        max_tokens: 3000,
+        top_p: 0.9,
+        frequency_penalty: 0.8,
+        presence_penalty: 0.6,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${GROQ_API_KEY?.trim() || ""}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    let responseContent = response.data.choices[0].message.content;
+
+// Log the raw response content for debugging
+console.log("Response Content:", responseContent);
+
+// Zusätzliche Bereinigung des Outputs
+responseContent = responseContent.replace(/```json\n?/g, "");
+responseContent = responseContent.replace(/```\n?/g, "");
+
+// JSON-Array extrahieren
+const jsonMatch = responseContent.match(/\[\s*{[\s\S]*?}\s*\]/);
+
+if (!jsonMatch) {
+  console.error("Kein gültiges JSON-Array im Modell-Output gefunden:", responseContent);
+  throw new Error(`Ungültige Antwort vom Modell: ${responseContent}`);
+}
+
+const cleanJson = jsonMatch[0].trim();
+console.log("Sauberes JSON:", cleanJson);
+
+const questionsData = JSON.parse(cleanJson);
+
+// ist JSON ein Array?
+if (!Array.isArray(questionsData)) {
   throw new Error("Response ist kein Array");
-  }
-  
-  // Validierung jeder Frage
-  const validatedQuestions: QuestionStructure[] = [];
-  for (let i = 0; i < questionsData.length; i++) {
-  const questionData = questionsData[i];
-  if (
-  !questionData.question ||
-  typeof questionData.question.de !== "string" ||
-  typeof questionData.question.en !== "string" ||
-  !questionData.optionA ||
-  !questionData.optionB ||
-  !questionData.optionC ||
-  !questionData.optionD ||
-  typeof questionData.optionA.de !== "string" ||
-  typeof questionData.optionA.en !== "string" ||
-  typeof questionData.optionB.de !== "string" ||
-  typeof questionData.optionB.en !== "string" ||
-  typeof questionData.optionC.de !== "string" ||
-  typeof questionData.optionC.en !== "string" ||
-  typeof questionData.optionD.de !== "string" ||
-  typeof questionData.optionD.en !== "string"
-  ) {
-  console.warn(`Frage ${i + 1} hat ungültiges Format, überspringe...`);
-  continue;
-  }
-  
-  validatedQuestions.push({
-  question: questionData.question,
-  optionA: questionData.optionA,
-  optionB: questionData.optionB,
-  optionC: questionData.optionC,
-  optionD: questionData.optionD,
-  });
-  }
-  
-  if (validatedQuestions.length === 0) {
-  throw new Error("Keine gültigen Fragen generiert");
-  }
-  
-  console.log(`${validatedQuestions.length} valide Fragen generiert für Thema: ${topic}`);
-  return {
-  category: topic, // NEUIGKEIT: Kategorie ist jetzt das Thema
-  questionArray: validatedQuestions,
-  };
-  
+}
+
+    // Validierung jeder Frage
+    const validatedQuestions: QuestionStructure[] = [];
+    for (let i = 0; i < questionsData.length; i++) {
+      const questionData = questionsData[i];
+      if (
+        !questionData.question ||
+        typeof questionData.question.de !== "string" ||
+        typeof questionData.question.en !== "string" ||
+        !questionData.optionA ||
+        !questionData.optionB ||
+        !questionData.optionC ||
+        !questionData.optionD ||
+        typeof questionData.optionA.de !== "string" ||
+        typeof questionData.optionA.en !== "string" ||
+        typeof questionData.optionB.de !== "string" ||
+        typeof questionData.optionB.en !== "string" ||
+        typeof questionData.optionC.de !== "string" ||
+        typeof questionData.optionC.en !== "string" ||
+        typeof questionData.optionD.de !== "string" ||
+        typeof questionData.optionD.en !== "string"
+      ) {
+        console.warn(`Frage ${i + 1} hat ungültiges Format, überspringe...`);
+        continue;
+      }
+      const correctKey = getNextCorrectOption();
+
+      const question = {
+        question: questionData.question,
+        optionA: {
+          ...questionData.optionA,
+          isCorrect: correctKey === "optionA",
+        },
+        optionB: {
+          ...questionData.optionB,
+          isCorrect: correctKey === "optionB",
+        },
+        optionC: {
+          ...questionData.optionC,
+          isCorrect: correctKey === "optionC",
+        },
+        optionD: {
+          ...questionData.optionD,
+          isCorrect: correctKey === "optionD",
+        },
+      };
+
+      validatedQuestions.push(question);
+    }
+//=================immer 10 Fragen und nicht 11
+    const finalQuestions = validatedQuestions.slice(0, questionCount);
+    console.log(
+      `${finalQuestions.length} valide Fragen generiert für Thema: ${topic}`
+    );
+    return {
+      category: topic, // NEUIGKEIT: Kategorie ist jetzt das Thema
+      questionArray: validatedQuestions,
+    };
   } catch (error) {
-  console.error("Fehler beim Generieren mehrerer Fragen:", error);
-  throw new Error(
-  "Mehrere Fragen konnten nicht generiert werden. Versuche es erneut."
-  );
+    console.error("Fehler beim Generieren mehrerer Fragen:", error);
+    throw new Error(
+      "Mehrere Fragen konnten nicht generiert werden. Versuche es erneut."
+    );
   }
-  };
+};
 
 // Kategorien für die Kategorisierung
 const PREDEFINED_CATEGORIES: Category[] = [
@@ -348,7 +296,7 @@ Antwort:`;
           },
         ],
         temperature: 0.1, // Niedrige Temperature für konsistente Ergebnisse
-        max_tokens: 50,
+        max_tokens: 300,
         top_p: 0.9,
       },
       {
@@ -360,10 +308,10 @@ Antwort:`;
     );
 
     let categorizedResult = response.data.choices[0].message.content.trim();
-    
+
     // Sicherstellen, dass die Antwort eine gültige Kategorie ist
     const foundCategory = PREDEFINED_CATEGORIES.find(
-      category => category.toLowerCase() === categorizedResult.toLowerCase()
+      (category) => category.toLowerCase() === categorizedResult.toLowerCase()
     );
 
     if (foundCategory) {
@@ -371,13 +319,13 @@ Antwort:`;
     } else {
       // Fallback: Versuche eine Ähnlichkeitssuche
       const similarCategory = PREDEFINED_CATEGORIES.find(
-        category => categorizedResult.toLowerCase().includes(category.toLowerCase()) ||
-                   category.toLowerCase().includes(categorizedResult.toLowerCase())
+        (category) =>
+          categorizedResult.toLowerCase().includes(category.toLowerCase()) ||
+          category.toLowerCase().includes(categorizedResult.toLowerCase())
       );
-      
+
       return similarCategory || "Culture"; // Default fallback
     }
-
   } catch (error) {
     console.error("Error categorizing topic:", error);
     // Fallback zu einer Standard-Kategorie

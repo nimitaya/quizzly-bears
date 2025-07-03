@@ -50,6 +50,7 @@ const StartQuizScreen = () => {
     rounds: number
   ) => {
     try {
+
       console.log("Starting quiz generation...");
       setIsGeneratingQuestions(true);
 
@@ -69,6 +70,7 @@ const StartQuizScreen = () => {
           level,
           rounds
         );
+
 
         console.log("Generated Questions Data:", questionsData);
         console.log("Questions array length:", questionsData.questionArray?.length);
