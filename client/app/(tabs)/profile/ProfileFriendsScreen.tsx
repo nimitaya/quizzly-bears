@@ -4,13 +4,16 @@ import {
   StyleSheet,
   Text,
   ScrollView,
-  FlatList,
 } from "react-native";
 import IconArrowBack from "@/assets/icons/IconArrowBack";
+import IconAccept from "@/assets/icons/IconAccept";
+import IconDismiss from "@/assets/icons/IconDismiss";
+import IconPending from "@/assets/icons/IconPending";
+import IconDelete from "@/assets/icons/IconDelete";
+import IconAddFriend from "@/assets/icons/IconAddFriend";
 import { Logo } from "@/components/Logos";
 import { FontSizes, Gaps, Colors } from "@/styles/theme";
 import { useRouter } from "expo-router";
-import { ButtonPrimary } from "@/components/Buttons";
 import { SearchFriendInput } from "@/components/Inputs";
 import {
   getFriends,
@@ -25,7 +28,6 @@ import {
 import { useEffect, useState } from "react";
 import { FriendsState, User } from "@/utilities/friendInterfaces";
 import { useUser } from "@clerk/clerk-expo";
-import FriendItem from "@/components/FriendItem";
 
 const API_BASE_URL =
   process.env.VITE_API_BASE_URL || "http://localhost:3000/api";
@@ -40,10 +42,10 @@ const ProfilFriendsScreen = () => {
     result: User | null;
     error: string;
   }>({
-    email:"",
-    result:null,
-      error: "",
-  })
+    email: "",
+    result: null,
+    error: "",
+  });
   const [friendsState, setFriendsState] = useState<FriendsState>({
     friendList: { friends: [] },
     receivedFriendRequests: { friendRequests: [] },
@@ -54,18 +56,25 @@ const ProfilFriendsScreen = () => {
   // Handler Search User
   const handleSearchUser = async (email: string) => {
     if (!email.trim() || !user) {
-      setSearchState((prev) => ({...prev, error:"Please enter a valid email"}))
+      setSearchState((prev) => ({
+        ...prev,
+        error: "Please enter a valid email",
+      }));
       return;
     }
 
     try {
       setIsLoading(true);
-      setSearchState((prev) => ({...prev, result:null, error:""}));
-      
+      setSearchState((prev) => ({ ...prev, result: null, error: "" }));
+
       const result = await searchUserByEmail(email, user.id);
-      setSearchState((prev) => ({...prev, result:result.user}))
+      setSearchState((prev) => ({ ...prev, result: result.user, email: "" }));
     } catch (error: any) {
-      setSearchState((prev) => ({...prev, result:null, error:error.message || "User not found"}))
+      setSearchState((prev) => ({
+        ...prev,
+        result: null,
+        error: "not a quizzly bear",
+      }));
     } finally {
       setIsLoading(false);
     }
@@ -78,19 +87,21 @@ const ProfilFriendsScreen = () => {
     try {
       setIsLoading(true);
       await sendFriendRequest(user.id, targetUserId);
-      
+
       // Refresh the sent requests list
       const sent = await getSentFriendRequests(user.id);
-      setFriendsState(prev => ({
+      setFriendsState((prev) => ({
         ...prev,
         sentFriendRequests: sent,
       }));
-      
+
       // Clear search result after sending request
-      setSearchState((prev) => ({...prev,email:"", result:null}));
-      
+      setSearchState((prev) => ({ ...prev, email: "", result: null }));
     } catch (error: any) {
-      setSearchState((prev) => ({...prev, error:error.message || "Failed to send friend request"}))
+      setSearchState((prev) => ({
+        ...prev,
+        error: error.message || "Failed to send friend request",
+      }));
     } finally {
       setIsLoading(false);
     }
@@ -149,6 +160,17 @@ const ProfilFriendsScreen = () => {
   };
 
   // =========== UseEffect ==========
+  // Auto-hide error after 5 seconds
+  useEffect(() => {
+    if (searchState.error) {
+      const timer = setTimeout(() => {
+        setSearchState((prev) => ({ ...prev, error: "" }));
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [searchState.error]);
+
   useEffect(() => {
     if (!user) {
       return;
@@ -183,129 +205,118 @@ const ProfilFriendsScreen = () => {
       >
         <IconArrowBack />
       </TouchableOpacity>
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={{ marginBottom: Gaps.g16 }}>
+        <View style={styles.logoContainer}>
           <Logo size="small" />
         </View>
 
+        <Text style={styles.pageTitle}>Friends</Text>
+
         {/* Search Bar */}
-        <View style={styles.searchFriendsBox}>
-          <Text style={{ fontSize: FontSizes.H2Fs }}>Friends</Text>
-          <SearchFriendInput 
-            placeholder="e-mail..." 
-            value={searchState.email} 
-            onChangeText={(text:string) => setSearchState((prev) => ({...prev, email: text}))}
-            onSearch={() => handleSearchUser(searchState.email)}
+        <View style={styles.searchContainer}>
+          <SearchFriendInput
+            placeholder="e-mail..."
+            value={searchState.email}
+            onChangeText={(text: string) => {
+              setSearchState((prev) => ({ ...prev, email: text }));
+            }}
+            onSearch={(email) => handleSearchUser(email)}
           />
 
-          {/* Search Error */}
-          {searchState.error ? (
-            <Text>{searchState.error}</Text>
-          ) : null}
+          {/* Fixed space for error message */}
+          <View style={styles.errorContainer}>
+            {searchState.error ? (
+              <Text style={styles.errorText}>{searchState.error}</Text>
+            ) : null}
+          </View>
 
           {/* Search Result */}
           {searchState.result ? (
-            <View >
-              <Text >Found: {searchState.result.email}</Text>
-              <TouchableOpacity
-                onPress={() => searchState.result && handleSendFriendRequest(searchState.result._id)}
-                disabled={isLoading}
-              >
-                <Text >
-                  {isLoading ? "Sending..." : "Send Friend Request"}
-                </Text>
-              </TouchableOpacity>
+            <View style={styles.friendRow}>
+              <Text style={styles.friendName}>{searchState.result.email}</Text>
+              <View style={styles.actionButtons}>
+                <TouchableOpacity
+                  onPress={() =>
+                    searchState.result &&
+                    handleSendFriendRequest(searchState.result._id)
+                  }
+                  disabled={isLoading}
+                  style={styles.iconButton}
+                >
+                  <IconAddFriend />
+                </TouchableOpacity>
+              </View>
             </View>
           ) : null}
+        </View>
 
-          {/* Friend List */}
-          {!friendsState.friendList.friends.length &&
-          !friendsState.receivedFriendRequests.friendRequests.length &&
-          !friendsState.sentFriendRequests.friendRequests.length ? (
-            //==== if you don't have friends yet ====
-            <View style={styles.textBox}>
-              <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-                Unfortunately, it's empty so far...?
-              </Text>
-              <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-                Invite someone over.
-              </Text>
+        {/* Friend Requests (incoming) */}
+        {friendsState.receivedFriendRequests.friendRequests.map((item) => (
+          <View key={item._id} style={styles.friendRow}>
+            <Text style={styles.friendName}>new invite</Text>
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                onPress={() => handleAcceptFriendRequest(item._id)}
+                style={styles.iconButton}
+              >
+                <IconAccept />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleDeclineFriendRequest(item._id)}
+                style={styles.iconButton}
+              >
+                <IconDismiss />
+              </TouchableOpacity>
             </View>
-          ) : (
-            // ==== if you have friends or requests ====
-            <View style={styles.textBox}>
-              {/* If there are current friend requests */}
-              {friendsState.receivedFriendRequests.friendRequests.length >
-                0 && (
-                <View>
-                  <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-                    Friend Requests
-                  </Text>
-                  <FlatList
-                    data={friendsState.receivedFriendRequests.friendRequests}
-                    renderItem={({ item }) => (
-                      <FriendItem
-                        friend={item.from}
-                        friendStatus="request"
-                        onPressOne={() => handleAcceptFriendRequest(item._id)}
-                        onPressTwo={() => handleDeclineFriendRequest(item._id)}
-                      />
-                    )}
-                    keyExtractor={(item) => item._id}
-                    scrollEnabled={false}
-                  />
-                </View>
-              )}
+          </View>
+        ))}
 
-              {/* If you have pending request to others */}
-              {friendsState.sentFriendRequests.friendRequests.length > 0 && (
-                <View>
-                  <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-                    Your pending requests
-                  </Text>
-                  <FlatList
-                    data={friendsState.sentFriendRequests.friendRequests}
-                    renderItem={({ item }) => (
-                      <FriendItem
-                        friend={item.to}
-                        friendStatus="outstanding"
-                        onPressOne={() => {}}
-                        onPressTwo={() => {}}
-                      />
-                    )}
-                    keyExtractor={(item) => item._id}
-                    scrollEnabled={false}
-                  />
-                </View>
-              )}
+        {/* Sent Requests (pending) */}
+        {friendsState.sentFriendRequests.friendRequests.map((item) => (
+          <View key={item._id} style={styles.friendRow}>
+            <Text style={styles.friendName}>
+              {item.to.email || "NightPulse"}
+            </Text>
+            <View style={styles.actionButtons}>
+              <TouchableOpacity style={styles.iconButton}>
+                <IconPending />
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
 
-              {/* If you have friends */}
-              {friendsState.friendList.friends.length > 0 && (
-                <View>
-                  <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-                    Your Friends
-                  </Text>
-                  <FlatList
-                    data={friendsState.friendList.friends}
-                    renderItem={({ item }) => (
-                      <FriendItem
-                        friend={item}
-                        friendStatus="friend"
-                        onPressOne={() => handleRemoveFriend(item._id)}
-                        onPressTwo={() => {}}
-                      />
-                    )}
-                    keyExtractor={(item) => item._id}
-                    scrollEnabled={false}
-                  />
-                </View>
-              )}
+        {/* Friends List */}
+        {friendsState.friendList.friends.map((item) => (
+          <View key={item._id} style={styles.friendRow}>
+            <Text style={styles.friendName}>
+              {item.email || item.username || "Friend"}
+            </Text>
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                onPress={() => handleRemoveFriend(item._id)}
+                style={styles.iconButton}
+              >
+                <IconDelete />
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+
+        {/* Empty State */}
+        {!friendsState.friendList.friends.length &&
+          !friendsState.receivedFriendRequests.friendRequests.length &&
+          !friendsState.sentFriendRequests.friendRequests.length && (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                Unfortunately, it's empty so far...
+              </Text>
+              <Text style={styles.emptyText}>Invite someone over.</Text>
             </View>
           )}
-        </View>
       </ScrollView>
     </View>
   );
@@ -315,27 +326,71 @@ export default ProfilFriendsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginTop: Gaps.g80,
+    backgroundColor: Colors.bgGray,
+    paddingTop: Gaps.g80,
   },
   scrollContent: {
-    alignItems: "center",
+    paddingHorizontal: Gaps.g16,
     paddingBottom: Gaps.g24,
   },
   backButton: {
     position: "absolute",
-    top: -8,
+    top: Gaps.g80,
     left: 16,
     zIndex: 10,
   },
-  searchFriendsBox: {
-    textAlign: "center",
+  logoContainer: {
     alignItems: "center",
-    justifyContent: "center",
-    gap: Gaps.g32,
+    marginBottom: Gaps.g16,
   },
-  textBox: {
+  pageTitle: {
+    fontSize: FontSizes.H2Fs,
+    fontWeight: "600",
     textAlign: "center",
-    alignItems: "center",
+    marginBottom: Gaps.g24,
+    color: Colors.black,
+  },
+  searchContainer: {
+    marginBottom: Gaps.g24,
+  },
+  errorContainer: {
+    height: 32,
     justifyContent: "center",
+    alignItems: "center",
+    marginTop: Gaps.g8,
+  },
+  errorText: {
+    color: Colors.systemRed,
+    fontSize: FontSizes.TextMediumFs,
+    textAlign: "center",
+  },
+  friendRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: Gaps.g4,
+    paddingHorizontal: Gaps.g16,
+    marginBottom: 1,
+  },
+  friendName: {
+    fontSize: FontSizes.TextLargeFs,
+    color: Colors.black,
+    flex: 1,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    gap: Gaps.g16,
+  },
+  iconButton: {
+    padding: 4,
+  },
+  emptyContainer: {
+    alignItems: "center",
+    marginTop: Gaps.g48,
+  },
+  emptyText: {
+    fontSize: FontSizes.TextLargeFs,
+    color: Colors.black,
+    textAlign: "center",
   },
 });
