@@ -49,7 +49,7 @@ export const calculatePoints = ({
 
   let bonusAllCorrect = 0;
   if (isSolo && allCorrect && correctAnswers === totalQuestions) {
-    bonusAllCorrect = 10; // or any other bonus
+    bonusAllCorrect = 10;
   }
 
   return {
