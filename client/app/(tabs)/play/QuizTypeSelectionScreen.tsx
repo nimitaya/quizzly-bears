@@ -11,7 +11,7 @@ import {
   PlayStyle,
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { socketService } from "@/utilities/socketService";
-import { useUser } from "@/providers/UserProvider";
+import { useUser } from "@clerk/clerk-expo"
 
 // Use the cache key for quiz settings
 const cacheKey = CACHE_KEY.quizSettings;
