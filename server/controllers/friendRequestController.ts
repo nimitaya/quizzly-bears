@@ -360,6 +360,9 @@ export const declineRequest = async (
     friendRequest.status = "declined";
     await friendRequest.save();
 
+    // Remove friend request from friend request collection
+    await FriendRequest.findByIdAndDelete(friendRequestId)
+
     // Remove friend request from user's friendRequests array
     await User.findByIdAndUpdate(user._id, {
       $pull: { friendRequests: friendRequestId },
