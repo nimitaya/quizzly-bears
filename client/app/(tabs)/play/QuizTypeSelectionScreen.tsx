@@ -66,7 +66,7 @@ const QuizTypeSelectionScreen = () => {
           isAdmin: true,
         };
         await saveDataToCache(CACHE_KEY.currentRoom, roomInfo);
-        
+
         // Navigate to invite friends screen first
         router.push("/(tabs)/play/InviteFriendsScreen");
       });
@@ -108,8 +108,8 @@ const QuizTypeSelectionScreen = () => {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.backButton}
-        onPress={() => router.back()}
-        accessibilityLabel="Go back"
+        onPress={() => router.push("/")}
+        accessibilityLabel="Go back to home"
       >
         <IconArrowBack />
       </TouchableOpacity>

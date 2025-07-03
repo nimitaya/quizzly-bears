@@ -2,43 +2,18 @@ import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { Logo } from "@/components/Logos";
 import React, { useEffect, useState } from "react";
 import { FontSizes, Gaps } from "@/styles/theme";
-import { useRouter } from "expo-router";
 import IconMedal1PlaceWebp from "@/assets/icons-webp/IconMedal1PlaceWebp";
 import IconMedal2PlaceWebp from "@/assets/icons-webp/IconMedal2PlaceWebp";
 import IconMedal3PlaceWebp from "@/assets/icons-webp/IconMedal3PlaceWebp";
 import CircularProgress from "@/components/CircularProgress";
 import { CategoryProgressBar } from "@/components/CategoryProgressBar";
-import { useUser } from "@clerk/clerk-expo";
-import axios from "axios";
-import CustomAlert from "@/components/CustomAlert";
+import { useStatistics } from "@/providers/UserProvider";
 import Loading from "../../Loading";
+import CustomAlert from "@/components/CustomAlert";
 
 const StatisticsScreen = () => {
-  const API_BASE_URL = "https://quizzly-bears.onrender.com/api"; // or your deployed API URL
-  // const API_BASE_URL = "http://localhost:3000/api"; // or your deployed API URL
-
-  const { user } = useUser();
-  const [userData, setUserData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { userData, loading } = useStatistics();
   const [showForm, setShowForm] = useState(false);
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!user) return;
-
-    const fetchUserData = async () => {
-      try {
-        const res = await axios.get(`${API_BASE_URL}/users/${user.id}`);
-        setUserData(res.data);
-      } catch (err) {
-        console.error("Failed to load user data", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserData();
-  }, [user]);
 
   useEffect(() => {
     if (!userData && !loading) {
@@ -46,14 +21,7 @@ const StatisticsScreen = () => {
     }
   }, [userData, loading]);
 
-  if (loading) {
-    return (
-      <>
-        <Loading />
-      </>
-    );
-  }
-
+  if (loading) return <Loading />;
   if (!userData && !loading) {
     return (
       <CustomAlert
@@ -66,6 +34,7 @@ const StatisticsScreen = () => {
       />
     );
   }
+
   const {
     points,
     medals,
