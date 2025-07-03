@@ -12,7 +12,7 @@ import Loading from "../../Loading";
 import CustomAlert from "@/components/CustomAlert";
 
 const StatisticsScreen = () => {
-  const { userData, loading } = useStatistics();
+  const { userData, loading, userRank, totalUsers } = useStatistics();
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
@@ -82,7 +82,7 @@ const StatisticsScreen = () => {
             Quizzly Points: {points.totalPoints}
           </Text>
           <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-            My rank: (link)/(link)
+            My rank: {userRank ?? "-"}/{totalUsers ?? "-"}
           </Text>
           <View style={styles.allMedalenBlock}>
             <View style={styles.MedalenBlock}>
@@ -122,34 +122,6 @@ const StatisticsScreen = () => {
           <Text style={{ fontSize: FontSizes.TextLargeFs }}>
             Category performance
           </Text>
-          {/* <CategoryProgressBar
-            text="History"
-            progress={categoryPerformance.history}
-          />
-          <CategoryProgressBar
-            text="Science"
-            progress={categoryPerformance.science}
-          />
-          <CategoryProgressBar
-            text="Sport"
-            progress={categoryPerformance.sport}
-          />
-          <CategoryProgressBar
-            text="Geography"
-            progress={categoryPerformance.geography}
-          />
-          <CategoryProgressBar
-            text="Medien"
-            progress={categoryPerformance.medien}
-          />
-          <CategoryProgressBar
-            text="Culture"
-            progress={categoryPerformance.culture}
-          />
-          <CategoryProgressBar
-            text="Daily life"
-            progress={categoryPerformance.dailyLife}
-          /> */}
           {Object.entries(categoryPerformance).map(([name, progress]) => (
             <CategoryProgressBar key={name} text={name} progress={progress} />
           ))}
