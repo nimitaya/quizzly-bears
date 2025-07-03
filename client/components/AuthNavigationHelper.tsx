@@ -22,11 +22,11 @@ export default function AuthNavigationHelper() {
             "/(tabs)/play";
 
           // Use a timeout for extra safety
-          setTimeout(() => {
+          setTimeout(async () => {
             if (isMounted) {
               try {
                 router.replace(destination as any);
-                AsyncStorage.setItem(
+                await AsyncStorage.setItem(
                   "auth_navigation_destination",
                   "/(tabs)/play"
                 );

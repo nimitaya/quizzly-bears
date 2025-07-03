@@ -1,231 +1,243 @@
 import axios from "axios";
 import Config from "react-native-config";
-import { Category, Difficulty, QuizQuestion } from "../types";
+import { Category, Difficulty } from "../types";
 import { QuestionStructure, AiQuestions } from "@/utilities/quiz-logic/data";
 
 const GROQ_API_URL =
   Config.GROQ_API_URL || "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_API_KEY =
-  Config.GROQ_API_KEY ||
-  "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";
+  Config.GROQ_API_KEY || "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";
+  console.log("GROQ_API_KEY:", Config.GROQ_API_KEY);
+  
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const optionKeys = ["optionA", "optionB", "optionC", "optionD"];
+let lastCorrectIndex = -1;
+let repeatCount = 0;
+
+function getNextCorrectOption(): string {
+  let nextIndex: number;
+  do {
+    nextIndex = Math.floor(Math.random() * 4);
+    if (nextIndex === lastCorrectIndex) {
+      repeatCount++;
+    } else {
+      repeatCount = 0;
+    }
+  } while (repeatCount > 1); // Vermeide zu viele Wiederholungen
+
+  lastCorrectIndex = nextIndex;
+  return optionKeys[nextIndex];
+}
 
 //========================Funktion zum Generieren mehrerer Quizfragen==================
 export const generateMultipleQuizQuestions = async (
   topic: string, // NEU: Thema anstelle von Kategorie
   difficulty: Difficulty,
-  questionCount: number = 10
-  ): Promise<AiQuestions> => {
+  questionCount: number = 10 | 11
+): Promise<AiQuestions> => {
+  await delay(5000); // Warte 1 Sekunde vor der Anfrage
   try {
-  const randomSeed = Math.floor(Math.random() * 10000);
-  const timestamp = Date.now();
-  const questionTypes = [
-  "konzeptionell",
-  "praktisch", 
-  "analytisch",
-  "anwendungsbezogen",
-  ];
+    const randomSeed = Math.floor(Math.random() * 10000);
+    const timestamp = Date.now();
+    const questionTypes = [
+      "konzeptionell",
+      "praktisch",
+      "analytisch",
+      "anwendungsbezogen",
+    ];
+
+    const prompt = `Du bist ein Generator für Bildungsquiz-Fragen.
+  SPEZIFISCHE ANWEISUNGEN:
+  - Erstelle GENAU ${questionCount} völlig NEUE UND EINZIGARTIGE Fragen über das spezifische Thema: "${topic}"
+  - Schwierigkeitsgrad: ${difficulty}
   
-
-// ============== SONJA PROMPT ==============
-const prompt = `Du bist ein Generator für hochwertige Bildungsquiz-Fragen.
-
-AUFGABE:
-Erstelle GENAU ${questionCount} völlig neue, originelle Fragen zum Thema "${topic}" mit dem Schwierigkeitsgrad "${difficulty}". Verwende dabei abwechslungsreiche Fragetypen: ${questionTypes.join(', ')}.
-
-FORMAT:
-Antworte ausschließlich mit einem JSON-Array im folgenden Format:
-[
+  - SCHWIERIGKEITSGRADE (ERKLÄRUNG):
+  
+  - easy (einfach):
+  • Zielgruppe: Anfänger:innen, Kinder, Laien
+  • Fragen mit offensichtlicher Antwort oder Basiswissen
+  • Antwort erkennbar ohne Fachwissen
+  • Keine Fachbegriffe, keine Mehrdeutigkeit
+  • Beispiele: „Wie viele Beine hat ein Hund?“ oder „Wer war der erste Mensch auf dem Mond?“
+  
+  - medium (mittel):
+  • Zielgruppe: Fortgeschrittene, interessierte Laien
+  • Allgemeinbildung, schulisches Wissen, kontextbezogen
+  • Braucht etwas Nachdenken oder Kontextkenntnis
+  • Beispiele: „Welche chemische Formel hat Wasser?“ oder „In welchem Jahr fiel die Berliner Mauer?“
+  
+  - hard (schwierig):
+  • Zielgruppe: Expert:innen, Studierende, Fachleute
+  • Komplexes Fachwissen, seltene Details, tiefes Verständnis
+  • Erfordert Analyse, Vergleich oder konkretes Wissen über Teilaspekte
+  • Beispiele: „Welche Rolle spielte das Phlogiston in der frühen Chemietheorie?“ oder „Was unterscheidet den Utilitarismus von der Deontologie?“
+  - Verwende verschiedene Fragetypen: ${questionTypes.join(", ")}
+  - Referenznummer: ${randomSeed}
+  - Zeitstempel: ${timestamp}
+  
+  WICHTIGE FOKUSSIERUNG:
+  - ALLE Fragen müssen DIREKT mit "${topic}" zu tun haben
+  - Verwende spezifische Details, Charaktere, Ereignisse oder Aspekte von "${topic}"
+  - Die Fragen sollen das Wissen über "${topic}" testen, nicht nur allgemeine Kenntnisse
+  - Korrekte option muss immer in einer anderen Position sein
+  
+  VALIDIERUNGSCHECK:
+  Bevor du antwortest, überprüfe:
+  - Haben alle ${questionCount} Fragen nur EINE korrekte Antwort?
+  - Sind die korrekten Antworten auf optionA, optionB, optionC, optionD verteilt?
+  - Steht NICHT jede korrekte Antwort bei optionA?
+  WEITERE REGELN:
+  - Jede Frage muss VÖLLIG ANDERS sein als alle anderen
+  - Die Frage darf maximal 120 Zeichen lang sein
+  - Die Antwortoptionen müssen klar und eindeutig sein. Weniger als 50 Zeichen pro Option
+  - Alle falschen Antworten müssen plausibel aber eindeutig falsch sein
+  
+  FORMAT:
+  Antworte NUR mit einem JSON-Objekt im folgenden Format:
   {
-    "question": {
-      "de": "Frage auf Deutsch (max. 120 Zeichen)",
-      "en": "Question in English (max. 120 characters)"
-    },
-    "optionA": {
-      "isCorrect": true/false,
-      "de": "Antwort A auf Deutsch (max. 50 Zeichen)",
-      "en": "Answer A in English (max. 50 characters)"
-    },
-    "optionB": { ... },
-    "optionC": { ... },
-    "optionD": { ... }
+  "category": "${topic}",
+  "questionArray": [
+  {
+  "question": {
+  "de": "Frage auf Deutsch",
+  "en": "Question in English"
+  },
+  "optionA": { "isCorrect": true/false, "en": "Antwort in Englisch", "de": "Antwort auf Deutsch" },
+  "optionB": { "isCorrect": true/false, "en": "Antwort in Englisch", "de": "Antwort auf Deutsch" },
+  "optionC": { "isCorrect": true/false, "en": "Antwort in Englisch", "de": "Antwort auf Deutsch" },
+  "optionD": { "isCorrect": true/false, "en": "Antwort in Englisch", "de": "Antwort auf Deutsch" }
   },
   ...
-]
-
-REGELN:
-- ${questionCount} Fragen exakt, keine mehr oder weniger
-- Nur EINE Antwort pro Frage darf isCorrect: true sein
-- Die richtige Antwort muss zufällig auf A, B, C oder D verteilt sein und muss die korrekte Antwort auf die Frage sein
-- Alle Antwortoptionen müssen plausibel, eindeutig und unterscheidbar sein
-- Es dürfen KEINE doppelten oder sinngleichen Antwortoptionen auftreten. Jede Option muss einzigartig, eindeutig und sinnvoll unterscheidbar sein.
-- Fragen dürfen sich **nicht** ähneln: verschiedene Zahlen, Konzepte, Beispiele
-- Frage max. 120 Zeichen, Antworten je max. 50 Zeichen
-- Bei Mathe: immer andere Zahlen und Rechenarten
-- Bei Geschichte: verschiedene Epochen, Personen, Ereignisse
-- Keine Duplikate oder inhaltlichen Wiederholungen
-- Die anderen Sprachen sollen natürlich und lokalisiert sein, **keine** Wort für Wort Übersetzung
-
-METADATEN:
-- Referenznummer: ${randomSeed}
-- Zeitstempel: ${timestamp}
-
-WICHTIG:
-Antworte ausschließlich mit dem JSON-Array, ohne Erläuterungen, Kommentare oder zusätzlichen Text.
-`;
-// ==========================================
-
-  // const prompt = `Du bist ein Generator für Bildungsquiz-Fragen.
-
-  // SPEZIFISCHE ANWEISUNGEN:
-  // - Erstelle GENAU ${questionCount} völlig NEUE UND EINZIGARTIGE Fragen über das spezifische Thema: "${topic}"
-  // - Schwierigkeitsgrad: ${difficulty}
-  // - Verwende verschiedene Fragetypen: ${questionTypes.join(', ')}
-  
-  // WICHTIGE FOKUSSIERUNG:
-  // - ALLE Fragen müssen DIREKT mit "${topic}" zu tun haben
-  // - Verwende spezifische Details, Charaktere, Ereignisse oder Aspekte von "${topic}"
-  // - Die Fragen sollen das Wissen über "${topic}" testen, nicht nur allgemeine Kenntnisse
-  
-  // BEISPIELE FÜR SPEZIFISCHE FRAGEN:
-  // - Wenn "${topic}" = "Harry Potter": Frage nach Charakteren wie Hermione, Zaubersprüchen wie Expelliarmus, Häusern wie Gryffindor
-  // - Wenn "${topic}" = "Einstein": Frage nach E=mc², Relativitätstheorie, Nobelpreis
-  // - Wenn "${topic}" = "Fußball": Frage nach FIFA, Weltmeisterschaft, bekannten Spielern
-  
-  // WEITERE REGELN:
-  // - Jede Frage muss VÖLLIG ANDERS sein als alle anderen
-  // - Verwende verschiedene Konzepte, Zahlen, Beispiele und Ansätze
-  // - Die Frage darf maximal 120 Zeichen lang sein
-  // - Die Antwortoptionen müssen klar und eindeutig sein. Weniger als 50 Zeichen pro Option
-  
-  // Du musst GENAU in diesem JSON-Array-Format antworten:
-  // [
-  // {
-  // "question": {
-  // "de": "Spezifische Frage über ${topic} auf Deutsch",
-  // "en": "Specific question about ${topic} in English"
-  // },
-  // "optionA": {
-  // "isCorrect": true,
-  // "de": "Korrekte Antwort auf Deutsch",
-  // "en": "Correct answer in English"
-  // },
-  // "optionB": {
-  // "isCorrect": false,
-  // "de": "Falsche Antwort auf Deutsch", 
-  // "en": "Wrong answer in English"
-  // },
-  // "optionC": {
-  // "isCorrect": false,
-  // "de": "Falsche Antwort auf Deutsch",
-  // "en": "Wrong answer in English"
-  // },
-  // "optionD": {
-  // "isCorrect": false,
-  // "de": "Falsche Antwort auf Deutsch",
-  // "en": "Wrong answer in English"
-  // }
-  // }
-  // ]
-  
-  // REGELN:
-  // - Generiere GENAU ${questionCount} Fragen im Array
-  // - Nur eine Option pro Frage darf "isCorrect: true" sein
-  // - Alle Optionen müssen unterschiedlich und plausibel sein
-  // - Konzentriere dich ausschließlich auf "${topic}"
-  // - Antworte NUR mit dem JSON-Array, ohne zusätzlichen Text`;
-  
-  const response = await axios.post(
-  GROQ_API_URL,
-  {
-  model: "llama3-8b-8192",
-  messages: [
-  {
-  role: "user",
-  content: prompt,
-  },
-  ],
-  temperature: 0.9,
-  max_tokens: 3000, 
-  top_p: 0.9,
-  frequency_penalty: 0.8, 
-  presence_penalty: 0.6, 
-  },
-  {
-  headers: {
-  Authorization: `Bearer ${GROQ_API_KEY?.trim() || ""}`,
-  "Content-Type": "application/json",
-  },
+  ]
   }
-  );
-  
-  let responseContent = response.data.choices[0].message.content;
-  //wir suchen nach den ersten Satz, den die KI generiert hat
-  const jsonStartIndex = responseContent.indexOf("[");
 
-  responseContent = responseContent.replace(/```json\n?/g, "");
-  responseContent = responseContent.replace(/```\n?/g, "");
-  responseContent = responseContent.substring(jsonStartIndex).trim(); // Entferne alles vor dem JSON-Array
-  console.log("API Response for Multiple Questions:", response.data);
-  
-  const questionsData = JSON.parse(responseContent);
-  console.log("Parsed Questions Data:", questionsData);
-  
-  // Array validieren
-  if (!Array.isArray(questionsData)) {
+  REGELN:
+  - Generiere GENAU ${questionCount} Fragen im Array
+  - RANDOMISIERE die Position der korrekten Antwort in jeder Frage
+  - Verteile die korrekten Antworten ungefähr gleichmäßig auf optionA, optionB, optionC, optionD
+  - Alle Optionen müssen unterschiedlich und plausibel sein
+  - Jede Frage muss völlig originell und unterschiedlich sein
+  - Konzentriere dich ausschließlich auf "${topic}"
+  - Antworte NUR mit dem JSON-Array, ohne zusätzlichen Text am ende des Arrays
+  - WICHTIG: Kopiere NICHT einfach die Struktur aus den Beispielen. Generiere jede Frage ORIGINAL, mit zufälliger aber kontrollierter Platzierung der richtigen Antwort gemäß der obigen Tabelle.
+  - Keine zusätzlichen Erklärungen oder Kommentare`;
+
+    const response = await axios.post(
+      GROQ_API_URL,
+      {
+        model: "llama3-8b-8192",
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.9,
+        max_tokens: 3000,
+        top_p: 0.9,
+        frequency_penalty: 0.8,
+        presence_penalty: 0.6,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${GROQ_API_KEY?.trim() || ""}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    let responseContent = response.data.choices[0].message.content;
+
+// Log the raw response content for debugging
+console.log("Response Content:", responseContent);
+
+// Zusätzliche Bereinigung des Outputs
+responseContent = responseContent.replace(/```json\n?/g, "");
+responseContent = responseContent.replace(/```\n?/g, "");
+
+// JSON-Array extrahieren
+const jsonMatch = responseContent.match(/\[\s*{[\s\S]*?}\s*\]/);
+
+if (!jsonMatch) {
+  console.error("Kein gültiges JSON-Array im Modell-Output gefunden:", responseContent);
+  throw new Error(`Ungültige Antwort vom Modell: ${responseContent}`);
+}
+
+const cleanJson = jsonMatch[0].trim();
+console.log("Sauberes JSON:", cleanJson);
+
+const questionsData = JSON.parse(cleanJson);
+
+// ist JSON ein Array?
+if (!Array.isArray(questionsData)) {
   throw new Error("Response ist kein Array");
-  }
-  
-  // Validierung jeder Frage
-  const validatedQuestions: QuestionStructure[] = [];
-  for (let i = 0; i < questionsData.length; i++) {
-  const questionData = questionsData[i];
-  if (
-  !questionData.question ||
-  typeof questionData.question.de !== "string" ||
-  typeof questionData.question.en !== "string" ||
-  !questionData.optionA ||
-  !questionData.optionB ||
-  !questionData.optionC ||
-  !questionData.optionD ||
-  typeof questionData.optionA.de !== "string" ||
-  typeof questionData.optionA.en !== "string" ||
-  typeof questionData.optionB.de !== "string" ||
-  typeof questionData.optionB.en !== "string" ||
-  typeof questionData.optionC.de !== "string" ||
-  typeof questionData.optionC.en !== "string" ||
-  typeof questionData.optionD.de !== "string" ||
-  typeof questionData.optionD.en !== "string"
-  ) {
-  console.warn(`Frage ${i + 1} hat ungültiges Format, überspringe...`);
-  continue;
-  }
-  
-  validatedQuestions.push({
-  question: questionData.question,
-  optionA: questionData.optionA,
-  optionB: questionData.optionB,
-  optionC: questionData.optionC,
-  optionD: questionData.optionD,
-  });
-  }
-  
-  if (validatedQuestions.length === 0) {
-  throw new Error("Keine gültigen Fragen generiert");
-  }
-  
-  console.log(`${validatedQuestions.length} valide Fragen generiert für Thema: ${topic}`);
-  return {
-  category: topic, // NEUIGKEIT: Kategorie ist jetzt das Thema
-  questionArray: validatedQuestions,
-  };
-  
+}
+
+    // Validierung jeder Frage
+    const validatedQuestions: QuestionStructure[] = [];
+    for (let i = 0; i < questionsData.length; i++) {
+      const questionData = questionsData[i];
+      if (
+        !questionData.question ||
+        typeof questionData.question.de !== "string" ||
+        typeof questionData.question.en !== "string" ||
+        !questionData.optionA ||
+        !questionData.optionB ||
+        !questionData.optionC ||
+        !questionData.optionD ||
+        typeof questionData.optionA.de !== "string" ||
+        typeof questionData.optionA.en !== "string" ||
+        typeof questionData.optionB.de !== "string" ||
+        typeof questionData.optionB.en !== "string" ||
+        typeof questionData.optionC.de !== "string" ||
+        typeof questionData.optionC.en !== "string" ||
+        typeof questionData.optionD.de !== "string" ||
+        typeof questionData.optionD.en !== "string"
+      ) {
+        console.warn(`Frage ${i + 1} hat ungültiges Format, überspringe...`);
+        continue;
+      }
+      const correctKey = getNextCorrectOption();
+
+      const question = {
+        question: questionData.question,
+        optionA: {
+          ...questionData.optionA,
+          isCorrect: correctKey === "optionA",
+        },
+        optionB: {
+          ...questionData.optionB,
+          isCorrect: correctKey === "optionB",
+        },
+        optionC: {
+          ...questionData.optionC,
+          isCorrect: correctKey === "optionC",
+        },
+        optionD: {
+          ...questionData.optionD,
+          isCorrect: correctKey === "optionD",
+        },
+      };
+
+      validatedQuestions.push(question);
+    }
+//=================immer 10 Fragen und nicht 11
+    const finalQuestions = validatedQuestions.slice(0, questionCount);
+    console.log(
+      `${finalQuestions.length} valide Fragen generiert für Thema: ${topic}`
+    );
+    return {
+      category: topic, // NEUIGKEIT: Kategorie ist jetzt das Thema
+      questionArray: validatedQuestions,
+    };
   } catch (error) {
-  console.error("Fehler beim Generieren mehrerer Fragen:", error);
-  throw new Error(
-  "Mehrere Fragen konnten nicht generiert werden. Versuche es erneut."
-  );
+    console.error("Fehler beim Generieren mehrerer Fragen:", error);
+    throw new Error(
+      "Mehrere Fragen konnten nicht generiert werden. Versuche es erneut."
+    );
   }
-  };
+};
 
 // Kategorien für die Kategorisierung
 const PREDEFINED_CATEGORIES: Category[] = [
@@ -284,7 +296,7 @@ Antwort:`;
           },
         ],
         temperature: 0.1, // Niedrige Temperature für konsistente Ergebnisse
-        max_tokens: 50,
+        max_tokens: 300,
         top_p: 0.9,
       },
       {
@@ -296,10 +308,10 @@ Antwort:`;
     );
 
     let categorizedResult = response.data.choices[0].message.content.trim();
-    
+
     // Sicherstellen, dass die Antwort eine gültige Kategorie ist
     const foundCategory = PREDEFINED_CATEGORIES.find(
-      category => category.toLowerCase() === categorizedResult.toLowerCase()
+      (category) => category.toLowerCase() === categorizedResult.toLowerCase()
     );
 
     if (foundCategory) {
@@ -307,13 +319,13 @@ Antwort:`;
     } else {
       // Fallback: Versuche eine Ähnlichkeitssuche
       const similarCategory = PREDEFINED_CATEGORIES.find(
-        category => categorizedResult.toLowerCase().includes(category.toLowerCase()) ||
-                   category.toLowerCase().includes(categorizedResult.toLowerCase())
+        (category) =>
+          categorizedResult.toLowerCase().includes(category.toLowerCase()) ||
+          category.toLowerCase().includes(categorizedResult.toLowerCase())
       );
-      
+
       return similarCategory || "Culture"; // Default fallback
     }
-
   } catch (error) {
     console.error("Error categorizing topic:", error);
     // Fallback zu einer Standard-Kategorie

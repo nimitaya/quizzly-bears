@@ -8,10 +8,7 @@ import { StyleSheet } from "react-native";
 import { SearchInput } from "@/components/Inputs";
 import { RadioButton } from "@/components/RadioButton";
 import { useEffect, useState } from "react";
-import {
-  saveDataToCache,
-  loadCacheData,
-} from "@/utilities/cacheUtils";
+import { saveDataToCache, loadCacheData } from "@/utilities/cacheUtils";
 import {
   QuizSettings,
   PlayStyle,
@@ -29,12 +26,12 @@ const LEVELS = [
 ];
 const PREDEFINED_CATEGORIES = [
   "History",
-  "Science", 
+  "Science",
   "Sports",
   "Geography",
   "Media",
   "Culture",
-  "Daily life"
+  "Daily life",
 ];
 
 const cacheKey = CACHE_KEY.quizSettings;
@@ -45,6 +42,8 @@ const CategoryScreen = () => {
   const [selectedTopic, setSelectedTopic] = useState<string>("");
   const [playStyle, setPlayStyle] = useState<PlayStyle>("solo");
   const [suggestedCategory, setSuggestedCategory] = useState<string>("");
+  const [isMultiplayerMode, setIsMultiplayerMode] = useState(false);
+  const [roomInfo, setRoomInfo] = useState<any>(null);
 
   // ---------- FUNCTIONS ----------
   const sendInformationToCache = async (category: string, topic?: string) => {
@@ -61,29 +60,46 @@ const CategoryScreen = () => {
     }
   };
 
-  // Set the selected category, call cache function and navigate to StartQuizScreen
+  // Set the selected category, call cache function and navigate accordingly
   const handleChosenCategory = async (category: string) => {
     let finalCategory = category;
     let specificTopic = category;
-  
-    // user eingibt ein Thema, das kategorisiert werden muss
+
+    // User enters a topic that needs to be categorized
     if (category === selectedTopic && selectedTopic.trim()) {
       try {
         finalCategory = await categorizeTopic(selectedTopic);
         specificTopic = selectedTopic;
-        console.log(`Thema "${selectedTopic}" wird als: ${finalCategory} kategorisiert.`);
+        console.log(
+          `Topic "${selectedTopic}" categorized as: ${finalCategory}`
+        );
       } catch (error) {
         console.error("Error categorizing topic:", error);
         finalCategory = "Culture"; // Fallback
-        specificTopic = selectedTopic; // Behalte das eingegebene Thema bei obwol es nicht kategorisiert werden konnte
+        specificTopic = selectedTopic; // Keep the entered topic even if categorization failed
       }
     }
-    
+
     setSelectedTopic(selectedTopic || finalCategory);
-    sendInformationToCache(finalCategory, specificTopic);
-    router.push("/(tabs)/play/StartQuizScreen");
+    await sendInformationToCache(finalCategory, specificTopic);
+
+    if (isMultiplayerMode && roomInfo) {
+      // Save selected category to room info for multiplayer
+      const updatedRoomInfo = {
+        ...roomInfo,
+        selectedCategory: finalCategory,
+        selectedTopic: specificTopic,
+      };
+      await saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
+      
+      // For multiplayer admin, go back to lobby with selected category
+      router.push("/(tabs)/play/MultiplayerLobby");
+    } else {
+      // For solo mode, go to StartQuizScreen as before
+      router.push("/(tabs)/play/StartQuizScreen");
+    }
   };
-  
+
   //vadim: auto analyze wenn user hat aufgehört zu tippen, wichtig JA / NEIN? Mal prüfen
   useEffect(() => {
     if (selectedTopic.trim().length >= 3) {
@@ -110,6 +126,16 @@ const CategoryScreen = () => {
         const cachedQuizSpecs = await loadCacheData(cacheKey);
         if (cachedQuizSpecs) {
           setPlayStyle(cachedQuizSpecs.quizPlayStyle);
+        }
+
+        // Check if we're in multiplayer mode
+        const cachedRoomInfo = await loadCacheData(CACHE_KEY.currentRoom);
+        if (
+          cachedRoomInfo &&
+          (cachedRoomInfo.isAdmin || cachedRoomInfo.isHost)
+        ) {
+          setIsMultiplayerMode(true);
+          setRoomInfo(cachedRoomInfo);
         }
       } catch (error) {
         console.error("Failed to load data from cache:", error);
@@ -147,7 +173,7 @@ const CategoryScreen = () => {
         </View>
         <View style={styles.searchToticBlock}>
           <SearchInput
-            placeholder="Your topic ..."
+            placeholder="your topic ..."
             value={selectedTopic}
             onChangeText={(text: string) => setSelectedTopic(text)}
           />

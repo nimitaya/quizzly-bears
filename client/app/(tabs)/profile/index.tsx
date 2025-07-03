@@ -14,6 +14,7 @@ import { Toggle } from "@/components/Toggle";
 import { ButtonSecondary } from "@/components/Buttons";
 import { useRouter } from "expo-router";
 import GreetingsScreen from "./GreetngsScreen";
+import { resetOnboarding } from "@/providers/OnboardingProvider";
 
 const ProfileScreen = () => {
   const router = useRouter();
@@ -27,6 +28,19 @@ const ProfileScreen = () => {
     null
   );
   const { user } = useUser();
+
+  // Function to test onboarding
+  const handleShowOnboarding = async () => {
+    try {
+      await resetOnboarding();
+      router.push({
+        pathname: "/onboarding",
+      } as any);
+    } catch (error) {
+      console.error("Error resetting onboarding:", error);
+    }
+  };
+
   // Check for password reset flag on mount and refresh
   useEffect(() => {
     let isMounted = true;
@@ -171,6 +185,10 @@ const ProfileScreen = () => {
         <ButtonSecondary
           text="FAQ"
           onPress={() => router.push("/profile/FaqScreen")}
+        />
+        <ButtonSecondary
+          text="Show Onboarding"
+          onPress={handleShowOnboarding}
         />
       </View>
     </ScrollView>

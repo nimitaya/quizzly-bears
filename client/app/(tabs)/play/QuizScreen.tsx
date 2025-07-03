@@ -19,7 +19,7 @@ import { Logo } from "@/components/Logos";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
-import IconArrowBack from "@/assets/icons/IconArrowBack";
+import IconClose from "@/assets/icons/IconClose";
 import TimerBar from "@/components/TimerBar";
 import { clearCacheData, CACHE_KEY } from "@/utilities/cacheUtils";
 import CustomAlert from "@/components/CustomAlert";
@@ -32,7 +32,6 @@ const QuizLogic = () => {
     gameState,
     answerState,
     readTimer,
-    remainingTime,
     pointsState,
     showResult,
     handleAnswerSelect,
@@ -103,7 +102,7 @@ const QuizLogic = () => {
           <Logo size="big" />
           <View style={styles.resultsContainer}>
             <Text style={{ fontSize: FontSizes.H1Fs, fontWeight: "bold" }}>
-              Cool!
+              Well done!
             </Text>
 
             <View style={styles.pointsRow}>
@@ -123,6 +122,13 @@ const QuizLogic = () => {
               <IconCheckbox />
               <Text style={styles.pointsText}>
                 Plus extra {pointsState.timePoints} Timing-Points
+              </Text>
+            </View>
+          <View style={styles.pointsRow}>
+              <IconCheckbox />
+              <Text style={styles.pointsText}>
+                Correct questions:{" "}
+                {pointsState.chosenCorrect} out of {pointsState.totalAnswers}
               </Text>
             </View>
           </View>
@@ -146,22 +152,22 @@ const QuizLogic = () => {
         >
           {/* ---------- BACK BUTTON ---------- */}
           <TouchableOpacity
-            style={styles.backButton}
+            style={styles.closeButton}
             onPress={() => handleBackButton()}
             accessibilityLabel="Go back"
           >
-            <IconArrowBack />
+            <IconClose />
           </TouchableOpacity>
 
           {/* ---------- ALERT ---------- */}
           <CustomAlert
             visible={showAlert}
-            onClose={handleCloseAlert}
+            onClose={handleConfirmAlert}
             title="Quit game"
             message="Do you really want to leave?"
-            cancelText="Continue"
-            confirmText="Quit"
-            onConfirm={handleConfirmAlert}
+            cancelText="Quit"
+            confirmText="Continue"
+            onConfirm={handleCloseAlert}
             noInternet={false}
           />
 
@@ -253,10 +259,10 @@ const styles = StyleSheet.create({
     marginVertical: Gaps.g80,
   },
 
-  backButton: {
+  closeButton: {
     position: "absolute",
     top: -8,
-    left: 16,
+    right: 16,
     zIndex: 10,
   },
   questionNumber: {

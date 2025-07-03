@@ -83,9 +83,9 @@ export default function ForgotPassword() {
   };
 
   // Go back to login screen
-  const goBack = () => {
+  const goBack = async () => {
     if (!isMountedRef.current) return;
-    AsyncStorage.removeItem("auth_error").catch(() => {});
+    await AsyncStorage.removeItem("auth_error").catch(() => {});
     setTimeout(() => {
       try {
         router.push("/LogIn");
@@ -94,12 +94,15 @@ export default function ForgotPassword() {
           try {
             router.replace("/LogIn");
           } catch {
-            setTimeout(() => {
+            setTimeout(async () => {
               try {
                 router.replace("/(auth)/LogIn");
               } catch {
-                AsyncStorage.setItem("auth_navigation_pending", "true");
-                AsyncStorage.setItem("auth_navigation_destination", "/LogIn");
+                await AsyncStorage.setItem("auth_navigation_pending", "true");
+                await AsyncStorage.setItem(
+                  "auth_navigation_destination",
+                  "/LogIn"
+                );
               }
             }, 100);
           }
