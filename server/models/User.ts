@@ -50,6 +50,7 @@ export interface IPushToken {
 }
 
 export interface IUser extends Document {
+  _id: Types.ObjectId;
   clerkUserId: string;
   username?: string;
   email: string;

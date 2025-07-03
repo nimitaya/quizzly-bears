@@ -269,7 +269,9 @@ const ProfilFriendsScreen = () => {
                 onPress={() => handleDeclineFriendRequest(item._id)}
                 style={styles.iconButton}
               >
+
                 <IconDismiss />
+
               </TouchableOpacity>
             </View>
           </View>
