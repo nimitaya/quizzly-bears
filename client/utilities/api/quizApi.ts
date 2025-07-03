@@ -7,7 +7,7 @@ const GROQ_API_URL =
   Config.GROQ_API_URL || "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_API_KEY =
   Config.GROQ_API_KEY ||
-  "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";
+  "";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
