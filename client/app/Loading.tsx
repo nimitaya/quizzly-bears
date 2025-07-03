@@ -1,16 +1,33 @@
 import React, { useEffect } from "react";
-import { View, StyleSheet, Image } from "react-native";
-import { Logo } from "@/components/Logos";
-import { Gaps, Colors } from "@/styles/theme";
+import { View, StyleSheet } from "react-native";
+import { Colors } from "@/styles/theme";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import QuizLoader from "@/components/QuizLoader";
 
 const LoadingOverlay = () => {
-  const { isGloballyLoading } = useGlobalLoading();
+  const { isGloballyLoading, showLoading } = useGlobalLoading();
   const router = useRouter();
   const params = useLocalSearchParams();
   const returnTo = (params.returnTo as string) || null;
+
+  const handleLoaderComplete = async () => {
+    // Get the lastScreen from storage if no returnTo is provided
+    let destination = returnTo;
+    if (!destination) {
+      try {
+        destination =
+          (await AsyncStorage.getItem("last_screen")) || "/(tabs)/play";
+      } catch (err) {
+        destination = "/(tabs)/play";
+      }
+    }
+    
+    setTimeout(() => {
+      router.replace(destination as any);
+    }, 1500);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -45,16 +62,10 @@ const LoadingOverlay = () => {
 
   return (
     <View style={styles.overlay}>
-      <View style={styles.container}>
-        <Logo size="big" />
-        <Image
-          source={{
-            uri: "https://media.tenor.com/On7kvXhzml4AAAAj/loading-gif.gif",
-          }}
-          style={{ width: 100, height: 100, alignSelf: "center" }}
-          accessibilityLabel="Loading animation"
-        />
-      </View>
+      <QuizLoader
+        onComplete={handleLoaderComplete}
+        minDuration={3000} // 3 Sekunden für den Loader
+      />
     </View>
   );
 };
@@ -68,13 +79,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: Colors.bgGray,
+    backgroundColor: Colors.white,
     zIndex: 9999,
-  },
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Gaps.g40,
   },
 });
