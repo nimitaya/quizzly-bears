@@ -1,5 +1,7 @@
+import { User, FriendStatus, FriendItemProps } from "@/utilities/friendInterfaces";
 import { View, Text } from "react-native";
-const FriendItem = ({ friend, onPressOne, onPressTwo, friendStatus }) => {
+
+const FriendItem = ({ friend, onPressOne, onPressTwo, friendStatus }: FriendItemProps) => {
   return (
     <View>
       <Text>{friend.email}</Text>
@@ -16,4 +18,5 @@ const FriendItem = ({ friend, onPressOne, onPressTwo, friendStatus }) => {
     </View>
   );
 };
+
 export default FriendItem;
