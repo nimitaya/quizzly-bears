@@ -12,6 +12,8 @@ import { Difficulty } from "@/utilities/types";
 import { PlayStyle } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { CACHE_KEY } from "@/utilities/cacheUtils";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
+import QuizLoader from "@/components/QuizLoader";
+import { aiQuestions } from "@/utilities/quiz-logic/data";
 
 const StartQuizScreen = () => {
   const router = useRouter();
@@ -22,8 +24,8 @@ const StartQuizScreen = () => {
   const [category, setCategory] = useState<string>("");
   const [playStyle, setPlayStyle] = useState<PlayStyle>("solo");
   const [rounds, setRounds] = useState(10);
-  //vadim
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const [showLoader, setShowLoader] = useState(false);
   const { withLoading, isGloballyLoading } = useGlobalLoading();
 
   // ---------- Functions ----------
@@ -41,27 +43,7 @@ const StartQuizScreen = () => {
       console.error("Failed to load data from cache:", error);
     }
   };
-  // IMPORTANT
 
-  //Alte Code: diese Funktion hat Timing Probleme, da sie die Seite wechselt, bevor die Fragen generiert werden und deswegen werden die dummy data benutzt für die erste Frage
-  /*const handleStartQuiz = async (
-topic: string,
-level: Difficulty,
-rounds: number
-) => {
-try {
-router.push("/(tabs)/play/QuizScreen");
-const questions = await generateMultipleQuizQuestions(
-topic,
-level,
-rounds
-);
-console.log("Generated Questions:", questions);
-saveDataToCache(cacheAi, questions);
-} catch (error) {}
-};*/
-
-  //neue Code, die Funktion von oben wurde geändert, damit sie die Fragen generiert, bevor die Seite gewechselt wird
   // IMPORTANT - Función handleStartQuiz corregida
   const handleStartQuiz = async (
     topic: string,
@@ -69,7 +51,9 @@ saveDataToCache(cacheAi, questions);
     rounds: number
   ) => {
     try {
-      setIsGeneratingQuestions(true); // loadiing state
+      console.log("Starting quiz generation...");
+      setIsGeneratingQuestions(true);
+      setShowLoader(true); // Zeige den Loader
 
       // wir benutzen die Data aus dem Cache, um das Thema zu bekommen
       const cachedInfo = await loadCacheData(cacheKey);
@@ -80,22 +64,63 @@ saveDataToCache(cacheAi, questions);
       );
 
       //  WICHTIG: IA muss fertig sein, um weiter zu gehenm
-      const questions = await generateMultipleQuizQuestions(
+      const questionsData = await generateMultipleQuizQuestions(
         specificTopic,
         level,
         rounds
       );
 
-      console.log("Generated Questions:", questions);
-      await saveDataToCache(cacheAi, questions); // Esperar a que se guarde
+      console.log("Generated Questions Data:", questionsData);
+      console.log("Questions array length:", questionsData.questionArray?.length);
+      
+      // Die API gibt bereits AiQuestions zurück, speichere direkt
+      await saveDataToCache(cacheAi, questionsData);
+      console.log("Questions saved to cache successfully");
 
-      // JETZT SEITE WECHSELN!!
-      router.push("/(tabs)/play/QuizScreen");
+      // Loader läuft mindestens 6 Sekunden, auch wenn KI schneller ist
+      // Der onComplete Callback wird nach dem Countdown aufgerufen
+      // Keine Navigation hier - der Loader macht das
     } catch (error) {
       console.error("Error generating questions:", error);
-    } finally {
-      setIsGeneratingQuestions(false); // loading weg
+      setShowLoader(false);
+      setIsGeneratingQuestions(false);
     }
+  };
+
+  // NEUE FUNKTION: Test-Modus mit Dummy-Daten
+  const handleTestQuiz = async () => {
+    try {
+      console.log("Starting test quiz with dummy data...");
+      setIsGeneratingQuestions(true);
+      setShowLoader(true);
+
+      // Verwende Dummy-Daten statt KI-Anfrage
+      const dummyQuestionsData = {
+        category: topic || "Test",
+        questionArray: aiQuestions.questionArray,
+      };
+
+      console.log("Using dummy questions data:", dummyQuestionsData);
+      console.log("Dummy questions array length:", dummyQuestionsData.questionArray.length);
+      
+      // Speichere Dummy-Daten
+      await saveDataToCache(cacheAi, dummyQuestionsData);
+      console.log("Dummy questions saved to cache successfully");
+
+      // Loader läuft trotzdem 3 Sekunden + Countdown
+    } catch (error) {
+      console.error("Error in test mode:", error);
+      setShowLoader(false);
+      setIsGeneratingQuestions(false);
+    }
+  };
+
+  const handleLoaderComplete = () => {
+    console.log("Loader complete - navigating to QuizScreen");
+    setShowLoader(false);
+    setIsGeneratingQuestions(false);
+    // Navigation zur Quiz-Screen nach dem Loader
+    router.push("/(tabs)/play/QuizScreen");
   };
 
   // ---------- USE EFFECT ----------
@@ -103,6 +128,23 @@ saveDataToCache(cacheAi, questions);
   useEffect(() => {
     fetchCachedQuizSpecs();
   }, []);
+
+  // Reset loader state when component mounts
+  useEffect(() => {
+    setShowLoader(false);
+    setIsGeneratingQuestions(false);
+  }, []);
+
+  // Zeige den Loader wenn aktiv
+  if (showLoader) {
+    return (
+      <QuizLoader
+        key={`loader-${Date.now()}`} // Eindeutiger key für jeden Loader
+        onComplete={handleLoaderComplete}
+        minDuration={10000} // 10 Sekunden für Test
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -147,10 +189,17 @@ saveDataToCache(cacheAi, questions);
       {/* Button Container */}
       <View style={styles.buttonContainer}>
         <ButtonPrimary
-          text="Start"
+          text={isGeneratingQuestions ? "Generating..." : "Start"}
           onPress={() => {
             handleStartQuiz(topic, level, rounds);
           }}
+          disabled={isGeneratingQuestions}
+        />
+        {/* Test-Button für Dummy-Daten */}
+        <ButtonSecondary
+          text="Test Mode (Dummy Data)"
+          onPress={handleTestQuiz}
+          disabled={isGeneratingQuestions}
         />
       </View>
     </View>
