@@ -4,9 +4,36 @@ import { Colors, FontSizes, Gaps } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import { Text, View, ScrollView } from "react-native";
 import { StyleSheet } from "react-native";
+import { useStatistics } from "@/providers/UserProvider";
+import React, { useEffect, useState } from "react";
+import Loading from "../../Loading";
+import CustomAlert from "@/components/CustomAlert";
 
 const PlayScreen = () => {
+  const { topPlayers, loading, totalUsers, userRank } = useStatistics();
   const router = useRouter();
+  const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    if (!topPlayers && !loading) {
+      setShowForm(true);
+    }
+  }, [topPlayers, loading]);
+
+  if (loading) return <Loading />;
+  if (!topPlayers && !loading) {
+    return (
+      <CustomAlert
+        visible={showForm}
+        onClose={() => setShowForm(false)}
+        message="Such user isn't registered yet. Please try again later."
+        cancelText={null}
+        confirmText="OK"
+        noInternet={false}
+      />
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
@@ -20,7 +47,9 @@ const PlayScreen = () => {
           />
         </View>
         <View style={styles.myRankBlock}>
-          <Text style={{ fontSize: FontSizes.H2Fs }}>My Rank: 20 from 115</Text>
+          <Text style={{ fontSize: FontSizes.H2Fs }}>
+            My Rank: {userRank ?? "-"} from {totalUsers ?? "-"}
+          </Text>
         </View>
         <View style={styles.topPlayersBlock}>
           <Text style={{ fontSize: FontSizes.H2Fs }}>Top 10 Players</Text>
@@ -28,38 +57,31 @@ const PlayScreen = () => {
           {/* ============ List of top players ============= */}
           <View style={styles.listTopPlayers}>
             <View>
-              <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-                1. Player dfjhjadhsff
-              </Text>
-              <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-                2. Player dfjhjadhsff
-              </Text>
-              <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-                3. Player dfjhjadhsff
-              </Text>
-              <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-                4. Player dfjhjadhsff
-              </Text>
-              <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-                5. Player dfjhjadhsf
-              </Text>
+              {topPlayers.slice(0, 5).map((player, idx) => {
+                const emailName = player.email
+                  ? player.email.split("@")[0].slice(0, 12)
+                  : "";
+                return (
+                  <Text key={idx} style={{ fontSize: FontSizes.TextLargeFs }}>
+                    {idx + 1}. {emailName} ({player.totalPoints})
+                  </Text>
+                );
+              })}
             </View>
             <View>
-              <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-                6. Playerdgsdfg
-              </Text>
-              <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-                7. Playerdgsdfg
-              </Text>
-              <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-                8. Playerdgsdfg
-              </Text>
-              <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-                9. Playerdgsdfg
-              </Text>
-              <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-                10. Playerdgsdfg
-              </Text>
+              {topPlayers.slice(5, 10).map((player, idx) => {
+                const emailName = player.email
+                  ? player.email.split("@")[0].slice(0, 12)
+                  : "";
+                return (
+                  <Text
+                    key={idx + 5}
+                    style={{ fontSize: FontSizes.TextLargeFs }}
+                  >
+                    {idx + 6}. {emailName} ({player.totalPoints})
+                  </Text>
+                );
+              })}
             </View>
           </View>
         </View>

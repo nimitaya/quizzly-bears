@@ -55,7 +55,6 @@ export interface IUser extends Document {
   email: string;
   points: {
     totalPoints: number;
-    weeklyPoints: number;
     correctAnswers: number;
     totalAnswers: number;
   };
