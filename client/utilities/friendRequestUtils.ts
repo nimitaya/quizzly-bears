@@ -1,22 +1,34 @@
-import { SearchUserResponse, FriendRequestResponse, FriendRequestsResponse, FriendsResponse } from "./friendInterfaces";
+import {
+  SearchUserResponse,
+  FriendRequestResponse,
+  FriendRequestsResponse,
+  FriendsResponse,
+} from "./friendInterfaces";
+import axios from "axios";
 
-const API_BASE_URL = process.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+const API_BASE_URL =
+  process.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 // ======================================== Search for user by email ========================================
 export const searchUserByEmail = async (
   email: string,
   clerkUserId: string
 ): Promise<SearchUserResponse> => {
-  const response = await fetch(
-    `${API_BASE_URL}/friend-request/search?email=${encodeURIComponent(email)}&clerkUserId=${clerkUserId}`
-  );
+  try {
+    const response = await axios.get(`${API_BASE_URL}/friend-request/search`, {
+      params: {
+        email,
+        clerkUserId,
+      },
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to search user");
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    throw new Error("Failed to search user");
   }
-
-  return response.json();
 };
 
 // ======================================== Send friend request ========================================
@@ -24,55 +36,53 @@ export const sendFriendRequest = async (
   clerkUserId: string,
   targetUserId: string
 ): Promise<FriendRequestResponse> => {
-  const response = await fetch(`${API_BASE_URL}/friend-request/send`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+  try {
+    const response = await axios.post(`${API_BASE_URL}/friend-request/send`, {
       clerkUserId,
       targetUserId,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to send friend request");
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    throw new Error("Failed to send friend request");
   }
-
-  return response.json();
 };
 
 // ======================================== Get received friend requests ========================================
 export const getReceivedFriendRequests = async (
   clerkUserId: string
 ): Promise<FriendRequestsResponse> => {
-  const response = await fetch(
-    `${API_BASE_URL}/friend-request/received?clerkUserId=${clerkUserId}`
-  );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to get friend requests");
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}/friend-request/received`,
+      { params: { clerkUserId } }
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    throw new Error("Failed to get received friend requests");
   }
-
-  return response.json();
 };
 
 // ======================================== Get sent friend requests ========================================
 export const getSentFriendRequests = async (
   clerkUserId: string
 ): Promise<FriendRequestsResponse> => {
-  const response = await fetch(
-    `${API_BASE_URL}/friend-request/sent?clerkUserId=${clerkUserId}`
-  );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to get sent friend requests");
+  try {
+    const response = await axios.get(`${API_BASE_URL}/friend-request/sent`, {
+      params: { clerkUserId },
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    throw new Error("Failed to get sent friend requests");
   }
-
-  return response.json();
 };
 
 // ======================================== Accept friend request ========================================
@@ -80,23 +90,18 @@ export const acceptFriendRequest = async (
   clerkUserId: string,
   friendRequestId: string
 ): Promise<{ message: string }> => {
-  const response = await fetch(`${API_BASE_URL}/friend-request/accept`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+  try {
+    const response = await axios.post(`${API_BASE_URL}/friend-request/accept`, {
       clerkUserId,
       friendRequestId,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to accept friend request");
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    throw new Error("Failed to accept friend request");
   }
-
-  return response.json();
 };
 
 // ======================================== Decline friend request ========================================
@@ -104,37 +109,35 @@ export const declineFriendRequest = async (
   clerkUserId: string,
   friendRequestId: string
 ): Promise<{ message: string }> => {
-  const response = await fetch(`${API_BASE_URL}/friend-request/decline`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      clerkUserId,
-      friendRequestId,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to decline friend request");
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/friend-request/decline`,
+      { clerkUserId, friendRequestId }
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    throw new Error("Failed to decline friend request");
   }
-
-  return response.json();
 };
 
 // ======================================== Get user's friends list ========================================
-export const getFriends = async (clerkUserId: string): Promise<FriendsResponse> => {
-  const response = await fetch(
-    `${API_BASE_URL}/friend-request/friends?clerkUserId=${clerkUserId}`
-  );
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to get friends");
+export const getFriends = async (
+  clerkUserId: string
+): Promise<FriendsResponse> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/friend-request/friends`, {
+      params: { clerkUserId },
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    throw new Error("Failed to get friends");
   }
-
-  return response.json();
 };
 
 // ======================================== Remove a friend ========================================
@@ -142,21 +145,21 @@ export const removeFriend = async (
   clerkUserId: string,
   friendId: string
 ): Promise<{ message: string }> => {
-  const response = await fetch(`${API_BASE_URL}/friend-request/remove`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      clerkUserId,
-      friendId,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to remove friend");
+  try {
+    const response = await axios.delete(
+      `${API_BASE_URL}/friend-request/remove`,
+      {
+        data: {
+          clerkUserId,
+          friendId,
+        },
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    throw new Error("Failed to remove friend");
   }
-
-  return response.json();
 };
