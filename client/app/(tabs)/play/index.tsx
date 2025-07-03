@@ -8,11 +8,13 @@ import { useStatistics } from "@/providers/UserProvider";
 import React, { useEffect, useState } from "react";
 import Loading from "../../Loading";
 import CustomAlert from "@/components/CustomAlert";
+import { useUser } from "@clerk/clerk-expo";
 
 const PlayScreen = () => {
   const { topPlayers, loading, totalUsers, userRank } = useStatistics();
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
+  const { user } = useUser();
 
   useEffect(() => {
     if (!topPlayers && !loading) {
@@ -48,7 +50,7 @@ const PlayScreen = () => {
         </View>
         <View style={styles.myRankBlock}>
           <Text style={{ fontSize: FontSizes.H2Fs }}>
-            My Rank: {userRank ?? "-"} from {totalUsers ?? "-"}
+            My Rank: {user ? userRank ?? "-" : "-"} from {totalUsers ?? "-"}
           </Text>
         </View>
         <View style={styles.topPlayersBlock}>

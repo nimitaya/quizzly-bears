@@ -6,9 +6,18 @@ import React, {
   useImperativeHandle,
 } from "react";
 import { useUser, useAuth, useClerk } from "@clerk/clerk-expo";
-import { Text, View, StyleSheet, ActivityIndicator } from "react-native";
+import {
+  Text,
+  View,
+  StyleSheet,
+  ActivityIndicator,
+  TextInput,
+} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors, FontSizes, Gaps } from "@/styles/theme";
+import { useStatistics } from "@/providers/UserProvider";
+import IconEdit from "@/assets/icons/IconEdit";
+import axios from "axios";
 
 // Define the ref type
 export type ClerkSettingsRefType = {
@@ -29,6 +38,9 @@ const GreetingsScreen = forwardRef<
   const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const maxChecksRef = useRef(0);
   const forceSignedInRef = useRef(false);
+  const { currentUsername, setOnChanges, refetch } = useStatistics();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedUsername, setEditedUsername] = useState(currentUsername || "");
 
   // IMPORTANT: First check for password reset on component mount
   useEffect(() => {
@@ -339,16 +351,54 @@ const GreetingsScreen = forwardRef<
     );
   }
 
+  const handleSaveUsername = async () => {
+    if (!editedUsername || editedUsername === currentUsername) {
+      setIsEditing(false);
+      return;
+    }
+    const API_BASE_URL = "http://localhost:3000/api";
+    try {
+      await axios.put(`${API_BASE_URL}/users/${user?.id}`, {
+        username: editedUsername,
+      });
+      setOnChanges(true);
+      setIsEditing(false);
+      refetch[0]();
+    } catch (error) {
+      console.error("Failed to update username", error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       {currentAuthState === "signedIn" ? (
-        <Text style={styles.greeting}>
-          {user?.firstName ||
-            (user?.emailAddresses && user.emailAddresses[0]?.emailAddress) ||
-            "User"}
-        </Text>
+        <View style={styles.greetingcontainer}>
+          {isEditing ? (
+            <TextInput
+              style={styles.input}
+              onChangeText={setEditedUsername}
+              onBlur={handleSaveUsername}
+              autoFocus
+              placeholder={currentUsername || "Your username"}
+              placeholderTextColor={Colors.disable}
+              autoComplete="username"
+              textContentType="username"
+            />
+          ) : (
+            <Text style={styles.greeting}>
+              {currentUsername ||
+                user?.firstName ||
+                user?.emailAddresses?.[0]?.emailAddress ||
+                "User"}
+            </Text>
+          )}
+          <IconEdit
+            onPress={() => setIsEditing(true)}
+            style={{ cursor: "pointer" }}
+          />
+        </View>
       ) : (
-        <Text style={styles.greeting}>Guest</Text>
+        <Text style={styles.greeting}>Guest </Text>
       )}
     </View>
   );
@@ -360,28 +410,17 @@ const styles = StyleSheet.create({
   container: {
     width: "100%",
   },
-  signedInContainer: {
+  greetingcontainer: {
+    flexDirection: "row",
     alignItems: "center",
-    gap: Gaps.g16,
-  },
-  signedOutContainer: {
-    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: Gaps.g24,
+    paddingVertical: Gaps.g16,
     gap: Gaps.g16,
   },
   greeting: {
-    fontSize: FontSizes.H2Fs,
+    fontSize: FontSizes.H3Fs,
     textAlign: "center",
-  },
-  emailText: {
-    fontSize: FontSizes.TextMediumFs,
-  },
-  infoText: {
-    fontSize: FontSizes.TextMediumFs,
-    marginBottom: Gaps.g8,
-  },
-  title: {
-    fontSize: FontSizes.H2Fs,
-    marginBottom: Gaps.g16,
   },
   loadingContainer: {
     padding: Gaps.g24,
@@ -391,6 +430,15 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: FontSizes.TextMediumFs,
+  },
+  input: {
+    fontSize: 18,
+    borderBottomWidth: 1,
+    borderColor: "transparent",
+    paddingVertical: 4,
+    minWidth: 60,
+    paddingHorizontal: 8,
+    textAlign: "center",
   },
 });
 

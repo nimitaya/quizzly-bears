@@ -4,6 +4,7 @@ import { useUser } from "@clerk/clerk-expo";
 import { ButtonSecondary } from "@/components/Buttons";
 import { useClerk } from "@clerk/clerk-expo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useSound } from "@/providers/SoundProvider";
 
 type DeleteAccountButtonProps = {
   onDelete?: () => void;
@@ -17,8 +18,10 @@ const DeleteAccountButton: React.FC<DeleteAccountButtonProps> = ({
   const [showAlert, setShowAlert] = useState(false);
   const [errorAlert, setErrorAlert] = useState<string | null>(null);
   const [reLogIn, setReLogIn] = useState(false);
+  const { playSound } = useSound();
 
   const handleDeleteAccount = () => {
+    playSound("click");
     setShowAlert(true);
   };
 
