@@ -82,10 +82,18 @@ const CategoryScreen = () => {
 
     setSelectedTopic(selectedTopic || finalCategory);
     await sendInformationToCache(finalCategory, specificTopic);
-    
-    if (isMultiplayerMode) {
-      // For multiplayer, go to StartQuizScreen which will handle room updates
-      router.push("/(tabs)/play/StartQuizScreen");
+
+    if (isMultiplayerMode && roomInfo) {
+      // Save selected category to room info for multiplayer
+      const updatedRoomInfo = {
+        ...roomInfo,
+        selectedCategory: finalCategory,
+        selectedTopic: specificTopic,
+      };
+      await saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
+      
+      // For multiplayer admin, go back to lobby with selected category
+      router.push("/(tabs)/play/MultiplayerLobby");
     } else {
       // For solo mode, go to StartQuizScreen as before
       router.push("/(tabs)/play/StartQuizScreen");
@@ -122,7 +130,10 @@ const CategoryScreen = () => {
 
         // Check if we're in multiplayer mode
         const cachedRoomInfo = await loadCacheData(CACHE_KEY.currentRoom);
-        if (cachedRoomInfo && (cachedRoomInfo.isAdmin || cachedRoomInfo.isHost)) {
+        if (
+          cachedRoomInfo &&
+          (cachedRoomInfo.isAdmin || cachedRoomInfo.isHost)
+        ) {
           setIsMultiplayerMode(true);
           setRoomInfo(cachedRoomInfo);
         }

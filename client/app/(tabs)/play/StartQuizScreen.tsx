@@ -69,17 +69,15 @@ saveDataToCache(cacheAi, questions);
     rounds: number
   ) => {
     try {
-      setIsGeneratingQuestions(true); // loadiing state
+      setIsGeneratingQuestions(true); // loading state
 
       // wir benutzen die Data aus dem Cache, um das Thema zu bekommen
       const cachedInfo = await loadCacheData(cacheKey);
       const specificTopic = cachedInfo?.chosenTopic || topic;
+      console.log(`Fragen werden in 5 Sekunden generiert für das spezifische Thema: ${topic}`);
 
-      console.log(
-        `Generiere Fragen für das spezifische Thema: "${specificTopic}"`
-      );
 
-      //  WICHTIG: IA muss fertig sein, um weiter zu gehenm
+      //  WICHTIG: IA muss fertig sein, um weiter zu gehen
       const questions = await generateMultipleQuizQuestions(
         specificTopic,
         level,
