@@ -115,14 +115,36 @@ export function useQuizLogic() {
     try {
       // fetch questions from cache
       let questions = await fetchFromCache(key.aiQuestions);
+      console.log("Loaded questions from cache:", questions);
+      
       if (!questions) {
         // Fallback to dummy data if cache is empty TODO delete later
+        console.log("No questions in cache, using dummy data");
         questions = aiQuestions;
         setCurrQuestionsArray(questions.questionArray);
+      } else {
+        // Check if questions have the right structure
+        if (questions.questionArray && Array.isArray(questions.questionArray)) {
+          console.log("Questions have questionArray structure, length:", questions.questionArray.length);
+          setCurrQuestionsArray(questions.questionArray);
+        } else if (Array.isArray(questions)) {
+          console.log("Questions are direct array, length:", questions.length);
+          setCurrQuestionsArray(questions);
+        } else {
+          console.log("Unknown question structure, using dummy data");
+          questions = aiQuestions;
+          setCurrQuestionsArray(questions.questionArray);
+        }
       }
-      if (currQuestionIndex < questions.questionArray.length) {
+      
+      console.log("Current questions array length:", currQuestionsArray.length);
+      console.log("Current question index:", currQuestionIndex);
+      
+      if (currQuestionIndex < currQuestionsArray.length) {
         // Reset
-        setCurrentQuestionData(questions.questionArray[currQuestionIndex]);
+        const currentQuestion = currQuestionsArray[currQuestionIndex];
+        console.log("Setting current question:", currentQuestion);
+        setCurrentQuestionData(currentQuestion);
         setAnswerState((prev) => ({
           ...prev,
           chosenAnswer: null,
@@ -133,6 +155,7 @@ export function useQuizLogic() {
         // Start the timer for the question
         timingQuestions();
       } else {
+        console.log("No more questions, showing results");
         setShowResult(true);
         setAnswerState((prev) => ({
           ...prev,
