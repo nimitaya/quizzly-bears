@@ -14,6 +14,7 @@ import { CACHE_KEY } from "@/utilities/cacheUtils";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import Countdown from "@/components/Countdown";
 import QuizLoader from "@/components/QuizLoader";
+import CustomAlert from "@/components/CustomAlert";
 
 const StartQuizScreen = () => {
   const router = useRouter();
@@ -27,6 +28,8 @@ const StartQuizScreen = () => {
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [showCountdown, setShowCountdown] = useState(false);
   const [showLocalLoader, setShowLocalLoader] = useState(false);
+  const [showErrorAlert, setShowErrorAlert] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const { withLoading, isGloballyLoading, showLoading } = useGlobalLoading();
 
   // ---------- Functions ----------
@@ -72,8 +75,11 @@ const StartQuizScreen = () => {
       );
 
       console.log("Generated Questions Data:", questionsData);
-      console.log("Questions array length:", questionsData.questionArray?.length);
-      
+      console.log(
+        "Questions array length:",
+        questionsData.questionArray?.length
+      );
+
       // Die API gibt bereits AiQuestions zurück, speichere direkt
       await saveDataToCache(cacheAi, questionsData);
       console.log("Questions saved to cache successfully");
@@ -83,8 +89,12 @@ const StartQuizScreen = () => {
       setShowCountdown(true);
     } catch (error) {
       console.error("Error generating questions:", error);
-      setIsGeneratingQuestions(false);
+      
+      // Показать ошибку пользователю
       setShowLocalLoader(false);
+      setIsGeneratingQuestions(false);
+      setErrorMessage("Failed to generate questions. Please try again or check your internet connection.");
+      setShowErrorAlert(true);
     }
   };
 
@@ -94,6 +104,17 @@ const StartQuizScreen = () => {
     setIsGeneratingQuestions(false);
     // Navigation zur Quiz-Screen nach dem Countdown
     router.push("/(tabs)/play/QuizScreen");
+  };
+
+  const handleErrorAlertClose = () => {
+    setShowErrorAlert(false);
+    setErrorMessage("");
+  };
+
+  const handleErrorAlertConfirm = () => {
+    setShowErrorAlert(false);
+    setErrorMessage("");
+    // Можно попробовать снова или вернуться назад
   };
 
   // ---------- USE EFFECT ----------
@@ -144,6 +165,22 @@ const StartQuizScreen = () => {
       >
         <IconArrowBack />
       </TouchableOpacity>
+
+      {/* Error Alert */}
+      <CustomAlert
+        visible={showErrorAlert}
+        onClose={handleErrorAlertClose}
+        title="Generation Failed"
+        message={errorMessage}
+        cancelText="Back"
+        confirmText="Try Again"
+        onConfirm={() => {
+          handleErrorAlertConfirm();
+          handleStartQuiz(topic, level, rounds);
+        }}
+        noInternet={false}
+      />
+
       <View style={{ marginBottom: Gaps.g40 }}>
         <Logo size="big" />
       </View>

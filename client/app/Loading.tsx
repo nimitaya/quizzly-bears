@@ -23,7 +23,7 @@ const LoadingOverlay = () => {
         destination = "/(tabs)/play";
       }
     }
-    
+
     setTimeout(() => {
       router.replace(destination as any);
     }, 1500);
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.bgGray,
     zIndex: 9999,
   },
 });

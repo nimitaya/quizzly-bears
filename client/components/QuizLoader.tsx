@@ -39,10 +39,10 @@ const QuizLoader: React.FC<QuizLoaderProps> = ({
 
   useEffect(() => {
     // Reset animation values
-    rotationAnimations.forEach(anim => anim.setValue(0));
+    rotationAnimations.forEach((anim) => anim.setValue(0));
 
     // Starte kontinuierliche Rotation für alle 4 Fragezeichen
-    rotationAnimations.forEach(anim => {
+    rotationAnimations.forEach((anim) => {
       startContinuousRotation(anim);
     });
 
@@ -52,7 +52,7 @@ const QuizLoader: React.FC<QuizLoaderProps> = ({
     }, minDuration);
 
     return () => {
-      rotationAnimations.forEach(anim => anim.stopAnimation());
+      rotationAnimations.forEach((anim) => anim.stopAnimation());
       clearTimeout(minDurationTimer);
     };
   }, [minDuration]);
@@ -69,13 +69,13 @@ const QuizLoader: React.FC<QuizLoaderProps> = ({
           source={require("@/assets/images/Logo-Bear-green-black.webp")}
           style={styles.bearLogo}
         />
-        
+
         {positions.map((startPosition, index) => {
           const rotationDegrees = rotationAnimations[index].interpolate({
             inputRange: [0, 1],
             outputRange: [`${startPosition}deg`, `${startPosition + 360}deg`],
           });
-          
+
           return (
             <Animated.View
               key={index}
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.bgGray,
   },
   loadingContainer: {
     position: "relative",
@@ -128,4 +128,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default QuizLoader; 
+export default QuizLoader;
