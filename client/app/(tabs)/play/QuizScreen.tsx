@@ -24,6 +24,9 @@ import TimerBar from "@/components/TimerBar";
 import { clearCacheData, CACHE_KEY } from "@/utilities/cacheUtils";
 import CustomAlert from "@/components/CustomAlert";
 
+import { useLanguage } from "@/providers/LanguageContext";
+import { getLocalizedText } from "@/utilities/languageUtils";
+
 const QuizLogic = () => {
   const {
     language,
@@ -43,6 +46,7 @@ const QuizLogic = () => {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const timerBarWidth = Math.min(348, width - 32); // Gleiche Breite wie QuizButtons
+  const { currentLanguage } = useLanguage();
 
   const options = [
     { key: "A", data: currentQuestionData?.optionA },
@@ -89,6 +93,17 @@ const QuizLogic = () => {
     clearCacheData(cacheKey.points);
     clearCacheData(cacheKey.settings);
     router.push("./");
+  };
+
+  // Languge utility functions
+  const getQuestionText = () => {
+    if (!currentQuestionData?.question) return "";
+    return getLocalizedText(currentQuestionData.question, currentLanguage.code);
+  };
+
+  const getOptionText = (optionData: any) => {
+    if (!optionData) return "";
+    return getLocalizedText(optionData, currentLanguage.code);
   };
 
   return (
@@ -177,7 +192,7 @@ const QuizLogic = () => {
               {currQuestionIndex + 1} from 10
             </Text>
             <Text style={styles.questionText}>
-              {currentQuestionData?.question.de}
+              {getQuestionText()}
             </Text>
           </View>
           {/* Show only if readTimer true */}
@@ -196,24 +211,24 @@ const QuizLogic = () => {
                 <View style={styles.answerContainer}>
                   {/* show one quiz button for each option */}
                   {options &&
-                    options.map(({ key, data }) => (
-                      <QuizButton
-                        key={key}
-                        text={data?.[language] ?? data?.["en"] ?? ""}
-                        selected={handleSelection(data?.[language] ?? "")}
-                        checked={
-                          (answerState.isLocked && data?.isCorrect) ||
-                          (answerState.isLocked &&
-                            answerState.isSubmitted &&
-                            answerState.chosenAnswer ===
-                              (data?.[language] ?? ""))
-                        }
-                        isCorrect={!!data?.isCorrect}
-                        onPress={() =>
-                          handleAnswerSelect(data?.[language] ?? "")
-                        }
-                      />
-                    ))}
+                    options.map(({ key, data }) => {
+                      const optionText = getOptionText(data);
+                      return (
+                        <QuizButton
+                          key={key}
+                          text={optionText}
+                          selected={handleSelection(optionText)}
+                          checked={
+                            (answerState.isLocked && data?.isCorrect) ||
+                            (answerState.isLocked &&
+                              answerState.isSubmitted &&
+                              answerState.chosenAnswer === optionText)
+                          }
+                          isCorrect={!!data?.isCorrect}
+                          onPress={() => handleAnswerSelect(optionText)}
+                        />
+                      );
+                    })}
                 </View>
                 <View style={styles.buttonsWrapper}>
                   {answerState.isLocked && gameState.playStyle === "solo" ? (
