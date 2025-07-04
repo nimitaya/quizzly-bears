@@ -15,7 +15,7 @@ import { useRouter } from "expo-router";
 import GreetingsScreen from "./GreetngsScreen";
 import { useMusic } from "@/providers/MusicProvider";
 import { useSound } from "@/providers/SoundProvider";
-const { useUser } = require("@clerk/clerk-expo");
+import { useUser } from "@clerk/clerk-expo";
 import { resetOnboarding } from "@/providers/OnboardingProvider";
 
 const ProfileScreen = () => {
