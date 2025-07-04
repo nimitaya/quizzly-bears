@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   },
   timerContainer: {
     alignItems: "center",
-    marginBottom: Gaps.g16,
+    marginBottom: Gaps.g32,
   },
   buttonsWrapper: {},
   answerContainer: {},
