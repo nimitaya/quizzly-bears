@@ -177,11 +177,11 @@ const styles = StyleSheet.create({
   allMedalenBlock: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Gaps.g16,
+    gap: Gaps.g24,
   },
   MedalenBlock: {
     flexDirection: "row",
-    gap: Gaps.g4,
+    gap: Gaps.g8,
     alignItems: "center",
   },
   accuracyBlock: {
