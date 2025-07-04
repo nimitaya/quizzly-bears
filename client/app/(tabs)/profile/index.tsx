@@ -9,11 +9,13 @@ import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Loading from "@/app/Loading";
 import { Logo } from "@/components/Logos";
-import { useUser } from "@clerk/clerk-expo";
 import { Toggle } from "@/components/Toggle";
-import { ButtonSecondary } from "@/components/Buttons";
+import { ButtonSecondary, ButtonSecondaryDisabled } from "@/components/Buttons";
 import { useRouter } from "expo-router";
 import GreetingsScreen from "./GreetngsScreen";
+import { useMusic } from "@/providers/MusicProvider";
+import { useSound } from "@/providers/SoundProvider";
+import { useUser } from "@clerk/clerk-expo";
 import { resetOnboarding } from "@/providers/OnboardingProvider";
 
 const ProfileScreen = () => {
@@ -27,6 +29,10 @@ const ProfileScreen = () => {
   const [passwordResetFlag, setPasswordResetFlag] = useState<string | null>(
     null
   );
+
+  const { musicEnabled, toggleMusic } = useMusic();
+  const { soundEnabled, toggleSound } = useSound();
+  const { playSound } = useSound();
   const { user } = useUser();
 
   // Function to test onboarding
@@ -158,8 +164,8 @@ const ProfileScreen = () => {
       </View>
       <GreetingsScreen ref={clerkSettingsRef} refreshKey={refreshKey} />
       <View style={styles.toggleBox}>
-        <Toggle label="Sound" />
-        <Toggle label="Music" />
+        <Toggle label="Sound" onToggle={toggleSound} enabled={soundEnabled} />
+        <Toggle label="Music" enabled={musicEnabled} onToggle={toggleMusic} />
         <Text
           style={{
             fontSize: FontSizes.H3Fs,
@@ -174,17 +180,25 @@ const ProfileScreen = () => {
           text="Invitations"
           onPress={() => router.push("/profile/ProfileInvitationsScreen")}
         />
-        <ButtonSecondary
-          text="Friends"
-          onPress={() => router.push("/profile/ProfileFriendsScreen")}
-        />
+        {user ? (
+          <ButtonSecondary
+            text="Friends"
+            onPress={() => router.push("/profile/ProfileFriendsScreen")}
+          />
+        ) : (
+          <ButtonSecondaryDisabled text="Friends" />
+        )}
+
         <ButtonSecondary
           text="Account"
           onPress={() => router.push("/profile/AccountScreen")}
         />
         <ButtonSecondary
           text="FAQ"
-          onPress={() => router.push("/profile/FaqScreen")}
+          onPress={() => {
+            playSound("custom");
+            router.push("/profile/FaqScreen");
+          }}
         />
         <ButtonSecondary
           text="Show Onboarding"
