@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
   buttonsWrapper: {},
   answerContainer: {},
   questionAnswerContainer: {
-    gap: Gaps.g16,
+    gap: Gaps.g32,
   },
   questionText: {
     color: Colors.black,
