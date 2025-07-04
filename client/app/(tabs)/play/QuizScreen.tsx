@@ -76,12 +76,12 @@ const QuizLogic = () => {
   const handleBackButton = () => {
     if (!showResult) {
       setShowAlert(true);
-    } 
+    }
   };
 
   const handleCloseAlert = () => {
     setShowAlert(false);
-  }
+  };
 
   const handleConfirmAlert = () => {
     setShowAlert(false);
@@ -89,11 +89,11 @@ const QuizLogic = () => {
     clearCacheData(cacheKey.points);
     clearCacheData(cacheKey.settings);
     router.push("./");
-  }
+  };
 
   return (
     <>
-    {/* ---------- SHOW RESULT ---------- */}
+      {/* ---------- SHOW RESULT ---------- */}
       {showResult ? (
         <ScrollView
           style={styles.containerResult}
@@ -124,11 +124,11 @@ const QuizLogic = () => {
                 Plus extra {pointsState.timePoints} Timing-Points
               </Text>
             </View>
-          <View style={styles.pointsRow}>
+            <View style={styles.pointsRow}>
               <IconCheckbox />
               <Text style={styles.pointsText}>
-                Correct questions:{" "}
-                {pointsState.chosenCorrect} out of {pointsState.totalAnswers}
+                Correct questions: {pointsState.chosenCorrect} out of{" "}
+                {pointsState.totalAnswers}
               </Text>
             </View>
           </View>
@@ -242,6 +242,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Gaps.g32,
     color: Colors.black,
     paddingTop: Gaps.g80,
+    maxWidth: 440,
+    alignSelf: "center",
+    width: "100%",
   },
   contentContainer: {
     flexGrow: 1,
