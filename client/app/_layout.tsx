@@ -13,6 +13,8 @@ import { UserProvider } from "@/providers/UserProvider";
 import { MusicProvider } from "@/providers/MusicProvider";
 import { SoundProvider } from "@/providers/SoundProvider";
 import { OnboardingProvider } from "@/providers/OnboardingProvider";
+import { LanguageProvider } from "@/providers/LanguageContext";
+
 
 
 // Override with safe type casting
@@ -46,6 +48,7 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
+    <LanguageProvider>
     <ClerkProvider tokenCache={tokenCache}>
       <UserProvider>
          <OnboardingProvider>
@@ -67,5 +70,6 @@ export default function RootLayout() {
 
       </UserProvider>
     </ClerkProvider>
+    </LanguageProvider>
   );
 }
