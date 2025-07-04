@@ -3,9 +3,23 @@ import axios from "axios";
 const API_BASE_URL =
   process.env.VITE_API_BASE_URL ||
   "https://quizzly-bears.onrender.com/api/points";
+interface SendPointsResponse {
+      message: string;
+      data: {
+        totalPoints: number;
+        correctAnswers: number;
+        totalAnswers: number;
+        categoryStats: 
+      }
+    }
 
 // ========== Send Points to Database ==========
-export const sendPoints = async () => {
+export const sendPoints = async (
+  totalPoints: number,
+  correctAnswers: number,
+  totalAnswers: number,
+  category: string
+): Promise<SendPointsResponse> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/send`, {
       totalPoints,
@@ -13,7 +27,7 @@ export const sendPoints = async () => {
       totalAnswers,
       category,
     });
-    return response.data
+    return response.data;
   } catch (error: any) {
     if (error.response?.data?.error) {
       throw new Error(error.response.data.error);
