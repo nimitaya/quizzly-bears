@@ -34,7 +34,7 @@ const Countdown: React.FC<CountdownProps> = ({
   const startCountdown = () => {
     // Sofort die erste Animation für die Startzahl starten
     countdownAnimation.setValue(0);
-    
+
     // Sofort die Startzahl sichtbar machen
     setTimeout(() => {
       Animated.timing(countdownAnimation, {
@@ -43,19 +43,22 @@ const Countdown: React.FC<CountdownProps> = ({
         useNativeDriver: true,
       }).start();
     }, 100);
-    
+
     intervalRef.current = setInterval(() => {
       setCountdownNumber((prev) => {
         if (prev <= 1) {
           if (intervalRef.current) {
             clearInterval(intervalRef.current);
           }
-          onComplete();
+          // setTimeout
+          setTimeout(() => {
+            onComplete();
+          }, 0);
           return 1;
         }
         return prev - 1;
       });
-      
+
       // Countdown-Animation für jede Zahl: von klein/unsichtbar zu groß/deutlich
       countdownAnimation.setValue(0);
       Animated.timing(countdownAnimation, {
@@ -95,13 +98,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.bgGray,
   },
   countdownText: {
-    fontSize: 72,
+    fontSize: 120,
     fontWeight: FontWeights.H1Fw as any,
-    color: Colors.lightGreen,
+    color: Colors.primaryLimo,
   },
 });
 
-export default Countdown; 
+export default Countdown;
