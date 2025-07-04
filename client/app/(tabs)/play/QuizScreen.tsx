@@ -29,6 +29,7 @@ const QuizLogic = () => {
     language,
     currentQuestionData,
     currQuestionIndex,
+    currQuestionsArray,
     gameState,
     answerState,
     readTimer,
@@ -174,7 +175,7 @@ const QuizLogic = () => {
           {/* ---------- QUESTIONS ---------- */}
           <View style={styles.questionScreenContainer}>
             <Text style={styles.questionNumber}>
-              {currQuestionIndex + 1} from 10
+              {currQuestionIndex + 1} from {currQuestionsArray.length}
             </Text>
             <Text style={styles.questionText}>
               {currentQuestionData?.question.de}

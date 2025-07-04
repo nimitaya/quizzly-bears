@@ -395,6 +395,7 @@ export function useQuizLogic() {
     language,
     currentQuestionData,
     currQuestionIndex,
+    currQuestionsArray,
     answerState,
     gameState,
     pointsState,
