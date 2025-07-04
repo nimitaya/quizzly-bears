@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { Audio } from "expo-av";
 import { useStatistics } from "@/providers/UserProvider";
+import { useUser } from "@clerk/clerk-expo";
 
 type SoundContextType = {
   soundEnabled: boolean;
@@ -25,8 +26,7 @@ const soundFiles: Record<SoundName, string> = {
     "https://commondatastorage.googleapis.com/codeskulptor-assets/Evillaugh.ogg",
   notification:
     "https://commondatastorage.googleapis.com/codeskulptor-assets/Evillaugh.ogg",
-  custom:
-    "https://commondatastorage.googleapis.com/codeskulptor-assets/Evillaugh.ogg",
+  custom: "https://rpg.hamsterrepublic.com/wiki-images/d/d7/Oddbounce.ogg",
 };
 
 const SoundContext = createContext<SoundContextType>({
@@ -41,6 +41,7 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({
   const { userData, updateUserSettings, loading } = useStatistics();
   const [soundEnabled, setSoundEnabled] = useState(false);
   const soundRef = useRef<Audio.Sound | null>(null);
+  const { user } = useUser();
 
   useEffect(() => {
     if (!loading && userData?.settings?.sounds !== undefined) {
@@ -50,6 +51,7 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const toggleSound = async (enabled: boolean) => {
     setSoundEnabled(enabled);
+    if (!user) return;
     await updateUserSettings({ sounds: enabled });
   };
 
