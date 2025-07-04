@@ -10,7 +10,10 @@ import NetworkAlertProvider from "@/providers/NetworkAlertProvider";
 import AuthNavigationHelper from "@/components/AuthNavigationHelper";
 import { GlobalLoadingProvider } from "@/providers/GlobalLoadingProvider";
 import { UserProvider } from "@/providers/UserProvider";
+import { MusicProvider } from "@/providers/MusicProvider";
+import { SoundProvider } from "@/providers/SoundProvider";
 import { OnboardingProvider } from "@/providers/OnboardingProvider";
+
 
 // Override with safe type casting
 const overrideDefaultFont = () => {
@@ -45,18 +48,23 @@ export default function RootLayout() {
   return (
     <ClerkProvider tokenCache={tokenCache}>
       <UserProvider>
-        <OnboardingProvider>
-          <GlobalLoadingProvider>
-            <NetworkAlertProvider>
-              <SafeAreaProvider>
-                <View style={{ flex: 1, backgroundColor: Colors.bgGray }}>
-                  <AuthNavigationHelper />
-                  <Slot />
-                </View>
-              </SafeAreaProvider>
-            </NetworkAlertProvider>
-          </GlobalLoadingProvider>
-        </OnboardingProvider>
+         <OnboardingProvider>
+        <GlobalLoadingProvider>
+          <NetworkAlertProvider>
+            <SafeAreaProvider>
+              <MusicProvider>
+                <SoundProvider>
+                  <View style={{ flex: 1, backgroundColor: Colors.bgGray }}>
+                    <AuthNavigationHelper />
+                    <Slot />
+                  </View>
+                </SoundProvider>
+              </MusicProvider>
+            </SafeAreaProvider>
+          </NetworkAlertProvider>
+        </GlobalLoadingProvider>
+            </OnboardingProvider>
+
       </UserProvider>
     </ClerkProvider>
   );

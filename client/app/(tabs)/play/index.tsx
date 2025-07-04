@@ -8,11 +8,13 @@ import { useStatistics } from "@/providers/UserProvider";
 import React, { useEffect, useState } from "react";
 import Loading from "../../Loading";
 import CustomAlert from "@/components/CustomAlert";
+import { useUser } from "@clerk/clerk-expo";
 
 const PlayScreen = () => {
   const { topPlayers, loading, totalUsers, userRank } = useStatistics();
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
+  const { user } = useUser();
 
   useEffect(() => {
     if (!topPlayers && !loading) {
@@ -40,7 +42,7 @@ const PlayScreen = () => {
         <View style={{ marginBottom: Gaps.g40 }}>
           <Logo size="big" />
         </View>
-        <View style={{ marginBottom: Gaps.g32 }}>
+        <View style={{ marginBottom: Gaps.g24 }}>
           <ButtonPrimary
             text="Go Play"
             onPress={() => router.push("/(tabs)/play/QuizTypeSelectionScreen")}
@@ -48,7 +50,7 @@ const PlayScreen = () => {
         </View>
         <View style={styles.myRankBlock}>
           <Text style={{ fontSize: FontSizes.H2Fs }}>
-            My Rank: {userRank ?? "-"} from {totalUsers ?? "-"}
+            My Rank: {user ? userRank ?? "-" : "-"} from {totalUsers ?? "-"}
           </Text>
         </View>
         <View style={styles.topPlayersBlock}>
@@ -56,19 +58,19 @@ const PlayScreen = () => {
 
           {/* ============ List of top players ============= */}
           <View style={styles.listTopPlayers}>
-            <View>
+            <View style={{ gap: Gaps.g4 }}>
               {topPlayers.slice(0, 5).map((player, idx) => {
                 const emailName = player.email
                   ? player.email.split("@")[0].slice(0, 12)
                   : "";
                 return (
                   <Text key={idx} style={{ fontSize: FontSizes.TextLargeFs }}>
-                    {idx + 1}. {emailName} ({player.totalPoints})
+                    {idx + 1}. {emailName} - {player.totalPoints}
                   </Text>
                 );
               })}
             </View>
-            <View>
+            <View style={{ gap: Gaps.g4 }}>
               {topPlayers.slice(5, 10).map((player, idx) => {
                 const emailName = player.email
                   ? player.email.split("@")[0].slice(0, 12)
@@ -78,7 +80,7 @@ const PlayScreen = () => {
                     key={idx + 5}
                     style={{ fontSize: FontSizes.TextLargeFs }}
                   >
-                    {idx + 6}. {emailName} ({player.totalPoints})
+                    {idx + 6}. {emailName} - {player.totalPoints}
                   </Text>
                 );
               })}
@@ -104,9 +106,10 @@ const styles = StyleSheet.create({
   },
   myRankBlock: {
     color: Colors.black,
-    marginVertical: Gaps.g32,
+    marginVertical: Gaps.g24,
   },
   topPlayersBlock: {
+    marginTop: Gaps.g16,
     alignItems: "center",
     width: "100%",
   },

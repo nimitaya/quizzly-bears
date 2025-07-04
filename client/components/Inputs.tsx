@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   StyleSheet,
   TextInput,
@@ -43,10 +43,21 @@ export function SearchInput(props: SearchInputProps) {
 
 // 2. Input with search button
 type SearchFriendInputProps = TextInputProps & {
-  onSearch?: () => void;
+  onSearch?: (value: string) => void;
 };
 
-export function SearchFriendInput({ onSearch, ...props }: SearchFriendInputProps) {
+export function SearchFriendInput({ onSearch, value, onChangeText, ...props }: SearchFriendInputProps) {
+  const inputRef = useRef<string>(value || "");
+  
+  const handleChangeText = (text: string) => {
+    inputRef.current = text;
+    onChangeText?.(text);
+  };
+
+  const handleSearch = () => {
+    onSearch?.(inputRef.current);
+  };
+
   return (
     <View style={styles.containerSearchFriend}>
       <TextInput
@@ -56,10 +67,12 @@ export function SearchFriendInput({ onSearch, ...props }: SearchFriendInputProps
         keyboardType="email-address"
         autoCapitalize="none"
         textContentType="emailAddress"
+        value={value}
+        onChangeText={handleChangeText}
         {...props}
       />
       <View style={{ width: 8 }} />
-      <ButtonSearchFriend onPress={onSearch} />
+      <ButtonSearchFriend onPress={handleSearch} />
     </View>
   );
 }

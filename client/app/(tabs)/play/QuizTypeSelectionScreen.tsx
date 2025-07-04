@@ -11,7 +11,7 @@ import {
   PlayStyle,
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { socketService } from "@/utilities/socketService";
-import { useUser } from "@clerk/clerk-expo"
+import { useUser } from "@clerk/clerk-expo";
 
 // Use the cache key for quiz settings
 const cacheKey = CACHE_KEY.quizSettings;
@@ -46,7 +46,7 @@ const QuizTypeSelectionScreen = () => {
       }
 
       const roomName = style === "duel" ? "Duel Room" : "Group Room";
-      const hostName = user?.name || "Player";
+      const hostName = user?.username || "Player";
       const hostId = user?.id || "anonymous-" + Date.now();
 
       const roomSettings = {

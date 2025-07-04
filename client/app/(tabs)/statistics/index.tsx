@@ -10,10 +10,24 @@ import { CategoryProgressBar } from "@/components/CategoryProgressBar";
 import { useStatistics } from "@/providers/UserProvider";
 import Loading from "../../Loading";
 import CustomAlert from "@/components/CustomAlert";
+import { useUser } from "@clerk/clerk-expo";
+import ClerkSettings from "@/app/(auth)/ClerkSettings";
 
 const StatisticsScreen = () => {
   const { userData, loading, userRank, totalUsers } = useStatistics();
   const [showForm, setShowForm] = useState(false);
+  const { user } = useUser();
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <ClerkSettings refreshKey={0} />
+        <Text style={{ fontSize: FontSizes.TextMediumFs, marginTop: Gaps.g16 }}>
+          Please log in to see your statistics.
+        </Text>
+      </View>
+    );
+  }
 
   useEffect(() => {
     if (!userData && !loading) {
@@ -163,11 +177,11 @@ const styles = StyleSheet.create({
   allMedalenBlock: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Gaps.g16,
+    gap: Gaps.g24,
   },
   MedalenBlock: {
     flexDirection: "row",
-    gap: Gaps.g4,
+    gap: Gaps.g8,
     alignItems: "center",
   },
   accuracyBlock: {

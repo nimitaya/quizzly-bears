@@ -6,6 +6,12 @@ import { useUser } from "@clerk/clerk-expo";
 const API_BASE_URL = "https://quizzly-bears.onrender.com/api";
 
 type UserContextType = {
+  updateUserSettings: (newSettings: {
+    music?: boolean;
+    sounds?: boolean;
+  }) => Promise<void>;
+  setOnChanges: React.Dispatch<React.SetStateAction<boolean>>;
+  currentUsername: string | null;
   userRank: number | null;
   totalUsers: number | null;
   topPlayers: TopPlayer[];
@@ -16,6 +22,9 @@ type UserContextType = {
 };
 
 const UserContext = createContext<UserContextType>({
+  updateUserSettings: async () => {},
+  setOnChanges: () => {},
+  currentUsername: null,
   userRank: null,
   totalUsers: null,
   topPlayers: [],
@@ -31,40 +40,46 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { user } = useUser();
+  const userEmail = user?.primaryEmailAddress?.emailAddress ?? null;
+  const [onChanges, setOnChanges] = useState<boolean>(false);
   const [userData, setUserData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [topPlayers, setTopPlayers] = useState<TopPlayer[]>([]);
   const [totalUsers, setTotalUsers] = useState<number | null>(null);
   const [userRank, setUserRank] = useState<number | null>(null);
-  const [onChanges, setOnChanges] = useState<boolean>(false);
+  const [currentUsername, setCurrentUsername] = useState<string | null>(null);
+  const [loadingUserData, setLoadingUserData] = useState(true);
+  const [loadingTopPlayers, setLoadingTopPlayers] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchUserData = async () => {
-    if (!user) return;
-    setLoading(true);
-    setError(null);
+    if (!user) {
+      setUserData(null);
+      setLoadingUserData(false);
+      return;
+    }
+
     try {
+      setLoadingUserData(true);
       const res = await axios.get(`${API_BASE_URL}/users/${user.id}`);
       setUserData(res.data);
-    } catch (err: any) {
-      setError("Failed to load user data");
+    } catch (err) {
+      console.error("Failed to load user data", err);
       setUserData(null);
+      setError("Failed to load user data");
     } finally {
-      setLoading(false);
+      setLoadingUserData(false);
+      setOnChanges(false);
     }
   };
 
-  useEffect(() => {
-    fetchUserData();
-    setOnChanges(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, onChanges]);
-
   const fetchTopPlayers = async () => {
-    setLoading(true);
-    setError(null);
     try {
-      const res = await axios.get(`${API_BASE_URL}/top-players`);
+      setLoadingTopPlayers(true);
+      const url = userEmail
+        ? `${API_BASE_URL}/top-players?email=${encodeURIComponent(userEmail)}`
+        : `${API_BASE_URL}/top-players`;
+
+      const res = await axios.get(url);
       setTopPlayers(
         Array.isArray(res.data.topPlayers) ? res.data.topPlayers : []
       );
@@ -74,46 +89,59 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       setUserRank(
         typeof res.data.userRank === "number" ? res.data.userRank : null
       );
+      setCurrentUsername(res.data.currentUsername ?? null);
     } catch (err) {
-      setError("Failed to load top players");
+      console.error("Failed to load top players", err);
       setTopPlayers([]);
       setTotalUsers(null);
       setUserRank(null);
+      setCurrentUsername(null);
+      setError("Failed to load top players");
+      setOnChanges(false);
     } finally {
-      setLoading(false);
+      setLoadingTopPlayers(false);
+      setOnChanges(false);
     }
   };
 
-  const { user: currentUser } = useUser();
-  const userEmail = currentUser?.primaryEmailAddress?.emailAddress;
+  const updateUserSettings = async (newSettings: {
+    music?: boolean;
+    sounds?: boolean;
+  }) => {
+    if (!user) return;
+
+    try {
+      const res = await axios.patch(
+        `${API_BASE_URL}/users/${user.id}/settings`,
+        newSettings
+      );
+      setUserData(res.data);
+    } catch (error) {
+      console.error("Failed to update user settings", error);
+    }
+  };
 
   useEffect(() => {
-    if (!userEmail) return;
-    axios
-      .get(`${API_BASE_URL}/top-players?email=${encodeURIComponent(userEmail)}`)
-      .then((res) => {
-        setTopPlayers(res.data.topPlayers);
-        setUserRank(res.data.userRank);
-        setTotalUsers(res.data.totalUsers);
-        setOnChanges(false);
-      })
-      .catch(() => {
-        setTopPlayers([]);
-        setUserRank(null);
-        setTotalUsers(null);
-      });
+    fetchUserData();
+  }, [user, onChanges]);
+
+  useEffect(() => {
+    fetchTopPlayers();
   }, [userEmail, onChanges]);
 
   return (
     <UserContext.Provider
       value={{
+        currentUsername,
         userRank,
         totalUsers,
         topPlayers,
         userData,
-        loading,
+        loading: loadingUserData || loadingTopPlayers,
         error,
         refetch: [fetchUserData, fetchTopPlayers],
+        setOnChanges,
+        updateUserSettings,
       }}
     >
       {children}

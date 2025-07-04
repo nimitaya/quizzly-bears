@@ -60,3 +60,12 @@ export interface FriendsState {
     receivedFriendRequests: FriendRequestsResponse,
     sentFriendRequests: FriendRequestsResponse,
 }
+
+export interface FriendItemProps {
+  friend: User;
+  onPressOne: () => void;
+  onPressTwo: () => void;
+  friendStatus: FriendStatus;
+}
+
+export type FriendStatus = "request" | "outstanding" | "friend";
