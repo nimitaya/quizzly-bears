@@ -51,14 +51,16 @@ const getSocketUrls = () => {
     ];
   } else if (Platform.OS === "ios") {
     return [
-      "http://localhost:3000", // iOS simulator
-      "http://127.0.0.1:3000", // iOS simulator fallback
-      "http://192.168.0.226:3000", // Current local IP for real device
+      "http://192.168.0.226:3000", // Current local IP for real device (primary for Expo Go)
+      // Uncomment below for iOS simulator testing:
+      // "http://localhost:3000", // iOS simulator
+      // "http://127.0.0.1:3000", // iOS simulator fallback
     ];
   } else {
     return [
       "http://localhost:3000", // Web
       "http://127.0.0.1:3000",
+      "http://192.168.0.226:3000", // Fallback to local IP
     ];
   }
 };
@@ -82,7 +84,7 @@ class SocketService {
             resolve();
             return;
           } catch (error) {
-            console.log(`Failed to connect to ${url}:`, error);
+            console.warn(`Failed to connect to ${url}:`, error);
             continue;
           }
         }
@@ -125,7 +127,7 @@ class SocketService {
 
       this.socket.on("connect_error", (error) => {
         clearTimeout(timeout);
-        console.error(`Socket.IO connection error for ${url}:`, error);
+        console.warn(`Socket.IO connection failed for ${url}:`, error.message);
         if (this.socket) {
           this.socket.disconnect();
           this.socket = null;

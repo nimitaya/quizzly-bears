@@ -119,8 +119,9 @@ export function useQuizLogic() {
         // Fallback to dummy data if cache is empty TODO delete later
         questions = aiQuestions;
         setCurrQuestionsArray(questions.questionArray);
-      }
+      } 
       if (currQuestionIndex < questions.questionArray.length) {
+        // Check if questions have the right structure
         // Reset
         setCurrentQuestionData(questions.questionArray[currQuestionIndex]);
         setAnswerState((prev) => ({

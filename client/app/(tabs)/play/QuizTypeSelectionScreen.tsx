@@ -11,7 +11,7 @@ import {
   PlayStyle,
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { socketService } from "@/utilities/socketService";
-import { useUser } from "@/providers/UserProvider";
+import { useUser } from "@clerk/clerk-expo";
 
 // Use the cache key for quiz settings
 const cacheKey = CACHE_KEY.quizSettings;
@@ -46,7 +46,7 @@ const QuizTypeSelectionScreen = () => {
       }
 
       const roomName = style === "duel" ? "Duel Room" : "Group Room";
-      const hostName = user?.name || "Player";
+      const hostName = user?.username || "Player";
       const hostId = user?.id || "anonymous-" + Date.now();
 
       const roomSettings = {
@@ -66,7 +66,7 @@ const QuizTypeSelectionScreen = () => {
           isAdmin: true,
         };
         await saveDataToCache(CACHE_KEY.currentRoom, roomInfo);
-        
+
         // Navigate to invite friends screen first
         router.push("/(tabs)/play/InviteFriendsScreen");
       });
@@ -108,8 +108,8 @@ const QuizTypeSelectionScreen = () => {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.backButton}
-        onPress={() => router.back()}
-        accessibilityLabel="Go back"
+        onPress={() => router.push("/")}
+        accessibilityLabel="Go back to home"
       >
         <IconArrowBack />
       </TouchableOpacity>

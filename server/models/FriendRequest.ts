@@ -1,6 +1,8 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
+import { IUser } from "./User";
 
 export interface IFriendRequest extends Document {
+  _id: Types.ObjectId;
   from: Types.ObjectId;
   to: Types.ObjectId;
   status: "pending" | "accepted" | "declined";
@@ -22,3 +24,8 @@ export const FriendRequest = mongoose.model<IFriendRequest>(
   "FriendRequest",
   friendRequestSchema
 );
+
+export interface IFriendRequestPopulated extends Omit<IFriendRequest, 'from' | 'to'> {
+  from: IUser;
+  to: IUser;
+}
