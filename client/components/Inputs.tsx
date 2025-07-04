@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   StyleSheet,
   TextInput,
@@ -42,19 +42,37 @@ export function SearchInput(props: SearchInputProps) {
 }
 
 // 2. Input with search button
+type SearchFriendInputProps = TextInputProps & {
+  onSearch?: (value: string) => void;
+};
 
-export function SearchFriendInput(props: TextInputProps) {
+export function SearchFriendInput({ onSearch, value, onChangeText, ...props }: SearchFriendInputProps) {
+  const inputRef = useRef<string>(value || "");
+  
+  const handleChangeText = (text: string) => {
+    inputRef.current = text;
+    onChangeText?.(text);
+  };
+
+  const handleSearch = () => {
+    onSearch?.(inputRef.current);
+  };
+
   return (
     <View style={styles.containerSearchFriend}>
       <TextInput
         style={styles.inputSearchFriend}
         placeholderTextColor={Colors.disable}
-        autoComplete="username"
-        textContentType="username"
+        autoComplete="email"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        textContentType="emailAddress"
+        value={value}
+        onChangeText={handleChangeText}
         {...props}
       />
       <View style={{ width: 8 }} />
-      <ButtonSearchFriend />
+      <ButtonSearchFriend onPress={handleSearch} />
     </View>
   );
 }

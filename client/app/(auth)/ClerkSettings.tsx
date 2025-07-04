@@ -14,6 +14,7 @@ import { Colors, FontSizes, Gaps } from "@/styles/theme";
 import DeleteAccountButton from "./DeleteAccountButton";
 import ChangePassword from "./ChangePassword";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
+import { useStatistics } from "@/providers/UserProvider";
 
 // Define the ref type
 export type ClerkSettingsRefType = {
@@ -29,9 +30,9 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
     const [isCheckingAuth, setIsCheckingAuth] = useState(false);
     const [wasRecentlyReset, setWasRecentlyReset] = useState(false);
     const prevRefreshKeyRef = useRef(refreshKey);
-    const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const maxChecksRef = useRef(0);
     const forceSignedInRef = useRef(false);
+    const { currentUsername } = useStatistics();
 
     // IMPORTANT: First check for password reset on component mount
     useEffect(() => {
@@ -351,7 +352,8 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
         {currentAuthState === "signedIn" ? (
           <View style={styles.signedInContainer}>
             <Text style={styles.greeting}>
-              {user?.firstName ||
+              {currentUsername ||
+                user?.firstName ||
                 (user?.emailAddresses &&
                   user.emailAddresses[0]?.emailAddress) ||
                 "User"}

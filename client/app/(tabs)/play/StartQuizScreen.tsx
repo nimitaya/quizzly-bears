@@ -12,6 +12,8 @@ import { Difficulty } from "@/utilities/types";
 import { PlayStyle } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { CACHE_KEY } from "@/utilities/cacheUtils";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
+import Countdown from "@/components/Countdown";
+import QuizLoader from "@/components/QuizLoader";
 
 const StartQuizScreen = () => {
   const router = useRouter();
@@ -22,9 +24,10 @@ const StartQuizScreen = () => {
   const [category, setCategory] = useState<string>("");
   const [playStyle, setPlayStyle] = useState<PlayStyle>("solo");
   const [rounds, setRounds] = useState(10);
-  //vadim
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
-  const { withLoading, isGloballyLoading } = useGlobalLoading();
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [showLocalLoader, setShowLocalLoader] = useState(false);
+  const { withLoading, isGloballyLoading, showLoading } = useGlobalLoading();
 
   // ---------- Functions ----------
   const fetchCachedQuizSpecs = async () => {
@@ -41,27 +44,7 @@ const StartQuizScreen = () => {
       console.error("Failed to load data from cache:", error);
     }
   };
-  // IMPORTANT
 
-  //Alte Code: diese Funktion hat Timing Probleme, da sie die Seite wechselt, bevor die Fragen generiert werden und deswegen werden die dummy data benutzt für die erste Frage
-  /*const handleStartQuiz = async (
-topic: string,
-level: Difficulty,
-rounds: number
-) => {
-try {
-router.push("/(tabs)/play/QuizScreen");
-const questions = await generateMultipleQuizQuestions(
-topic,
-level,
-rounds
-);
-console.log("Generated Questions:", questions);
-saveDataToCache(cacheAi, questions);
-} catch (error) {}
-};*/
-
-  //neue Code, die Funktion von oben wurde geändert, damit sie die Fragen generiert, bevor die Seite gewechselt wird
   // IMPORTANT - Función handleStartQuiz corregida
   const handleStartQuiz = async (
     topic: string,
@@ -69,7 +52,9 @@ saveDataToCache(cacheAi, questions);
     rounds: number
   ) => {
     try {
-      setIsGeneratingQuestions(true); // loadiing state
+      console.log("Starting quiz generation...");
+      setIsGeneratingQuestions(true);
+      setShowLocalLoader(true);
 
       // wir benutzen die Data aus dem Cache, um das Thema zu bekommen
       const cachedInfo = await loadCacheData(cacheKey);
@@ -80,24 +65,35 @@ saveDataToCache(cacheAi, questions);
       );
 
       //  WICHTIG: IA muss fertig sein, um weiter zu gehenm
-      const questions = await generateMultipleQuizQuestions(
+      const questionsData = await generateMultipleQuizQuestions(
         specificTopic,
         level,
         rounds
       );
 
+      console.log("Generated Questions Data:", questionsData);
+      console.log("Questions array length:", questionsData.questionArray?.length);
+      
+      // Die API gibt bereits AiQuestions zurück, speichere direkt
+      await saveDataToCache(cacheAi, questionsData);
+      console.log("Questions saved to cache successfully");
 
-
-      console.log("Generated Questions:", questions);
-      await saveDataToCache(cacheAi, questions); // Esperar a que se guarde
-
-      // JETZT SEITE WECHSELN!!
-      router.push("/(tabs)/play/QuizScreen");
+      // Starte direkt den Countdown nach der KI-Generierung
+      setShowLocalLoader(false);
+      setShowCountdown(true);
     } catch (error) {
       console.error("Error generating questions:", error);
-    } finally {
-      setIsGeneratingQuestions(false); // loading weg
+      setIsGeneratingQuestions(false);
+      setShowLocalLoader(false);
     }
+  };
+
+  const handleCountdownComplete = () => {
+    console.log("Countdown complete - navigating to QuizScreen");
+    setShowCountdown(false);
+    setIsGeneratingQuestions(false);
+    // Navigation zur Quiz-Screen nach dem Countdown
+    router.push("/(tabs)/play/QuizScreen");
   };
 
   // ---------- USE EFFECT ----------
@@ -105,6 +101,39 @@ saveDataToCache(cacheAi, questions);
   useEffect(() => {
     fetchCachedQuizSpecs();
   }, []);
+
+  // Reset loader state when component mounts
+  useEffect(() => {
+    setShowCountdown(false);
+    setShowLocalLoader(false);
+    setIsGeneratingQuestions(false);
+  }, []);
+
+  // Zeige den lokalen Loader wenn aktiv
+  if (showLocalLoader) {
+    return (
+      <QuizLoader
+        key={`local-loader-${Date.now()}`}
+        onComplete={() => {
+          setShowLocalLoader(false);
+          setShowCountdown(true);
+        }}
+        minDuration={3000} // 3 Sekunden für den Loader
+      />
+    );
+  }
+
+  // Zeige den Countdown wenn aktiv
+  if (showCountdown) {
+    return (
+      <Countdown
+        key={`countdown-${Date.now()}`} // Eindeutiger key für jeden Countdown
+        onComplete={handleCountdownComplete}
+        startNumber={3}
+        duration={1500}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -126,14 +155,14 @@ saveDataToCache(cacheAi, questions);
             <IconCheckbox />
             <Text style={styles.pointsText}>Chosen topic: {topic}</Text>
           </View>
-          {
-            category !== topic && (
-          <View style={styles.pointsRow}>
-            <IconCheckbox />
-            <Text style={styles.pointsText}>Assigned category: {category}</Text>
-          </View>
-            )
-          }
+          {category !== topic && (
+            <View style={styles.pointsRow}>
+              <IconCheckbox />
+              <Text style={styles.pointsText}>
+                Assigned category: {category}
+              </Text>
+            </View>
+          )}
           <View style={styles.pointsRow}>
             <IconCheckbox />
             <Text style={styles.pointsText}>Chosen level: {level}</Text>
@@ -149,10 +178,11 @@ saveDataToCache(cacheAi, questions);
       {/* Button Container */}
       <View style={styles.buttonContainer}>
         <ButtonPrimary
-          text="Start"
+          text={isGeneratingQuestions ? "Generating..." : "Start"}
           onPress={() => {
             handleStartQuiz(topic, level, rounds);
           }}
+          disabled={isGeneratingQuestions}
         />
       </View>
     </View>

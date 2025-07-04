@@ -4,13 +4,21 @@ import { Pressable, Text, View, StyleSheet } from "react-native";
 
 type ToggleProps = {
   label: string;
+  onToggle?: (enabled: boolean) => void;
+  enabled: boolean;
 };
 
-export const Toggle = ({ label }: ToggleProps) => {
-  const [enabled, setEnabled] = useState(false);
+export const Toggle = ({ label, onToggle, enabled }: ToggleProps) => {
+  const [isEnabled, setIsEnabled] = useState<boolean>(false);
+
+  const handleToggle = () => {
+    const newState = !enabled;
+    setIsEnabled(newState);
+    onToggle?.(newState);
+  };
 
   return (
-    <Pressable style={styles.container} onPress={() => setEnabled(!enabled)}>
+    <Pressable style={styles.container} onPress={handleToggle}>
       <Text style={styles.label}>{label}</Text>
       <View style={[styles.toggleTrack, enabled && styles.toggleTrackEnabled]}>
         <View

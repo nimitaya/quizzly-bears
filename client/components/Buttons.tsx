@@ -56,6 +56,25 @@ export function ButtonSecondary({
     </Pressable>
   );
 }
+
+export function ButtonSecondaryDisabled({
+  text,
+  icon,
+  ...props
+}: PressableProps & { text: string; icon?: React.ReactNode }) {
+  const { width } = useWindowDimensions();
+  const buttonWidth = Math.min(348, width - 32);
+
+  return (
+    <Pressable disabled={true} {...props}>
+      <View style={[styles.buttonSecondary, { width: buttonWidth }]}>
+        {icon && <View style={{ marginRight: 8 }}>{icon}</View>}
+        <Text style={styles.textPrimaryButtonDisabled}>{text}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
 export function ButtonSkip({
   text,
   ...props
@@ -152,7 +171,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.TextLargeFs,
     color: Colors.darkGreen,
   },
-
   buttonSkip: {
     justifyContent: "center",
     alignItems: "center",

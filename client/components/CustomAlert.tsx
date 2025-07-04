@@ -30,7 +30,12 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
       <View style={styles.alertBox}>
         {noInternet ? <Logo size="small" /> : null}
         <Text style={styles.message}>{message}</Text>
-        <View style={styles.buttonRow}>
+        <View
+          style={[
+            styles.buttonRow,
+            cancelText === null && styles.buttonRowSingle,
+          ]}
+        >
           {cancelText !== null && (
             <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
               <Text style={styles.cancelText}>{cancelText}</Text>
@@ -71,6 +76,9 @@ const styles = StyleSheet.create({
     width: "100%",
     marginTop: Gaps.g40,
   },
+  buttonRowSingle: {
+    justifyContent: "flex-end",
+  },
   cancelBtn: {
     width: 120,
     height: 48,
@@ -81,7 +89,7 @@ const styles = StyleSheet.create({
   },
   okBtn: {
     width: 120,
-    height: 54,
+    height: 48,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: Colors.primaryLimo,

@@ -50,12 +50,12 @@ export interface IPushToken {
 }
 
 export interface IUser extends Document {
+  _id: Types.ObjectId;
   clerkUserId: string;
-  username?: string;
+  username: string;
   email: string;
   points: {
     totalPoints: number;
-    weeklyPoints: number;
     correctAnswers: number;
     totalAnswers: number;
   };
@@ -77,10 +77,20 @@ export interface IUser extends Document {
   };
 }
 
+const DEFAULT_CATEGORIES = [
+  "Science",
+  "History",
+  "Geography",
+  "Sports",
+  "Media",
+  "Culture",
+  "Daily Life",
+];
+
 const userSchema = new Schema<IUser>(
   {
     clerkUserId: { type: String, required: true, unique: true, index: true },
-    username: { type: String, index: true },
+    username: { type: String, index: true, default: "" },
     email: { type: String, required: true, unique: true, index: true },
     points: {
       totalPoints: { type: Number, default: 0 },
@@ -88,7 +98,15 @@ const userSchema = new Schema<IUser>(
       correctAnswers: { type: Number, default: 0 },
       totalAnswers: { type: Number, default: 0 },
     },
-    categoryStats: [categoryStatSchema],
+    categoryStats: {
+      type: [categoryStatSchema],
+      default: () =>
+        DEFAULT_CATEGORIES.map((category) => ({
+          categoryName: category,
+          correctAnswers: 0,
+          totalAnswers: 0,
+        })),
+    },
     friends: [{ type: Schema.Types.ObjectId, ref: "User" }],
     friendRequests: [{ type: Schema.Types.ObjectId, ref: "FriendRequest" }],
     medals: {

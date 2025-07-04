@@ -4,6 +4,7 @@ export const CACHE_KEY = {
     aiQuestions: "aiQuestions",
     quizSettings: "quizSettings",
     gameData: "currGameData",
+    currentRoom: "currentRoom",
   }
 
 // ---------- LOAD CACHE DATA ----------
