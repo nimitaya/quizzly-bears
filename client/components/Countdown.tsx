@@ -15,9 +15,20 @@ const Countdown: React.FC<CountdownProps> = ({
 }) => {
   const [countdownNumber, setCountdownNumber] = useState(startNumber);
   const countdownAnimation = useRef(new Animated.Value(0)).current;
+  const hasStartedRef = useRef(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    startCountdown();
+    if (!hasStartedRef.current) {
+      hasStartedRef.current = true;
+      startCountdown();
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
   }, []);
 
   const startCountdown = () => {
@@ -33,10 +44,12 @@ const Countdown: React.FC<CountdownProps> = ({
       }).start();
     }, 100);
     
-    const countdownInterval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       setCountdownNumber((prev) => {
         if (prev <= 1) {
-          clearInterval(countdownInterval);
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+          }
           onComplete();
           return 1;
         }
