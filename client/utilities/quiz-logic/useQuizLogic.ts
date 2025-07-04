@@ -18,6 +18,7 @@ import {
   aiQuestions,
   QuestionStructure,
 } from "@/utilities/quiz-logic/data";
+import { useUser } from "@clerk/clerk-expo";
 
 // ========================================================== START OF HOOK ==========================================================
 export function useQuizLogic() {
@@ -26,7 +27,8 @@ export function useQuizLogic() {
   const READ_TIMER_DURATION = 2000;
   const ANSWER_TIMER_DURATION = 30000; // 30 Sekunden für Antworten
   const NEXT_QUESTION_DELAY = 3000;
-
+   // get current user from Clerk:
+  const { user } = useUser();
   // To reset Timers
   const readTimeout = useRef<number | null>(null);
   const answerTimeout = useRef<number | null>(null);
@@ -330,7 +332,9 @@ export function useQuizLogic() {
 
   const endGame = async () => {
     // send to database
-    sendPointsToDatabase();
+    if (user?.id) {
+      sendPointsToDatabase(user.id);
+    }
     // clear cached data
     clearCachePoints();
     // Clear all timers
@@ -348,7 +352,9 @@ export function useQuizLogic() {
   // ----- START check and loading
   useEffect(() => {
     // check if points need to be uploaded to DB
-    checkCache(); // TODO
+    if (user?.id) {
+      checkCache(user.id);
+    }
     // get Game Settings
     fetchGameInfo();
     fetchAiData();
