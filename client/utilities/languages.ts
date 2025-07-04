@@ -675,4 +675,10 @@ export const LANGUAGES = [
       nativeName: "తెలుగు",
       flagId: "IN", // India
     },
+    {
+      code: "uk",
+      name: "Ukrainian",
+      nativeName: "Українська",
+      flagId: "UA", // Ukraine
+    }
   ];
