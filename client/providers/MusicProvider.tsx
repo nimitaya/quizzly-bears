@@ -9,6 +9,7 @@ import React, {
 import { Audio } from "expo-av";
 import { useStatistics } from "@/providers/UserProvider";
 import { Platform } from "react-native";
+import { useUser } from "@clerk/clerk-expo";
 
 type MusicContextType = {
   musicEnabled: boolean;
@@ -26,6 +27,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({
   const musicRef = useRef<Audio.Sound | null>(null);
   const { userData, updateUserSettings, loading } = useStatistics();
   const [musicEnabled, setMusicEnabled] = useState(false);
+  const { user } = useUser();
 
   useEffect(() => {
     let handled = false;
@@ -70,7 +72,8 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({
         try {
           const { sound } = await Audio.Sound.createAsync(
             {
-              uri: "https://commondatastorage.googleapis.com/codeskulptor-assets/sounddogs/soundtrack.ogg",
+              // uri: "https://commondatastorage.googleapis.com/codeskulptor-assets/sounddogs/soundtrack.ogg",
+              uri: "https://commondatastorage.googleapis.com/codeskulptor-demos/riceracer_assets/music/race2.ogg",
             },
             {
               shouldPlay: true,
@@ -101,6 +104,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const toggleMusic = async (enabled: boolean) => {
     setMusicEnabled(enabled);
+    if (!user) return;
     await updateUserSettings({ music: enabled });
   };
 
