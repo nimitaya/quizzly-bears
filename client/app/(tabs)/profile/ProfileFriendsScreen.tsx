@@ -257,7 +257,7 @@ const ProfilFriendsScreen = () => {
         {/* Friend Requests (incoming) */}
         {friendsState.receivedFriendRequests.friendRequests.map((item) => (
           <View key={item._id} style={styles.friendRow}>
-            <Text style={styles.friendName}>new invite</Text>
+            <Text style={styles.friendName}>{item.from.email}</Text>
             <View style={styles.actionButtons}>
               <TouchableOpacity
                 onPress={() => handleAcceptFriendRequest(item._id)}
@@ -269,9 +269,7 @@ const ProfilFriendsScreen = () => {
                 onPress={() => handleDeclineFriendRequest(item._id)}
                 style={styles.iconButton}
               >
-
                 <IconDismiss />
-
               </TouchableOpacity>
             </View>
           </View>
@@ -330,6 +328,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.bgGray,
     paddingTop: Gaps.g80,
+    maxWidth: 440,
+    alignSelf: "center",
+    width: "100%",
   },
   scrollContent: {
     paddingHorizontal: Gaps.g16,

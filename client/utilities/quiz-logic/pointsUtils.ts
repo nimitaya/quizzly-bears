@@ -9,6 +9,7 @@ import {
   CachePointsParams,
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { CACHE_KEY } from "@/utilities/cacheUtils";
+import { sendPoints } from "./pointsApi";
 
 const cacheKey = CACHE_KEY.gameData;
 
@@ -91,13 +92,26 @@ export const clearCachePoints = async () => {
 };
 
 // ---------- CHECK cache storage for remaining data ----------
-export const checkCache = async () => {
+export const checkCache = async (clerkUserId: string) => {
+  if (!clerkUserId) {
+    console.log("Cannot save points for guests");
+    return;
+  }
   try {
     const storedData = await loadCacheData(cacheKey);
     if (!storedData) {
       return;
     } else {
-      // send Data to Database TODO
+      // send Data to Database
+      await sendPoints({
+        clerkUserId,
+        totalPoints: storedData.points,
+        correctAnswers: storedData.correctAnswers,
+        totalAnswers: storedData.totalAnswers,
+        category: storedData.category
+      });
+      // Clear cache after successful send
+      await clearCachePoints();
     }
   } catch (error) {
     console.error("Failed to read cache:", error);
@@ -106,8 +120,26 @@ export const checkCache = async () => {
 };
 
 // ---------- SEND cached data TO DATABASE ----------
-export const sendPointsToDatabase = async () => {
-  const finalGameData = loadCacheData(cacheKey);
-  // Code goes here TODO
-  // send finalGameData to DB
+export const sendPointsToDatabase = async (clerkUserId: string) => {
+  try {
+    const finalGameData: GameInformation = await loadCacheData(cacheKey);
+    if (!finalGameData) {
+      console.log("No cached data found to send");
+      return;
+    }
+    
+    // Send data to database
+    await sendPoints({
+      clerkUserId,
+      totalPoints: finalGameData.points,
+      correctAnswers: finalGameData.correctAnswers,
+      totalAnswers: finalGameData.totalAnswers,
+      category: finalGameData.category
+    });
+    
+    console.log("Points successfully sent to database");
+  } catch (error) {
+    console.error("Failed to send points to database:", error);
+    throw error;
+  }
 };

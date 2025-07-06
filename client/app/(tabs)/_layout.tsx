@@ -28,7 +28,7 @@ const _Layout = () => {
             borderTopWidth: 1,
             borderTopColor: Colors.darkGreen,
             elevation: 0,
-            shadowOpacity: 0,
+            boxShadow: 'none',
             height: 60 + insets.bottom,
             paddingBottom: insets.bottom,
             paddingTop: 16,
