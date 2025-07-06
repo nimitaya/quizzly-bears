@@ -17,11 +17,14 @@ import { useMusic } from "@/providers/MusicProvider";
 import { useSound } from "@/providers/SoundProvider";
 import { useUser } from "@clerk/clerk-expo";
 import { resetOnboarding } from "@/providers/OnboardingProvider";
+import LanguageDropdown from "@/app/(tabs)/profile/LanguageDropdown";
+import { useLanguage } from "@/providers/LanguageContext";
 
 const ProfileScreen = () => {
   const router = useRouter();
   const { isAuthenticated, refreshGlobalState, isGloballyLoading } =
     useGlobalLoading();
+    const { changeLanguage } = useLanguage();
   const isMounted = useRef(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const hasFocusedRef = useRef(false);
@@ -46,6 +49,12 @@ const ProfileScreen = () => {
       console.error("Error resetting onboarding:", error);
     }
   };
+
+    //=========Vadim: Funktion to handle language change=========
+    const handleLanguageChange = async (language: any) => {
+      console.log('Language changed to:', language);
+      await changeLanguage(language);
+    };
 
   // Check for password reset flag on mount and refresh
   useEffect(() => {
@@ -166,13 +175,14 @@ const ProfileScreen = () => {
       <View style={styles.toggleBox}>
         <Toggle label="Sound" onToggle={toggleSound} enabled={soundEnabled} />
         <Toggle label="Music" enabled={musicEnabled} onToggle={toggleMusic} />
+        <LanguageDropdown onLanguageChange={handleLanguageChange} />
+
         <Text
           style={{
             fontSize: FontSizes.H3Fs,
             paddingHorizontal: Gaps.g32,
           }}
         >
-          Language !!!! create
         </Text>
       </View>
       <View style={styles.buttonsBox}>

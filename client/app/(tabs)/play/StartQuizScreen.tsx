@@ -7,13 +7,14 @@ import { useRouter } from "expo-router";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
 import { useState, useEffect } from "react";
 import { loadCacheData, saveDataToCache } from "@/utilities/cacheUtils";
-// import { generateMultipleQuizQuestions } from "@/utilities/api/quizApi";
-import { generateMultipleQuizQuestions } from "@/utilities/api/QiuzzApiTest";
+import { generateMultipleQuizQuestions } from "@/utilities/api/quizApi";
 import { Difficulty } from "@/utilities/types";
 import { PlayStyle } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { CACHE_KEY } from "@/utilities/cacheUtils";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import Countdown from "@/components/Countdown";
+import QuizLoader from "@/components/QuizLoader";
+import CustomAlert from "@/components/CustomAlert";
 
 const StartQuizScreen = () => {
   const router = useRouter();
@@ -26,7 +27,10 @@ const StartQuizScreen = () => {
   const [rounds, setRounds] = useState(10);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [showCountdown, setShowCountdown] = useState(false);
-  const { withLoading, isGloballyLoading } = useGlobalLoading();
+  const [showLocalLoader, setShowLocalLoader] = useState(false);
+  const [showErrorAlert, setShowErrorAlert] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const { withLoading, isGloballyLoading, showLoading } = useGlobalLoading();
 
   // ---------- Functions ----------
   const fetchCachedQuizSpecs = async () => {
@@ -53,42 +57,46 @@ const StartQuizScreen = () => {
     try {
       console.log("Starting quiz generation...");
       setIsGeneratingQuestions(true);
+      setShowLocalLoader(true);
 
-      // Verwende withLoading für automatischen Loader
-      await withLoading(
-        (async () => {
-          // wir benutzen die Data aus dem Cache, um das Thema zu bekommen
-          const cachedInfo = await loadCacheData(cacheKey);
-          const specificTopic = cachedInfo?.chosenTopic || topic;
+      // wir benutzen die Data aus dem Cache, um das Thema zu bekommen
+      const cachedInfo = await loadCacheData(cacheKey);
+      const specificTopic = cachedInfo?.chosenTopic || topic;
 
-          console.log(
-            `Generiere Fragen für das spezifische Thema: "${specificTopic}"`
-          );
-
-          //  WICHTIG: IA muss fertig sein, um weiter zu gehenm
-          const questionsData = await generateMultipleQuizQuestions(
-            specificTopic,
-            level,
-            rounds
-          );
-
-          console.log("Generated Questions Data:", questionsData);
-          console.log(
-            "Questions array length:",
-            questionsData.questionArray?.length
-          );
-
-          // Die API gibt bereits AiQuestions zurück, speichere direkt
-          await saveDataToCache(cacheAi, questionsData);
-          console.log("Questions saved to cache successfully");
-        })()
+      console.log(
+        `Generiere Fragen für das spezifische Thema: "${specificTopic}"`
       );
 
+      //  WICHTIG: IA muss fertig sein, um weiter zu gehenm
+      const questionsData = await generateMultipleQuizQuestions(
+        specificTopic,
+        level,
+        rounds
+      );
+
+      console.log("Generated Questions Data:", questionsData);
+      console.log(
+        "Questions array length:",
+        questionsData.questionArray?.length
+      );
+
+      // Die API gibt bereits AiQuestions zurück, speichere direkt
+      await saveDataToCache(cacheAi, questionsData);
+      console.log("Questions saved to cache successfully");
+
       // Starte direkt den Countdown nach der KI-Generierung
+      setShowLocalLoader(false);
       setShowCountdown(true);
     } catch (error) {
       console.error("Error generating questions:", error);
+
+      // Показать ошибку пользователю
+      setShowLocalLoader(false);
       setIsGeneratingQuestions(false);
+      setErrorMessage(
+        "Failed to generate questions. Please try again or check your internet connection."
+      );
+      setShowErrorAlert(true);
     }
   };
 
@@ -100,6 +108,17 @@ const StartQuizScreen = () => {
     router.push("/(tabs)/play/QuizScreen");
   };
 
+  const handleErrorAlertClose = () => {
+    setShowErrorAlert(false);
+    setErrorMessage("");
+  };
+
+  const handleErrorAlertConfirm = () => {
+    setShowErrorAlert(false);
+    setErrorMessage("");
+    // Можно попробовать снова или вернуться назад
+  };
+
   // ---------- USE EFFECT ----------
   // Fetch cached quiz specs to set information
   useEffect(() => {
@@ -109,8 +128,23 @@ const StartQuizScreen = () => {
   // Reset loader state when component mounts
   useEffect(() => {
     setShowCountdown(false);
+    setShowLocalLoader(false);
     setIsGeneratingQuestions(false);
   }, []);
+
+  // Zeige den lokalen Loader wenn aktiv
+  if (showLocalLoader) {
+    return (
+      <QuizLoader
+        key={`local-loader-${Date.now()}`}
+        onComplete={() => {
+          setShowLocalLoader(false);
+          setShowCountdown(true);
+        }}
+        minDuration={3000} // 3 Sekunden für den Loader
+      />
+    );
+  }
 
   // Zeige den Countdown wenn aktiv
   if (showCountdown) {
@@ -133,6 +167,22 @@ const StartQuizScreen = () => {
       >
         <IconArrowBack />
       </TouchableOpacity>
+
+      {/* Error Alert */}
+      <CustomAlert
+        visible={showErrorAlert}
+        onClose={handleErrorAlertClose}
+        title="Generation Failed"
+        message={errorMessage}
+        cancelText="Back"
+        confirmText="Try Again"
+        onConfirm={() => {
+          handleErrorAlertConfirm();
+          handleStartQuiz(topic, level, rounds);
+        }}
+        noInternet={false}
+      />
+
       <View style={{ marginBottom: Gaps.g40 }}>
         <Logo size="big" />
       </View>

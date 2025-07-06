@@ -15,15 +15,26 @@ const Countdown: React.FC<CountdownProps> = ({
 }) => {
   const [countdownNumber, setCountdownNumber] = useState(startNumber);
   const countdownAnimation = useRef(new Animated.Value(0)).current;
+  const hasStartedRef = useRef(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    startCountdown();
+    if (!hasStartedRef.current) {
+      hasStartedRef.current = true;
+      startCountdown();
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
   }, []);
 
   const startCountdown = () => {
     // Sofort die erste Animation für die Startzahl starten
     countdownAnimation.setValue(0);
-    
+
     // Sofort die Startzahl sichtbar machen
     setTimeout(() => {
       Animated.timing(countdownAnimation, {
@@ -32,17 +43,22 @@ const Countdown: React.FC<CountdownProps> = ({
         useNativeDriver: true,
       }).start();
     }, 100);
-    
-    const countdownInterval = setInterval(() => {
+
+    intervalRef.current = setInterval(() => {
       setCountdownNumber((prev) => {
         if (prev <= 1) {
-          clearInterval(countdownInterval);
-          onComplete();
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+          }
+          // setTimeout
+          setTimeout(() => {
+            onComplete();
+          }, 0);
           return 1;
         }
         return prev - 1;
       });
-      
+
       // Countdown-Animation für jede Zahl: von klein/unsichtbar zu groß/deutlich
       countdownAnimation.setValue(0);
       Animated.timing(countdownAnimation, {
@@ -82,13 +98,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.bgGray,
   },
   countdownText: {
-    fontSize: 72,
+    fontSize: 120,
     fontWeight: FontWeights.H1Fw as any,
-    color: Colors.lightGreen,
+    color: Colors.primaryLimo,
   },
 });
 
-export default Countdown; 
+export default Countdown;
