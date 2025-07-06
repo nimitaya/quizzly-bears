@@ -7,7 +7,8 @@ import { useRouter } from "expo-router";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
 import { useState, useEffect } from "react";
 import { loadCacheData, saveDataToCache } from "@/utilities/cacheUtils";
-import { generateMultipleQuizQuestions } from "@/utilities/api/quizApi";
+// import { generateMultipleQuizQuestions } from "@/utilities/api/quizApi";
+import { generateMultipleQuizQuestions } from "@/utilities/api/QiuzzApiTest";
 import { Difficulty } from "@/utilities/types";
 import { PlayStyle } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { CACHE_KEY } from "@/utilities/cacheUtils";
@@ -50,35 +51,38 @@ const StartQuizScreen = () => {
     rounds: number
   ) => {
     try {
-
       console.log("Starting quiz generation...");
       setIsGeneratingQuestions(true);
 
       // Verwende withLoading für automatischen Loader
-      await withLoading((async () => {
-        // wir benutzen die Data aus dem Cache, um das Thema zu bekommen
-        const cachedInfo = await loadCacheData(cacheKey);
-        const specificTopic = cachedInfo?.chosenTopic || topic;
+      await withLoading(
+        (async () => {
+          // wir benutzen die Data aus dem Cache, um das Thema zu bekommen
+          const cachedInfo = await loadCacheData(cacheKey);
+          const specificTopic = cachedInfo?.chosenTopic || topic;
 
-        console.log(
-          `Generiere Fragen für das spezifische Thema: "${specificTopic}"`
-        );
+          console.log(
+            `Generiere Fragen für das spezifische Thema: "${specificTopic}"`
+          );
 
-        //  WICHTIG: IA muss fertig sein, um weiter zu gehenm
-        const questionsData = await generateMultipleQuizQuestions(
-          specificTopic,
-          level,
-          rounds
-        );
+          //  WICHTIG: IA muss fertig sein, um weiter zu gehenm
+          const questionsData = await generateMultipleQuizQuestions(
+            specificTopic,
+            level,
+            rounds
+          );
 
+          console.log("Generated Questions Data:", questionsData);
+          console.log(
+            "Questions array length:",
+            questionsData.questionArray?.length
+          );
 
-        console.log("Generated Questions Data:", questionsData);
-        console.log("Questions array length:", questionsData.questionArray?.length);
-        
-        // Die API gibt bereits AiQuestions zurück, speichere direkt
-        await saveDataToCache(cacheAi, questionsData);
-        console.log("Questions saved to cache successfully");
-      })());
+          // Die API gibt bereits AiQuestions zurück, speichere direkt
+          await saveDataToCache(cacheAi, questionsData);
+          console.log("Questions saved to cache successfully");
+        })()
+      );
 
       // Starte direkt den Countdown nach der KI-Generierung
       setShowCountdown(true);
