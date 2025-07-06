@@ -89,11 +89,13 @@ const StartQuizScreen = () => {
       setShowCountdown(true);
     } catch (error) {
       console.error("Error generating questions:", error);
-      
+
       // Показать ошибку пользователю
       setShowLocalLoader(false);
       setIsGeneratingQuestions(false);
-      setErrorMessage("Failed to generate questions. Please try again or check your internet connection.");
+      setErrorMessage(
+        "Failed to generate questions. Please try again or check your internet connection."
+      );
       setShowErrorAlert(true);
     }
   };
