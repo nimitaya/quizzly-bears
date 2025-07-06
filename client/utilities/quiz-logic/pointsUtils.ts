@@ -10,8 +10,11 @@ import {
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { CACHE_KEY } from "@/utilities/cacheUtils";
 import { sendPoints } from "./pointsApi";
+import { useStatistics } from "@/providers/UserProvider";
 
 const cacheKey = CACHE_KEY.gameData;
+
+const { setOnChanges } = useStatistics();
 
 // ---------- CALCULATE Points according to rules ----------
 export const calculatePoints = ({
@@ -108,7 +111,7 @@ export const checkCache = async (clerkUserId: string) => {
         totalPoints: storedData.points,
         correctAnswers: storedData.correctAnswers,
         totalAnswers: storedData.totalAnswers,
-        category: storedData.category
+        category: storedData.category,
       });
       // Clear cache after successful send
       await clearCachePoints();
@@ -127,19 +130,21 @@ export const sendPointsToDatabase = async (clerkUserId: string) => {
       console.log("No cached data found to send");
       return;
     }
-    
+
     // Send data to database
     await sendPoints({
       clerkUserId,
       totalPoints: finalGameData.points,
       correctAnswers: finalGameData.correctAnswers,
       totalAnswers: finalGameData.totalAnswers,
-      category: finalGameData.category
+      category: finalGameData.category,
     });
-    
+
     console.log("Points successfully sent to database");
   } catch (error) {
     console.error("Failed to send points to database:", error);
     throw error;
+  } finally {
+    setOnChanges(true);
   }
 };

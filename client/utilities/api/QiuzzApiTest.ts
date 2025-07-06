@@ -69,12 +69,22 @@ Ensure:
 - Only one correct option per question
 - Correct options are spread across A/B/C/D
 - No repeated questions
-- No Markdown, no extra text
-
+- ⚠️ DO NOT explain anything.
+- ⚠️ DO NOT use Markdown.
+- ⚠️ Reply ONLY with valid JSON in the following format:
 RESPONSE FORMAT:
 {
   "category": "${topic}",
-  "questionArray": [ ... ]
+    "questionArray": [
+    {
+      "question": { "en": "...", "de": "..." },
+      "optionA": { "en": "...", "de": "...", "isCorrect": true/false },
+      "optionB": { ... },
+      "optionC": { ... },
+      "optionD": { ... }
+    },
+    ...
+  ]
 }`;
 };
 
@@ -83,94 +93,136 @@ async function requestWithFallback(
   questionCount: number,
   topic: Category
 ): Promise<AiQuestions> {
+  // try {
+  //   const groqResponse = await axios.post(
+  //     GROQ_API_URL,
+  //     {
+  //       model: "llama3-8b-8192",
+  //       messages: [{ role: "user", content: prompt }],
+  //       temperature: 0.9,
+  //       max_tokens: 3000,
+  //       top_p: 0.9,
+  //       frequency_penalty: 0.8,
+  //       presence_penalty: 0.6,
+  //     },
+  //     {
+  //       headers: {
+  //         Authorization: `Bearer ${GROQ_API_KEY}`,
+  //         "Content-Type": "application/json",
+  //       },
+  //     }
+  //   );
+
+  //   return parseQuizResponse(
+  //     groqResponse.data.choices[0].message.content,
+  //     questionCount,
+  //     topic
+  //   );
+  // } catch (error: any) {
+  //   if (axios.isAxiosError(error) && error.response?.status === 401) {
+  //     Alert.alert(
+  //       "The bear fell asleep in his den 🐻💤",
+  //       "Let's look for another one..."
+  //     );
+  //   } else {
+  //     console.error("GROQ error (not 401):", error);
+  //   }
+
+  // 🔁 Fallback to OpenRouter
   try {
-    const groqResponse = await axios.post(
-      GROQ_API_URL,
+    const fallbackResponse = await axios.post(
+      OPENROUTER_API_URL,
       {
-        model: "llama3-8b-8192",
+        model: "mistralai/mistral-7b-instruct",
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.9,
-        max_tokens: 3000,
-        top_p: 0.9,
-        frequency_penalty: 0.8,
-        presence_penalty: 0.6,
       },
       {
         headers: {
-          Authorization: `Bearer ${GROQ_API_KEY}`,
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
         },
       }
     );
 
     return parseQuizResponse(
-      groqResponse.data.choices[0].message.content,
+      fallbackResponse.data.choices[0].message.content,
       questionCount,
       topic
     );
-  } catch (error: any) {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-      Alert.alert(
-        "The bear fell asleep in his den 🐻💤",
-        "Let's look for another one..."
+  } catch (fallbackError: any) {
+    if (axios.isAxiosError(fallbackError)) {
+      console.error(
+        "OpenRouter fallback failed. Status:",
+        fallbackError.response?.status
+      );
+      console.error(
+        "OpenRouter fallback failed. Data:",
+        fallbackError.response?.data
       );
     } else {
-      console.error("GROQ error (not 401):", error);
+      console.error("OpenRouter fallback failed:", fallbackError);
     }
-
-    // 🔁 Fallback to OpenRouter
-    try {
-      const fallbackResponse = await axios.post(
-        OPENROUTER_API_URL,
-        {
-          model: "openrouter/auto",
-          messages: [{ role: "user", content: prompt }],
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      return parseQuizResponse(
-        fallbackResponse.data.choices[0].message.content,
-        questionCount,
-        topic
-      );
-    } catch (fallbackError: any) {
-      if (axios.isAxiosError(fallbackError)) {
-        console.error(
-          "OpenRouter fallback failed. Status:",
-          fallbackError.response?.status
-        );
-        console.error(
-          "OpenRouter fallback failed. Data:",
-          fallbackError.response?.data
-        );
-      } else {
-        console.error("OpenRouter fallback failed:", fallbackError);
-      }
-      throw new Error("Both GROQ and OpenRouter failed to generate questions.");
-    }
+    throw new Error("Both GROQ and OpenRouter failed to generate questions.");
   }
 }
+//}
 
 function parseQuizResponse(
   content: string,
   questionCount: number,
   topic: string
 ): AiQuestions {
+  console.log("🌐 AI raw content:\n", content);
+
+  // Спроба витягти JSON
+
   const clean = content.replace(/```json\n?|```|\n*$/g, "").trim();
   const jsonMatch = clean.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("No valid JSON found in AI response");
+  if (!jsonMatch) throw new Error("❌ No valid JSON found in AI response");
 
-  const parsed = JSON.parse(jsonMatch[0]);
+  let parsed;
+  try {
+    parsed = JSON.parse(jsonMatch[0]);
+  } catch (err) {
+    console.error("❌ Failed to parse JSON:", err);
+    throw new Error("Malformed JSON from AI");
+  }
+
   const questions = parsed.questionArray;
+  if (!Array.isArray(questions)) {
+    throw new Error("❌ 'questionArray' is not an array");
+  }
+
   const validated: QuestionStructure[] = [];
 
-  for (let data of questions) {
+  for (const [index, data] of questions.entries()) {
+    // 🔎 Валідація ключів
+    const missingFields = [];
+
+    if (!data.question || typeof data.question !== "object") {
+      missingFields.push("question");
+    } else {
+      if (!data.question.en) missingFields.push("question.en");
+      if (!data.question.de) missingFields.push("question.de");
+    }
+
+    for (const key of OPTION_KEYS) {
+      if (!data[key]) {
+        missingFields.push(`${key}`);
+      } else {
+        if (!data[key].en) missingFields.push(`${key}.en`);
+        if (!data[key].de) missingFields.push(`${key}.de`);
+      }
+    }
+
+    if (missingFields.length > 0) {
+      console.warn(
+        `⚠️ Skipping question ${index + 1}: Missing fields:`,
+        missingFields
+      );
+      continue;
+    }
+
     const correctKey = getNextCorrectOption();
 
     const question: QuestionStructure = {
@@ -182,6 +234,10 @@ function parseQuizResponse(
     };
 
     validated.push(question);
+  }
+
+  if (validated.length === 0) {
+    throw new Error("❌ No valid questions were parsed from AI response");
   }
 
   return {
