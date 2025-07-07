@@ -10,11 +10,8 @@ import {
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { CACHE_KEY } from "@/utilities/cacheUtils";
 import { sendPoints } from "./pointsApi";
-import { useStatistics } from "@/providers/UserProvider";
 
 const cacheKey = CACHE_KEY.gameData;
-
-const { setOnChanges } = useStatistics();
 
 // ---------- CALCULATE Points according to rules ----------
 export const calculatePoints = ({
@@ -123,7 +120,8 @@ export const checkCache = async (clerkUserId: string) => {
 };
 
 // ---------- SEND cached data TO DATABASE ----------
-export const sendPointsToDatabase = async (clerkUserId: string) => {
+// Fixed version - accepts callback for setOnChanges:
+export const sendPointsToDatabase = async (clerkUserId: string, onSuccess?: () => void) => {
   try {
     const finalGameData: GameInformation = await loadCacheData(cacheKey);
     if (!finalGameData) {
@@ -141,10 +139,40 @@ export const sendPointsToDatabase = async (clerkUserId: string) => {
     });
 
     console.log("Points successfully sent to database");
+    
+    // Call the success callback if provided
+    if (onSuccess) {
+      onSuccess();
+    }
   } catch (error) {
     console.error("Failed to send points to database:", error);
     throw error;
-  } finally {
-    setOnChanges(true);
   }
 };
+
+// OLD VERSION (COMMENTED - HOOK PROBLEM):
+// export const sendPointsToDatabase = async (clerkUserId: string) => {
+//   try {
+//     const finalGameData: GameInformation = await loadCacheData(cacheKey);
+//     if (!finalGameData) {
+//       console.log("No cached data found to send");
+//       return;
+//     }
+
+//     // Send data to database
+//     await sendPoints({
+//       clerkUserId,
+//       totalPoints: finalGameData.points,
+//       correctAnswers: finalGameData.correctAnswers,
+//       totalAnswers: finalGameData.totalAnswers,
+//       category: finalGameData.category,
+//     });
+
+//     console.log("Points successfully sent to database");
+//   } catch (error) {
+//     console.error("Failed to send points to database:", error);
+//     throw error;
+//   } finally {
+//     setOnChanges(true);  // PROBLEM: setOnChanges not available
+//   }
+// };

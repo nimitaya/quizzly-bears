@@ -19,23 +19,30 @@ import {
   QuestionStructure,
 } from "@/utilities/quiz-logic/data";
 import { useUser } from "@clerk/clerk-expo";
+// Fix: import useStatistics in React component
+import { useStatistics } from "@/providers/UserProvider";
 
 // ========================================================== START OF HOOK ==========================================================
 export function useQuizLogic() {
   const key = CACHE_KEY;
   // Timer duration/ delays TODO
   const READ_TIMER_DURATION = 2000;
-  const ANSWER_TIMER_DURATION = 30000; // 30 Sekunden für Antworten
+  const ANSWER_TIMER_DURATION = 30000; // 30 seconds for answers
   const NEXT_QUESTION_DELAY = 3000;
-   // get current user from Clerk:
+  // get current user from Clerk:
   const { user } = useUser();
+  // Fix: use useStatistics inside React component
+  const { setOnChanges } = useStatistics();
   // To reset Timers
   const readTimeout = useRef<number | null>(null);
   const answerTimeout = useRef<number | null>(null);
+  // Fix: ref to store current points data between state updates
+  const currentPointsRef = useRef({ total: 0, chosenCorrect: 0 });
 
   // ========================================================== STATE MANAGEMENT ==========================================================
   // TODO combine states
-  const [language, setLanguage] = useState("de");
+  // Fix: change default language from "de" to "ru", as answers are selected in Russian
+  const [language, setLanguage] = useState("ru");
   const [currQuestionsArray, setCurrQuestionsArray] = useState<
     QuestionStructure[]
   >([]);
@@ -121,7 +128,7 @@ export function useQuizLogic() {
         // Fallback to dummy data if cache is empty TODO delete later
         questions = aiQuestions;
         setCurrQuestionsArray(questions.questionArray);
-      } 
+      }
       if (currQuestionIndex < questions.questionArray.length) {
         // Check if questions have the right structure
         // Reset
@@ -170,8 +177,10 @@ export function useQuizLogic() {
 
   // ----- Handle ANSWER SELECTION -----
   const handleAnswerSelect = (selectedOption: string): void => {
-    if (answerState.isLocked) return;
-    // Prevent further actions if answer is locked
+    if (answerState.isLocked) {
+      return;
+    }
+    
     setAnswerState((prevState) => ({
       ...prevState,
       chosenAnswer: selectedOption,
@@ -212,20 +221,49 @@ export function useQuizLogic() {
 
   // ----- HELPER for finding correct answer -----
   const getIsCorrect = (): boolean => {
-    if (!currentQuestionData || !answerState.chosenAnswer) return false;
+    if (!currentQuestionData || !answerState.chosenAnswer) {
+      return false;
+    }
+    
     const { optionA, optionB, optionC, optionD } = currentQuestionData;
     const options = [optionA, optionB, optionC, optionD];
-    const chosenText = answerState.chosenAnswer;
-    // Find the matching option (in the current language)
-    const matchedOption = options.find(
-      (option) => option[language] === chosenText
-    );
-    return !!matchedOption?.isCorrect;
-  };
-
-  // ----- Handle ANSWER CHECK -----
+    const chosenOption = answerState.chosenAnswer; // This is now "A", "B", "C" or "D" (option key)
+    
+    // Compare by option index (A, B, C, D), not by text
+    let optionIndex = -1;
+    
+    // Determine the index of the selected option
+    switch (chosenOption.toUpperCase()) {
+      case "A":
+      case "0":
+        optionIndex = 0;
+        break;
+      case "B":
+      case "1":
+        optionIndex = 1;
+        break;
+      case "C":
+      case "2":
+        optionIndex = 2;
+        break;
+      case "D":
+      case "3":
+        optionIndex = 3;
+        break;
+      default:
+        return false;
+    }
+    
+    if (optionIndex === -1 || optionIndex >= options.length) {
+      return false;
+    }
+    
+    const selectedOption = options[optionIndex];
+    return selectedOption.isCorrect;
+  };  // ----- Handle ANSWER CHECK -----
   const handleAnswerCheck = (): void => {
     const isCorrect = getIsCorrect();
+    
     if (isCorrect) {
       const newChosenCorrect = pointsState.chosenCorrect + 1;
 
@@ -236,7 +274,7 @@ export function useQuizLogic() {
       let allCorrect = newChosenCorrect === totalQuestions;
       let correctAnswers = newChosenCorrect;
 
-      // calculate points accoirding to our rules
+      // Calculate points according to our rules
       const gainedPoints = calculatePoints({
         difficulty,
         timeTaken,
@@ -246,18 +284,47 @@ export function useQuizLogic() {
         totalQuestions,
         correctAnswers,
       });
+      
       // Early exit if null
-      if (!gainedPoints) return;
+      if (!gainedPoints) {
+        return;
+      }
+      
+      // Update state and save current data for caching
+      const newTotal = pointsState.total + gainedPoints.totalPoints;
+
       // Add correct points to state
-      setPointsState((prevPoints) => ({
-        ...prevPoints,
-        score: prevPoints.score + gainedPoints?.basePoints,
-        timePoints: prevPoints.timePoints + gainedPoints?.timeBonus,
-        perfectGame: prevPoints.perfectGame + gainedPoints?.bonusAllCorrect,
-        total: prevPoints.total + gainedPoints?.totalPoints,
-        chosenCorrect: newChosenCorrect,
-      }));
+      setPointsState((prevPoints) => {
+        const updatedState = {
+          ...prevPoints,
+          score: prevPoints.score + gainedPoints?.basePoints,
+          timePoints: prevPoints.timePoints + gainedPoints?.timeBonus,
+          perfectGame: prevPoints.perfectGame + gainedPoints?.bonusAllCorrect,
+          total: newTotal,
+          chosenCorrect: newChosenCorrect,
+        };
+        
+        // Update ref with current data
+        currentPointsRef.current = {
+          total: updatedState.total,
+          chosenCorrect: updatedState.chosenCorrect
+        };
+        
+        return updatedState;
+      });
     }
+    
+    // OLD CODE (COMMENTED):
+    // // Add correct points to state
+    // setPointsState((prevPoints) => ({
+    //   ...prevPoints,
+    //   score: prevPoints.score + gainedPoints?.basePoints,
+    //   timePoints: prevPoints.timePoints + gainedPoints?.timeBonus,
+    //   perfectGame: prevPoints.perfectGame + gainedPoints?.bonusAllCorrect,
+    //   total: prevPoints.total + gainedPoints?.totalPoints,
+    //   chosenCorrect: newChosenCorrect,
+    // }));
+    
     // Logic for SOLO Play
     if (
       currQuestionIndex < currQuestionsArray.length - 1 &&
@@ -278,18 +345,43 @@ export function useQuizLogic() {
   // ----- Handle NEXT QUESTION -----
   const handleNextQuestion = (): void => {
     const newTotalAnswers = pointsState.totalAnswers + 1;
-    // update totalAnswers
-    setPointsState((prevPoints) => ({
-      ...prevPoints,
-      totalAnswers: newTotalAnswers,
-    }));
-    // Cache current points & information
-    cachePoints({
-      gameCategory: gameState.category,
-      score: pointsState.total,
-      correctAnswers: pointsState.chosenCorrect,
-      totalAnswers: newTotalAnswers,
+    
+    // Fix Race Condition: use current data from ref
+    setPointsState((prevPoints) => {
+      const updatedPoints = {
+        ...prevPoints,
+        totalAnswers: newTotalAnswers,
+      };
+      
+      // Use current data from ref instead of outdated state
+      const actualTotal = currentPointsRef.current.total || updatedPoints.total;
+      const actualCorrect = currentPointsRef.current.chosenCorrect || updatedPoints.chosenCorrect;
+      
+      // Cache current points & information with up-to-date values
+      cachePoints({
+        gameCategory: gameState.category,
+        score: actualTotal,        // Use current data from ref
+        correctAnswers: actualCorrect,  // Use current data from ref
+        totalAnswers: updatedPoints.totalAnswers,
+      });
+      
+      return updatedPoints;
     });
+    
+    // OLD CODE (COMMENTED - RACE CONDITION):
+    // // update totalAnswers
+    // setPointsState((prevPoints) => ({
+    //   ...prevPoints,
+    //   totalAnswers: newTotalAnswers,
+    // }));
+    // // Cache current points & information
+    // cachePoints({
+    //   gameCategory: gameState.category,
+    //   score: pointsState.total,              // PROBLEM: old data
+    //   correctAnswers: pointsState.chosenCorrect,  // PROBLEM: old data
+    //   totalAnswers: newTotalAnswers,
+    // });
+    
     // Clear timer
     if (answerTimeout.current) {
       clearTimeout(answerTimeout.current);
@@ -331,10 +423,19 @@ export function useQuizLogic() {
   };
 
   const endGame = async () => {
-    // send to database
+    // Fixed version - pass callback for setOnChanges:
     if (user?.id) {
-      sendPointsToDatabase(user.id);
+      await sendPointsToDatabase(user.id, () => {
+        setOnChanges(true);
+      });
     }
+    
+    // OLD VERSION (COMMENTED):
+    // send to database
+    // if (user?.id) {
+    //   sendPointsToDatabase(user.id);  // PROBLEM: setOnChanges not available in pointsUtils
+    // }
+    
     // clear cached data
     clearCachePoints();
     // Clear all timers
