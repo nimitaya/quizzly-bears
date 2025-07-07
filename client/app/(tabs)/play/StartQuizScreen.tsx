@@ -247,8 +247,10 @@ const styles = StyleSheet.create({
   },
   summaryContainer: {
     marginBottom: Gaps.g48,
-    alignSelf: "flex-start",
     marginLeft: Gaps.g32,
+    maxWidth: 440,
+    alignSelf: "center",
+    width: "100%",
   },
   button: {
     marginTop: Gaps.g32,
