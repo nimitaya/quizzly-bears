@@ -8,6 +8,7 @@ import {
   declineInvitationRequest,
   getInvitationList,
   removeInvitation,
+  removeAllInvitations
 } from "../controllers/invitationsController";
 
 const invitationsRouter = express.Router();
@@ -19,5 +20,6 @@ invitationsRouter.post("/accept", acceptInvitationRequest)
 invitationsRouter.post("/decline", declineInvitationRequest)
 invitationsRouter.get("/invitations", getInvitationList)
 invitationsRouter.delete("/remove", removeInvitation)
+invitationsRouter.delete("/remove-all", removeAllInvitations)
 
 export default invitationsRouter;

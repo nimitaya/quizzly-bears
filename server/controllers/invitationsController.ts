@@ -393,3 +393,40 @@ export const removeInvitation = async (
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+// ==================== Remove all invites ====================
+export const removeAllInvitations = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { clerkUserId } = req.body;
+
+    if (!clerkUserId) {
+      res.status(400).json({ error: "clerkUserId is required" });
+      return;
+    }
+
+    // Find current user
+    const user = await User.findOne({ clerkUserId });
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    // Delete all accepted invite requests of this user
+    const deleteResult = await InviteRequest.deleteMany({
+      from: user._id,
+      status: "accepted",
+    });
+
+    // ----- Response -----
+    res.json({ 
+      message: "All invites removed successfully",
+      deletedCount: deleteResult.deletedCount 
+    });
+  } catch (error) {
+    console.error("Error removing invite:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
