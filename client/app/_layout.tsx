@@ -16,8 +16,6 @@ import { OnboardingProvider } from "@/providers/OnboardingProvider";
 import { LanguageProvider } from "@/providers/LanguageContext";
 import LoadingManager from "@/components/LoadingManager";
 
-
-
 // Override with safe type casting
 const overrideDefaultFont = () => {
   const textRender = (Text as any).render;
@@ -49,29 +47,29 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <LanguageProvider>
     <ClerkProvider tokenCache={tokenCache}>
       <UserProvider>
-         <OnboardingProvider>
-        <GlobalLoadingProvider>
-          <NetworkAlertProvider>
-            <SafeAreaProvider>
-              <MusicProvider>
-                <SoundProvider>
-                  <View style={{ flex: 1, backgroundColor: Colors.bgGray }}>
-                    <AuthNavigationHelper />
-                    <Slot />
-                    <LoadingManager />
-                  </View>
-                </SoundProvider>
-              </MusicProvider>
-            </SafeAreaProvider>
-          </NetworkAlertProvider>
-        </GlobalLoadingProvider>
-            </OnboardingProvider>
+
+        <LanguageProvider>
+          <OnboardingProvider>
+            <GlobalLoadingProvider>
+              <NetworkAlertProvider>
+                <SafeAreaProvider>
+                  <MusicProvider>
+                    <SoundProvider>
+                      <View style={{ flex: 1, backgroundColor: Colors.bgGray }}>
+                        <AuthNavigationHelper />
+                        <Slot />
+                      </View>
+                    </SoundProvider>
+                  </MusicProvider>
+                </SafeAreaProvider>
+              </NetworkAlertProvider>
+            </GlobalLoadingProvider>
+          </OnboardingProvider>
+        </LanguageProvider>
 
       </UserProvider>
     </ClerkProvider>
-    </LanguageProvider>
   );
 }
