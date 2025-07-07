@@ -103,6 +103,7 @@ const MultiplayerLobby = () => {
   useEffect(() => {
     loadRoomInfo();
     setupSocketListeners();
+    fetchInvites()
 
     // Also listen for cache updates (when admin selects category)
     const interval = setInterval(async () => {
@@ -127,6 +128,8 @@ const MultiplayerLobby = () => {
     };
   }, []);
 
+  // ==============================
+// ----- Load Room Info -----
   const loadRoomInfo = async () => {
     try {
       const cachedRoomInfo = await loadCacheData(CACHE_KEY.currentRoom);
@@ -139,6 +142,7 @@ const MultiplayerLobby = () => {
     }
   };
 
+  // ----- Setup Socket Listeners -----
   const setupSocketListeners = () => {
     socketService.onPlayerJoined((data) => {
       console.log("Player joined:", data.player.name);
@@ -180,6 +184,7 @@ const MultiplayerLobby = () => {
     });
   };
 
+  // ----- Toggle Ready -----
   const toggleReady = () => {
     if (roomInfo && currentRoom) {
       const playerId = currentRoom.players.find(
@@ -192,6 +197,7 @@ const MultiplayerLobby = () => {
     }
   };
 
+  // ----- Start Game -----
   const startGame = async () => {
     if (
       roomInfo &&
@@ -264,7 +270,7 @@ const MultiplayerLobby = () => {
     }
   };
 
-  // Admin goes to select category/topic
+  // ----- Admin goes to select category/topic -----
   const goToSelectCategory = async () => {
     if (roomInfo?.isAdmin) {
       // Save admin status to cache for other screens
@@ -277,12 +283,14 @@ const MultiplayerLobby = () => {
     }
   };
 
+  // ----- Admin cancels room -----
   const cancelRoom = () => {
     if (roomInfo?.isAdmin) {
       setShowCancelRoomAlert(true);
     }
   };
 
+  // ----- Handle Cancel Room Confirmation -----
   const handleCancelRoomConfirm = () => {
     if (roomInfo && currentRoom) {
       // Get player ID and leave room
@@ -299,6 +307,7 @@ const MultiplayerLobby = () => {
     setShowCancelRoomAlert(false);
   };
 
+  // ----- Leave Room -----
   const leaveRoom = () => {
     if (roomInfo && currentRoom) {
       const playerId = currentRoom.players.find(
@@ -312,6 +321,22 @@ const MultiplayerLobby = () => {
     }
   };
 
+  // ========== Render Functions ==========
+  // ----- Render Invite Item -----
+  const renderInviteRequest = ({ item }: { item: InviteRequest }) => (
+    <View style={styles.playerItem}>
+      <Text style={styles.playerName}>
+        {item.to.username || item.to.email} (Invited)
+      </Text>
+      <View style={styles.readyIndicator}>
+        <Text style={styles.readyText}>
+          {item.status === "pending" ? "Pending" : item.status}
+        </Text>
+      </View>
+    </View>
+  );
+
+  // ----- Render Player Item -----
   const renderPlayer = ({ item }: { item: Player }) => (
     <View style={styles.playerItem}>
       <Text style={styles.playerName}>
@@ -330,7 +355,7 @@ const MultiplayerLobby = () => {
     </View>
   );
 
-  // CustomAlert handlers
+  // ===== CustomAlert handlers =====
   const handleNewHostAlertClose = () => {
     setShowNewHostAlert(false);
   };
@@ -361,7 +386,7 @@ const MultiplayerLobby = () => {
         style={styles.backButton}
         onPress={leaveRoom}
         accessibilityLabel="Leave room"
-      ></TouchableOpacity>
+      >BackButton HERE</TouchableOpacity>
 
       <View style={{ marginBottom: Gaps.g24 }}>
         <Logo size="small" />
@@ -376,6 +401,20 @@ const MultiplayerLobby = () => {
         </Text>
       )}
 
+{/* Show sent invitations */}
+<View style={styles.playersContainer}>
+        <Text style={styles.playersTitle}>
+          Sent invitations: ({sentInvites.length}/{currentRoom.maxPlayers})
+        </Text>
+        <FlatList
+          data={sentInvites}
+          renderItem={renderInviteRequest}
+          keyExtractor={(item) => item._id}
+          style={styles.playersList}
+        />
+      </View>
+
+{/* Show joined players */}
       <View style={styles.playersContainer}>
         <Text style={styles.playersTitle}>
           Players ({currentRoom.players.length}/{currentRoom.maxPlayers})
