@@ -5,13 +5,15 @@ import { useRouter } from "expo-router";
 import { Text, View, ScrollView } from "react-native";
 import { StyleSheet } from "react-native";
 import { useStatistics } from "@/providers/UserProvider";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Loading from "../../Loading";
 import CustomAlert from "@/components/CustomAlert";
 import { useUser } from "@clerk/clerk-expo";
+import { useFocusEffect } from "@react-navigation/native";
 
 const PlayScreen = () => {
-  const { topPlayers, loading, totalUsers, userRank } = useStatistics();
+  const { topPlayers, loading, totalUsers, userRank, onChanges, refetch } =
+    useStatistics();
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const { user } = useUser();
@@ -21,6 +23,12 @@ const PlayScreen = () => {
       setShowForm(true);
     }
   }, [topPlayers, loading]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch && refetch.forEach((fn) => fn());
+    }, [onChanges])
+  );
 
   if (loading) return <Loading />;
   if (!topPlayers && !loading) {

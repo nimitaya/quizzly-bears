@@ -2,10 +2,8 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
 import { useUser } from "@clerk/clerk-expo";
 
-
 const API_BASE_URL = "http://localhost:3000/api";
 // const API_BASE_URL = "https://quizzly-bears.onrender.com/api";
-
 
 type UserContextType = {
   updateUserSettings: (newSettings: {
@@ -13,6 +11,7 @@ type UserContextType = {
     sounds?: boolean;
   }) => Promise<void>;
   setOnChanges: React.Dispatch<React.SetStateAction<boolean>>;
+  onChanges: boolean;
   currentUsername: string | null;
   userRank: number | null;
   totalUsers: number | null;
@@ -26,6 +25,7 @@ type UserContextType = {
 const UserContext = createContext<UserContextType>({
   updateUserSettings: async () => {},
   setOnChanges: () => {},
+  onChanges: false,
   currentUsername: null,
   userRank: null,
   totalUsers: null,
@@ -143,6 +143,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         error,
         refetch: [fetchUserData, fetchTopPlayers],
         setOnChanges,
+        onChanges,
         updateUserSettings,
       }}
     >
