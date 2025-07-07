@@ -41,8 +41,9 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useUser();
 
-  //const API_BASE_URL = "http://localhost:3000/api";
-  const API_BASE_URL = "https://quizzly-bears.onrender.com/api";
+  // const API_BASE_URL = "http://localhost:3000/api";
+  const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+
 
   useEffect(() => {
     if (user?.id) {
