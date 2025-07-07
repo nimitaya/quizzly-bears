@@ -14,7 +14,7 @@ export const useCustomFonts = () => {
 };
 
 export const Fonts = {
-  pressStart2P: "'Press Start 2P', monospace",
+  pressStart2P: "NotoSans-Bold",
 };
 
 // Google Fonts Import für Press Start 2P

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Image,
   useWindowDimensions,
-  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Colors, FontSizes, FontWeights, Gaps, Radius } from "@/styles/theme";
@@ -38,13 +37,15 @@ const MiniGamesScreen = () => {
     console.log(`Starting ${gameName}`);
     if (gameName === "Connect Four") {
       router.push("/(tabs)/play/ConnectFourScreen");
+    } else if (gameName === "Space Invaders") {
+      router.push("/(tabs)/play/SpaceInvadersScreen");
     }
     // Hier können später die anderen Spiele gestartet werden
     // router.push(`/games/${gameName.toLowerCase()}`);
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <View style={styles.container}>
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => router.back()}
@@ -52,12 +53,10 @@ const MiniGamesScreen = () => {
       >
         <IconArrowBack />
       </TouchableOpacity>
-
-      <View style={styles.header}>
-        <Logo size="big" />
-        <Text style={styles.title}>Mini Games</Text>
+      <View style={{ marginBottom: Gaps.g40 }}>
+        <Logo size="small" />
       </View>
-
+      <Text style={styles.subtitle}>Mini Games</Text>
       <View style={styles.gamesGrid}>
         {/* Obere Reihe */}
         <View style={styles.row}>
@@ -96,7 +95,7 @@ const MiniGamesScreen = () => {
           onPress={() => router.push("/(tabs)/play/QuizTypeSelectionScreen")}
         />
       </View>
-    </ScrollView>
+    </View>
   );
 };
 
@@ -104,28 +103,25 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.bgGray,
-  },
-  contentContainer: {
-    paddingHorizontal: Gaps.g16,
-    paddingBottom: Gaps.g40,
-    minHeight: '100%',
+    marginTop: Gaps.g80,
+    alignItems: "center",
   },
   backButton: {
     position: "absolute",
-    top: Gaps.g8,
-    left: Gaps.g16,
+    top: -8,
+    left: 16,
     zIndex: 10,
   },
   header: {
     alignItems: "center",
-    marginTop: Gaps.g40,
-    marginBottom: -10,
+    marginBottom: Gaps.g4,
   },
-  title: {
-    fontSize: FontSizes.H1Fs,
-    fontWeight: FontWeights.H1Fw as any,
-    color: Colors.black,
-    marginTop: Gaps.g48,
+  subtitle: {
+    fontSize: FontSizes.TextMediumFs,
+    fontWeight: FontWeights.SubtitleFw as any,
+    color: Colors.darkGreen,
+    textAlign: "center",
+    marginBottom: Gaps.g4,
   },
   gamesGrid: {
     flex: 1,
