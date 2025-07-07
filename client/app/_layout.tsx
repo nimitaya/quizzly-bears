@@ -14,6 +14,7 @@ import { MusicProvider } from "@/providers/MusicProvider";
 import { SoundProvider } from "@/providers/SoundProvider";
 import { OnboardingProvider } from "@/providers/OnboardingProvider";
 import { LanguageProvider } from "@/providers/LanguageContext";
+import LoadingManager from "@/components/LoadingManager";
 
 
 
@@ -60,6 +61,7 @@ export default function RootLayout() {
                   <View style={{ flex: 1, backgroundColor: Colors.bgGray }}>
                     <AuthNavigationHelper />
                     <Slot />
+                    <LoadingManager />
                   </View>
                 </SoundProvider>
               </MusicProvider>
