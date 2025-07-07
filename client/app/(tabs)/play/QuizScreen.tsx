@@ -191,9 +191,7 @@ const QuizLogic = () => {
             <Text style={styles.questionNumber}>
               {currQuestionIndex + 1} from 10
             </Text>
-            <Text style={styles.questionText}>
-              {getQuestionText()}
-            </Text>
+            <Text style={styles.questionText}>{getQuestionText()}</Text>
           </View>
           {/* Show only if readTimer true */}
           {readTimer && (
@@ -217,15 +215,15 @@ const QuizLogic = () => {
                         <QuizButton
                           key={key}
                           text={optionText}
-                          selected={handleSelection(optionText)}
+                          selected={handleSelection(key)}
                           checked={
                             (answerState.isLocked && data?.isCorrect) ||
                             (answerState.isLocked &&
                               answerState.isSubmitted &&
-                              answerState.chosenAnswer === optionText)
+                              answerState.chosenAnswer === key)
                           }
                           isCorrect={!!data?.isCorrect}
-                          onPress={() => handleAnswerSelect(optionText)}
+                          onPress={() => handleAnswerSelect(key)}
                         />
                       );
                     })}
