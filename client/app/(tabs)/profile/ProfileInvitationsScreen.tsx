@@ -9,67 +9,100 @@ import IconArrowBack from "@/assets/icons/IconArrowBack";
 import { Logo } from "@/components/Logos";
 import { FontSizes, Gaps, Colors } from "@/styles/theme";
 import { useRouter } from "expo-router";
-import { ButtonPrimary } from "@/components/Buttons";
+import { ButtonPrimary, ButtonPrimaryDisabled } from "@/components/Buttons";
 import { useUser } from "@clerk/clerk-expo";
 import { useState, useEffect } from "react";
-import { acceptInviteRequest, getReceivedInviteRequests } from "@/utilities/invitationApi";
-import { InviteRequestsResponse, InviteRequest } from "@/utilities/invitationInterfaces";
+import {
+  acceptInviteRequest,
+  declineInviteRequest,
+  getReceivedInviteRequests,
+} from "@/utilities/invitationApi";
+import { InviteRequest } from "@/utilities/invitationInterfaces";
 
 const ProfilInvitationsScreen = () => {
   const router = useRouter();
-    const { user } = useUser();
-    const [isLoading, setIsLoading] = useState(false);
+  const { user } = useUser();
+  const [isLoading, setIsLoading] = useState(false);
   const [receivedInvites, setReceivedInvites] = useState<InviteRequest[]>([]);
 
   // =========== Functions ===========
   // ----- Handler Accept -----
-  const handleAcceptInvitation = async (inviteId: string) => {
+  const handleAcceptInvitation = async (inviteId: string, roomcode: string) => {
     try {
       if (!user) return;
+      if (!inviteId) {
+        console.error("Error: Invite ID is missing");
+        return;
+      }
+      if (isLoading) return; // Prevent multiple simultaneous calls
+      
       setIsLoading(true);
       const clerkUserId = user.id;
       await acceptInviteRequest(clerkUserId, inviteId);
+      
+      // Refresh the invitations list
       const received = await getReceivedInviteRequests(clerkUserId);
       setReceivedInvites(received.inviteRequests || []);
+
+      // ~~~~~ send user to the correct game screen IMPORTANT TODO ~~~~~
+      router.push(`../play/MultiPlayerLobby/${roomcode}`);
     } catch (error) {
-       console.error("Error accepting invitation:", error);
-    } finally{
+      console.error("Error accepting invitation:", error);
+      // maybe TODO: Add user-facing error handling (toast/alert)
+    } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   // ----- Handler Decline -----
   const handleDeclineInvitation = async (inviteId: string) => {
     try {
       if (!user) return;
+      if (!inviteId) {
+        console.error("Error: Invite ID is missing");
+        return;
+      }
+      if (isLoading) return; // Prevent multiple simultaneous calls
+      
       setIsLoading(true);
       const clerkUserId = user.id;
+      await declineInviteRequest(clerkUserId, inviteId);
+      
+      // Refresh the invitations list
+      const received = await getReceivedInviteRequests(clerkUserId);
+      setReceivedInvites(received.inviteRequests || []);
     } catch (error) {
       console.error("Error declining invitation:", error);
+      // maybe TODO: Add user-facing error handling (toast/alert)
     } finally {
       setIsLoading(false);
     }
-  }
-
+  };
 
   // =========== useEffect ===========
-  useEffect (() => {
-    if(!user) return;
-    setIsLoading(true);
+  useEffect(() => {
+    if (!user) return;
+    
     // Fetch the received invitations from the API
     const fetchInviteRequests = async () => {
       try {
+        setIsLoading(true);
         const clerkUserId = user.id;
         const response = await getReceivedInviteRequests(clerkUserId);
         setReceivedInvites(response.inviteRequests || []);
       } catch (error) {
         console.error("Error fetching received invitations:", error);
+        // Set empty array on error to prevent UI issues
+        setReceivedInvites([]);
       } finally {
         setIsLoading(false);
       }
-    }
+    };
+    
     fetchInviteRequests();
-  },[user])
+  }, [user]);
+
+  // =========== TODO add global loading, while loading invitations ===========
 
   return (
     <View style={styles.container}>
@@ -107,22 +140,27 @@ const ProfilInvitationsScreen = () => {
           // if there are invitations
           receivedInvites.map((invite, index) => (
             // ========== NEEDS STYLING TODO ==========
-            <View key={invite._id || index} >
-              <Text >
-                Game Invitations:
-              </Text>
-              <Text >
-                From: {invite.from.username || invite.from.email}
-              </Text>
-              <View >
-                <ButtonPrimary
-                  text="Accept"
-                  onPress={() => handleAcceptInvitation(invite._id)}
-                />
-                <ButtonPrimary
-                  text="Decline"
-                  onPress={() => {/* TODO: Handle decline */}}
-                />
+            <View key={invite._id || index}>
+              <Text>Game Invitations:</Text>
+              <Text>From: {invite.from.username || invite.from.email}</Text>
+              <View>
+                {isLoading ? (
+                  <>
+                    <ButtonPrimaryDisabled text="Accept" />
+                    <ButtonPrimaryDisabled text="Decline" />
+                  </>
+                ) : (
+                  <>
+                    <ButtonPrimary
+                      text="Accept"
+                      onPress={() => handleAcceptInvitation(invite._id, invite.roomcode)}
+                    />
+                    <ButtonPrimary
+                      text="Decline"
+                      onPress={() => handleDeclineInvitation(invite._id)}
+                    />
+                  </>
+                )}
               </View>
             </View>
           ))

@@ -166,7 +166,7 @@ export const removeInvite = async (
 };
 
 // ======================================== Remove all invites ========================================
-export const removeAllInvitea = async (
+export const removeAllInvites = async (
   clerkUserId: string
 ): Promise<{ message: string; deletedCount: number }> => {
   try {
