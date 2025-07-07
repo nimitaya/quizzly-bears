@@ -1,6 +1,9 @@
 import axios from "axios";
 import { SearchUserResponse } from "./friendInterfaces";
-import { InviteRequestResponse, InviteRequestsResponse } from "./invitationInterfaces";
+import {
+  InviteRequestResponse,
+  InviteRequestsResponse,
+} from "./invitationInterfaces";
 
 const API_BASE_URL =
   process.env.VITE_API_BASE_URL || "https://quizzly-bears.onrender.com/api";
