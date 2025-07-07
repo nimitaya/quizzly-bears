@@ -5,11 +5,8 @@ import { Category, Difficulty } from "../types";
 import { QuestionStructure, AiQuestions } from "@/utilities/quiz-logic/data";
 import { LANGUAGES } from "../languages";
 
-const GROQ_API_URL =
-  Config.GROQ_API_URL || "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_API_KEY =
-  Config.GROQ_API_KEY ||
-  "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";
+const GROQ_API_URL = process.env.EXPO_PUBLIC_GROQ_API_URL || "";
+const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY;
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -45,13 +42,13 @@ const getCurrentLanguage = async (): Promise<string> => {
 
 const getLanguageName = (code: string): string => {
   console.log(" DEBUG - Getting language name for code:", code);
-  
+
   // Wir suchen die Sprache anhand des Codes in der Liste der unterstützten Sprachen
-  const language = LANGUAGES.find(lang => lang.code === code);
-  
+  const language = LANGUAGES.find((lang) => lang.code === code);
+
   // Return the name of the language or a default value
   return language?.name || "English";
-}
+};
 
 //========================Hauptfunktion für die Generierung mehrerer Quiz-Fragen==================
 export const generateMultipleQuizQuestions = async (
@@ -64,12 +61,13 @@ export const generateMultipleQuizQuestions = async (
     const currentLanguageCode = await getCurrentLanguage();
     const currentLanguageName = getLanguageName(currentLanguageCode);
 
-    console.log(`Generiere Fragen auf: ${currentLanguageName} (${currentLanguageCode})`);
+    console.log(
+      `Generiere Fragen auf: ${currentLanguageName} (${currentLanguageCode})`
+    );
 
     const randomSeed = Math.floor(Math.random() * 10000);
     const timestamp = Date.now();
 
-    
     const prompt = `Du bist ein hochentwickelter Generator für mehrsprachige Bildungsquiz-Fragen.
 
     SPRACH-UNTERSTÜTZUNG:
@@ -203,7 +201,7 @@ export const generateMultipleQuizQuestions = async (
     responseContent = responseContent.replace(/```\n?/g, "");
     responseContent = responseContent.trim();
 
-    // Json support 
+    // Json support
     const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
 
     if (!jsonMatch) {
@@ -236,31 +234,46 @@ export const generateMultipleQuizQuestions = async (
     const validatedQuestions: QuestionStructure[] = [];
     for (let i = 0; i < questionsData.length; i++) {
       const questionData = questionsData[i];
-      
+
       // Check if required structure exists
-      if (!questionData.question || !questionData.optionA || !questionData.optionB || 
-          !questionData.optionC || !questionData.optionD) {
-        console.warn(` Frage ${i + 1} fehlt grundlegende Struktur:`, questionData);
+      if (
+        !questionData.question ||
+        !questionData.optionA ||
+        !questionData.optionB ||
+        !questionData.optionC ||
+        !questionData.optionD
+      ) {
+        console.warn(
+          ` Frage ${i + 1} fehlt grundlegende Struktur:`,
+          questionData
+        );
         continue;
       }
 
       // Check German text
-      if (typeof questionData.question.de !== "string" ||
-          typeof questionData.optionA.de !== "string" ||
-          typeof questionData.optionB.de !== "string" ||
-          typeof questionData.optionC.de !== "string" ||
-          typeof questionData.optionD.de !== "string") {
+      if (
+        typeof questionData.question.de !== "string" ||
+        typeof questionData.optionA.de !== "string" ||
+        typeof questionData.optionB.de !== "string" ||
+        typeof questionData.optionC.de !== "string" ||
+        typeof questionData.optionD.de !== "string"
+      ) {
         console.warn(` Frage ${i + 1} fehlt deutsche Texte:`, questionData);
         continue;
       }
 
       // Check target language text
-      if (typeof questionData.question[currentLanguageCode] !== "string" ||
-          typeof questionData.optionA[currentLanguageCode] !== "string" ||
-          typeof questionData.optionB[currentLanguageCode] !== "string" ||
-          typeof questionData.optionC[currentLanguageCode] !== "string" ||
-          typeof questionData.optionD[currentLanguageCode] !== "string") {
-        console.warn(` Frage ${i + 1} fehlt ${currentLanguageName} Texte:`, questionData);
+      if (
+        typeof questionData.question[currentLanguageCode] !== "string" ||
+        typeof questionData.optionA[currentLanguageCode] !== "string" ||
+        typeof questionData.optionB[currentLanguageCode] !== "string" ||
+        typeof questionData.optionC[currentLanguageCode] !== "string" ||
+        typeof questionData.optionD[currentLanguageCode] !== "string"
+      ) {
+        console.warn(
+          ` Frage ${i + 1} fehlt ${currentLanguageName} Texte:`,
+          questionData
+        );
         continue;
       }
 
@@ -281,15 +294,19 @@ export const generateMultipleQuizQuestions = async (
     }
 
     const finalQuestions = validatedQuestions.slice(0, questionCount);
-    console.log(` ${finalQuestions.length} gültige Fragen generiert für: ${topic} auf ${currentLanguageName}`);
-    
+    console.log(
+      ` ${finalQuestions.length} gültige Fragen generiert für: ${topic} auf ${currentLanguageName}`
+    );
+
     return {
       category: topic,
       questionArray: finalQuestions,
     };
   } catch (error) {
     console.error(" Fehler beim Generieren der Fragen:", error);
-    throw new Error("Fragen konnten nicht generiert werden. Versuche es erneut.");
+    throw new Error(
+      "Fragen konnten nicht generiert werden. Versuche es erneut."
+    );
   }
 };
 
