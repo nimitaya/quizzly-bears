@@ -405,14 +405,6 @@ const ConnectFourScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => router.back()}
-        accessibilityLabel="Go back"
-      >
-        <IconArrowBack />
-      </TouchableOpacity>
-
       {/* Top Bar mit Sound und Help Buttons */}
       <View style={styles.topBar}>
         <TouchableOpacity
@@ -452,9 +444,14 @@ const ConnectFourScreen = () => {
           <Text style={styles.status}>
             {gameOver ? winner : `Player (Circle), it's your turn!`}
           </Text>
-          <TouchableOpacity style={styles.newGameButton} onPress={initializeBoard}>
-            <Text style={styles.newGameText}>New Game</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity style={styles.gameButton} onPress={() => router.push("/(tabs)/play/MiniGamesScreen")}>
+              <Text style={styles.gameButtonText}>Back</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.gameButton} onPress={initializeBoard}>
+              <Text style={styles.gameButtonText}>New Game</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -499,16 +496,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.black,
   },
-  backButton: {
-    position: "absolute",
-    top: Gaps.g8,
-    left: Gaps.g16,
-    zIndex: 10,
-  },
   topBar: {
     position: "absolute",
-    top: Gaps.g8,
-    right: Gaps.g16,
+    top: Gaps.g40,
+    left: Gaps.g16,
     flexDirection: 'row',
     gap: Gaps.g16,
     zIndex: 10,
@@ -603,14 +594,18 @@ const styles = StyleSheet.create({
     marginBottom: Gaps.g16,
     fontFamily: Fonts.pressStart2P,
   },
-  newGameButton: {
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: Gaps.g16,
+  },
+  gameButton: {
     backgroundColor: Colors.black,
     borderWidth: 1,
     borderColor: Colors.primaryLimo,
     paddingHorizontal: Gaps.g16,
     paddingVertical: Gaps.g8,
   },
-  newGameText: {
+  gameButtonText: {
     color: Colors.primaryLimo,
     fontSize: FontSizes.TextSmallFs,
     fontWeight: FontWeights.SubtitleFw as any,
