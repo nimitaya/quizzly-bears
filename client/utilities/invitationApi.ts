@@ -1,42 +1,9 @@
 import axios from "axios";
-import { SearchUserResponse, User } from "./friendInterfaces";
+import { SearchUserResponse } from "./friendInterfaces";
+import { InviteRequestResponse, InviteRequestsResponse } from "./invitationInterfaces";
 
 const API_BASE_URL =
   process.env.VITE_API_BASE_URL || "https://quizzly-bears.onrender.com/api";
-
-// ======================================== Interfaces ========================================
-
-export interface InviteRequest {
-  _id: string;
-  from: User;
-  to: User;
-  roomcode: string;
-  status: "pending" | "accepted" | "declined";
-  createdAt: Date;
-}
-interface InviteRequestResponse {
-  message: string;
-  inviteRequest: {
-    _id: string;
-    from: {
-      _id: string;
-      username?: string;
-      email: string;
-    };
-    to: {
-      _id: string;
-      username?: string;
-      email: string;
-    };
-    roomcode: string;
-    status: string;
-    createdAt: Date;
-  };
-}
-
-interface InviteRequestsResponse {
-  inviteRequests: InviteRequest[];
-}
 
 // ======================================== Search for user by email ========================================
 export const searchUserByEmail = async (
