@@ -356,7 +356,9 @@ const GreetingsScreen = forwardRef<
       setIsEditing(false);
       return;
     }
-    const API_BASE_URL = "http://localhost:3000/api";
+    // const API_BASE_URL = "http://localhost:3000/api";
+    const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+
     try {
       await axios.put(`${API_BASE_URL}/users/${user?.id}`, {
         username: editedUsername,
