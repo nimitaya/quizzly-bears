@@ -9,6 +9,7 @@ import friendRequestRouter from "./routes/friendRequestRoutes";
 import quizRoomsRouter, { setRoomsReference } from "./routes/QuizRooms";
 import userRoutes from "./routes/UserStats";
 import pointsRouter from "./routes/PointsRoutes";
+import invitationsRouter from "./routes/InvitationsRoutes";
 
 const app = express();
 const httpServer = createServer(app);
@@ -27,6 +28,7 @@ app.use(cors());
 app.use("/api/clerk-webhook", cors());
 app.use("/api", clerkWebhookRouter);
 app.use("/api/friend-request", friendRequestRouter);
+app.use("/api/invite-request", invitationsRouter)
 app.use("/api/quiz", quizRoomsRouter);
 app.use("/api", userRoutes);
 app.use("/api/points", pointsRouter);
