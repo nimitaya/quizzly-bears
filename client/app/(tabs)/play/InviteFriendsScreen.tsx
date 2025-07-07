@@ -13,6 +13,18 @@ import IconArrowBack from "@/assets/icons/IconArrowBack";
 import { FontSizes, Gaps } from "@/styles/theme";
 import { loadCacheData, CACHE_KEY } from "@/utilities/cacheUtils";
 import CustomAlert from "@/components/CustomAlert";
+import {
+  searchUserByEmail,
+  sendInviteRequest,
+  getSentInviteRequests,
+  getAcceptedInvites,
+  removeInvite,
+  removeAllInvites,
+} from "@/utilities/invitationApi";
+import { getFriends } from "@/utilities/friendRequestApi";
+import { User } from "@/utilities/friendInterfaces";
+import { useUser } from "@clerk/clerk-expo";
+import { InviteRequest } from "@/utilities/invitationInterfaces";
 
 interface Friend {
   id: string;
@@ -30,11 +42,124 @@ interface RoomInfo {
 
 const InviteFriendsScreen = () => {
   const router = useRouter();
+  const { user } = useUser();
   const [showNoFriendsAlert, setShowNoFriendsAlert] = useState(false);
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
+  // New for invites:
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchState, setSearchState] = useState<{
+    email: string;
+    result: User | null;
+    error: string;
+  }>({
+    email: "",
+    result: null,
+    error: "",
+  });
+  const [sentInvites, setSentInvites] = useState<InviteRequest[]>([]);
+  const [acceptedInvites, setAcceptedInvites] = useState<InviteRequest[]>([]);
 
+  // =========== Functions ==========
+  // ----- Handler Search User -----
+  const handleSearchUser = async (email: string) => {
+    if (!email.trim() || !user) {
+      setSearchState((prev) => ({
+        ...prev,
+        error: "Please enter a valid email",
+      }));
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setSearchState((prev) => ({ ...prev, result: null, error: "" }));
+
+      const result = await searchUserByEmail(email, user.id);
+      setSearchState((prev) => ({
+        ...prev,
+        result: result.user,
+        email: email,
+      }));
+    } catch (error: any) {
+      setSearchState((prev) => ({
+        ...prev,
+        result: null,
+        error: "Not a quizzly bear",
+      }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ----- Handler Send Invite Request -----
+  const handleSendInviteRequest = async (targetUserId: string) => {
+    if (!user) return;
+
+    try {
+      setIsLoading(true);
+      await sendInviteRequest(user.id, targetUserId, roomInfo?.roomId || "");
+
+      // Refresh the sent requests list
+      const sent = await getSentInviteRequests(user.id);
+      setSentInvites((prev) => [...prev, ...sent.inviteRequests]);
+
+      // Clear search result after sending request
+      setSearchState((prev) => ({ ...prev, email: "", result: null }));
+    } catch (error: any) {
+      setSearchState((prev) => ({
+        ...prev,
+        error: error.message || "Failed to send friend request",
+      }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ----- Handler fetch Invites -----
+  const fetchInvites = async () => {
+    try {
+      setIsLoading(true);
+      if (!user) return;
+      const sent = await getSentInviteRequests(user.id);
+      const accepted = await getAcceptedInvites(user.id);
+
+      setSentInvites(sent.inviteRequests || []);
+      setAcceptedInvites(accepted.inviteRequests || []);
+    } catch (error) {
+      console.error("Error fetching invites:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ----- Handler Remove Invite -----
+  const handleRemoveInvite = async (friendId: string) => {
+    try {
+      if (!user) return;
+      await removeInvite(user.id, friendId);
+      // Refresh the invites list after removing
+      const sent = await getSentInviteRequests(user.id);
+      setSentInvites((prev) => [...prev, ...sent.inviteRequests]);
+    } catch (error) {
+      console.error("Error removing invitation:", error);
+    }
+  };
+
+  // ----- Handler Remove ALL Invitations -----
+  // IMPORTANT: This should be done after the quiz is over
+  const handleRemoveAllInvites = async () => {
+    try {
+      if (!user) return;
+      await removeAllInvites(user.id);
+      // THIS NEEDS TO BE DONE AFTER THE QHOLE QUIZ IS OVER
+    } catch (error) {
+      console.error("Error removing all invitations:", error);
+    }
+  };
+
+  // =========== UseEffect ==========
   useEffect(() => {
     loadRoomInfo();
     loadFriendsList();
@@ -94,7 +219,7 @@ const InviteFriendsScreen = () => {
 
     // Log invited friends for debugging
     console.log(`Invitations sent to: ${selectedFriendNames}`);
-    
+
     // Go directly to lobby
     router.push("/(tabs)/play/MultiplayerLobby");
   };
