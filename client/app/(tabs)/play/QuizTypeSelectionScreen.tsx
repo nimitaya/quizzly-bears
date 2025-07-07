@@ -129,7 +129,10 @@ const QuizTypeSelectionScreen = () => {
           text="Play in group"
           onPress={() => handlePlayStyleChoice("group")}
         />
-        <ButtonSecondary text="Mini games" />
+        <ButtonSecondary 
+          text="Mini games" 
+          onPress={() => router.push("/(tabs)/play/MiniGamesScreen")}
+        />
       </View>
     </View>
   );
