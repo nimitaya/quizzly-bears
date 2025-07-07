@@ -16,22 +16,12 @@ import CustomAlert from "@/components/CustomAlert";
 import {
   searchUserByEmail,
   sendInviteRequest,
-  getSentInviteRequests,
-  getAcceptedInvites,
-  removeInvite,
-  removeAllInvites,
 } from "@/utilities/invitationApi";
-import { getFriends } from "@/utilities/friendRequestApi";
-import { User } from "@/utilities/friendInterfaces";
+import { getFriends, sendFriendRequest } from "@/utilities/friendRequestApi";
+import { FriendsResponse, User } from "@/utilities/friendInterfaces";
 import { useUser } from "@clerk/clerk-expo";
-import { InviteRequest } from "@/utilities/invitationInterfaces";
-
-interface Friend {
-  id: string;
-  name: string;
-  avatar?: string;
-  isOnline: boolean;
-}
+import { SearchFriendInput } from "@/components/Inputs";
+import IconAddFriend from "@/assets/icons/IconAddFriend";
 
 interface RoomInfo {
   roomId: string;
@@ -46,8 +36,9 @@ const InviteFriendsScreen = () => {
   const [showNoFriendsAlert, setShowNoFriendsAlert] = useState(false);
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
-  const [friends, setFriends] = useState<Friend[]>([]);
+  const [friends, setFriends] = useState<FriendsResponse>({ friends: [] });
   // New for invites:
+  const [nonFriends, setNonFriends] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchState, setSearchState] = useState<{
     email: string;
@@ -58,10 +49,25 @@ const InviteFriendsScreen = () => {
     result: null,
     error: "",
   });
-  const [sentInvites, setSentInvites] = useState<InviteRequest[]>([]);
-  const [acceptedInvites, setAcceptedInvites] = useState<InviteRequest[]>([]);
 
   // =========== Functions ==========
+  // ----- Handler Fetch Friendlist -----
+  const fetchFriends = async () => {
+    try {
+      if (!user) return;
+      setIsLoading(true);
+      const clerkUserId = user.id;
+
+      const friends = await getFriends(clerkUserId);
+
+      setFriends(friends);
+    } catch (error) {
+      console.error("Error fetching friends:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // ----- Handler Search User -----
   const handleSearchUser = async (email: string) => {
     if (!email.trim() || !user) {
@@ -77,16 +83,71 @@ const InviteFriendsScreen = () => {
       setSearchState((prev) => ({ ...prev, result: null, error: "" }));
 
       const result = await searchUserByEmail(email, user.id);
-      setSearchState((prev) => ({
-        ...prev,
-        result: result.user,
-        email: email,
-      }));
+
+      if (result.user) {
+        setSearchState((prev) => ({
+          ...prev,
+          result: result.user,
+          email: email,
+        }));
+
+        // Check if user is already a friend
+        const isAlreadyFriend = friends.friends.some(
+          (friend) => friend._id === result.user._id
+        );
+
+        if (isAlreadyFriend) {
+          // User is already a friend - just select them for invitation
+          setSelectedFriends((prev) => {
+            if (!prev.includes(result.user._id)) {
+              return [...prev, result.user._id];
+            }
+            return prev;
+          });
+        } else {
+          // User is not a friend - add to nonFriends list and select for invitation
+          setNonFriends((prev) => {
+            const isAlreadyInNonFriends = prev.some((user) => user._id === result.user._id);
+            if (!isAlreadyInNonFriends) {
+              return [...prev, result.user];
+            }
+            return prev;
+          });
+
+          // Add to selected friends for invitation
+          setSelectedFriends((prev) => {
+            if (!prev.includes(result.user._id)) {
+              return [...prev, result.user._id];
+            }
+            return prev;
+          });
+        }
+      }
     } catch (error: any) {
       setSearchState((prev) => ({
         ...prev,
         result: null,
         error: "Not a quizzly bear",
+      }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ----- Handler Send Friend Request -----
+  const handleSendFriendRequest = async (targetUserId: string) => {
+    if (!user) return;
+
+    try {
+      setIsLoading(true);
+      await sendFriendRequest(user.id, targetUserId);
+
+      // Clear search result after sending request
+      setSearchState((prev) => ({ ...prev, email: "", result: null }));
+    } catch (error: any) {
+      setSearchState((prev) => ({
+        ...prev,
+        error: error.message || "Failed to send friend request",
       }));
     } finally {
       setIsLoading(false);
@@ -101,10 +162,6 @@ const InviteFriendsScreen = () => {
       setIsLoading(true);
       await sendInviteRequest(user.id, targetUserId, roomInfo?.roomId || "");
 
-      // Refresh the sent requests list
-      const sent = await getSentInviteRequests(user.id);
-      setSentInvites((prev) => [...prev, ...sent.inviteRequests]);
-
       // Clear search result after sending request
       setSearchState((prev) => ({ ...prev, email: "", result: null }));
     } catch (error: any) {
@@ -117,54 +174,7 @@ const InviteFriendsScreen = () => {
     }
   };
 
-  // ----- Handler fetch Invites -----
-  const fetchInvites = async () => {
-    try {
-      setIsLoading(true);
-      if (!user) return;
-      const sent = await getSentInviteRequests(user.id);
-      const accepted = await getAcceptedInvites(user.id);
-
-      setSentInvites(sent.inviteRequests || []);
-      setAcceptedInvites(accepted.inviteRequests || []);
-    } catch (error) {
-      console.error("Error fetching invites:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // ----- Handler Remove Invite -----
-  const handleRemoveInvite = async (friendId: string) => {
-    try {
-      if (!user) return;
-      await removeInvite(user.id, friendId);
-      // Refresh the invites list after removing
-      const sent = await getSentInviteRequests(user.id);
-      setSentInvites((prev) => [...prev, ...sent.inviteRequests]);
-    } catch (error) {
-      console.error("Error removing invitation:", error);
-    }
-  };
-
-  // ----- Handler Remove ALL Invitations -----
-  // IMPORTANT: This should be done after the quiz is over
-  const handleRemoveAllInvites = async () => {
-    try {
-      if (!user) return;
-      await removeAllInvites(user.id);
-      // THIS NEEDS TO BE DONE AFTER THE QHOLE QUIZ IS OVER
-    } catch (error) {
-      console.error("Error removing all invitations:", error);
-    }
-  };
-
-  // =========== UseEffect ==========
-  useEffect(() => {
-    loadRoomInfo();
-    loadFriendsList();
-  }, []);
-
+  // ----- Load Room Info -----
   const loadRoomInfo = async () => {
     try {
       const cachedRoomInfo = await loadCacheData(CACHE_KEY.currentRoom);
@@ -176,19 +186,7 @@ const InviteFriendsScreen = () => {
     }
   };
 
-  // Mock friends list - in real app this would come from your friends API
-  const loadFriendsList = () => {
-    const mockFriends: Friend[] = [
-      { id: "1", name: "Alice Johnson", isOnline: true },
-      { id: "2", name: "Bob Smith", isOnline: false },
-      { id: "3", name: "Charlie Brown", isOnline: true },
-      { id: "4", name: "Diana Prince", isOnline: true },
-      { id: "5", name: "Eva Martinez", isOnline: false },
-      { id: "6", name: "Frank Wilson", isOnline: true },
-    ];
-    setFriends(mockFriends);
-  };
-
+  // ----- Toggle Friend Selection -----
   const toggleFriendSelection = (friendId: string) => {
     setSelectedFriends((prev) => {
       if (prev.includes(friendId)) {
@@ -199,55 +197,63 @@ const InviteFriendsScreen = () => {
     });
   };
 
-  //Custom Alert handlers
+  // ----- Custom Alert handlers -----
   const handleNoFriendsAlertClose = () => {
     setShowNoFriendsAlert(false);
   };
 
-  const handleInviteFriends = () => {
+  // ----- Handle Invite Friends -----
+  const handleInviteFriends = async () => {
     if (selectedFriends.length === 0) {
       setShowNoFriendsAlert(true);
       return;
     }
 
-    // TODO: Send invitations to selected friends!!!!!!!!!!!!!===================
-    // For now, we'll just proceed directly to lobby
-    const selectedFriendNames = friends
-      .filter((friend) => selectedFriends.includes(friend.id))
-      .map((friend) => friend.name)
-      .join(", ");
-
-    // Log invited friends for debugging
-    console.log(`Invitations sent to: ${selectedFriendNames}`);
-
-    // Go directly to lobby
-    router.push("/(tabs)/play/MultiplayerLobby");
+    try {
+      setIsLoading(true);
+      // Send invitations to all selected users (both friends and non-friends)
+      const invitePromises = selectedFriends.map((userId) =>
+        handleSendInviteRequest(userId)
+      );
+      await Promise.all(invitePromises);
+      // Go to lobby after sending invitations
+      router.push("/(tabs)/play/MultiplayerLobby");
+    } catch (error) {
+      console.error("Error sending invitations:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const renderFriendItem = ({ item }: { item: Friend }) => {
-    const isSelected = selectedFriends.includes(item.id);
+  // =========== UseEffect ==========
+  useEffect(() => {
+    loadRoomInfo();
+    fetchFriends();
+  }, []);
 
+  // ========== Render Functions ==========
+  // ----- Render Friend Item ----- TODO check online status
+  const renderFriendItem = ({ item }: { item: User }) => {
+    const isSelected = selectedFriends.includes(item._id);
     return (
       <TouchableOpacity
         style={[styles.friendItem, isSelected && styles.friendItemSelected]}
-        onPress={() => toggleFriendSelection(item.id)}
-        disabled={!item.isOnline}
+        onPress={() => toggleFriendSelection(item._id)}
+        // disabled={!item.isOnline}
       >
         <View style={styles.friendInfo}>
-          <View style={[styles.avatar, !item.isOnline && styles.avatarOffline]}>
-            <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
+          {/* <View style={[styles.avatar, !item.isOnline && styles.avatarOffline]}> */}
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {item.username?.charAt(0) || item.email.charAt(0)}
+            </Text>
           </View>
           <View style={styles.friendDetails}>
-            <Text
-              style={[
-                styles.friendName,
-                !item.isOnline && styles.friendNameOffline,
-              ]}
-            >
-              {item.name}
-            </Text>
+            <Text style={styles.friendName}>{item.username || item.email}</Text>
             <Text style={styles.friendStatus}>
-              {item.isOnline ? "Online" : "Offline"}
+              {" "}
+              Online/ Offline
+              {/* {item.isOnline ? "Online" : "Offline"} */}
             </Text>
           </View>
         </View>
@@ -256,6 +262,45 @@ const InviteFriendsScreen = () => {
             <Text style={styles.selectedText}>✓</Text>
           </View>
         )}
+      </TouchableOpacity>
+    );
+  };
+
+  // ----- Render Non-Friend Item (with Add Friend button) -----
+  const renderNonFriendItem = ({ item }: { item: User }) => {
+    const isSelected = selectedFriends.includes(item._id);
+    return (
+      <TouchableOpacity
+        style={[styles.friendItem, isSelected && styles.friendItemSelected]}
+        onPress={() => toggleFriendSelection(item._id)}
+      >
+        <View style={styles.friendInfo}>
+          <View style={[styles.avatar, styles.nonFriendAvatar]}>
+            <Text style={styles.avatarText}>
+              {item.username?.charAt(0) || item.email.charAt(0)}
+            </Text>
+          </View>
+          <View style={styles.friendDetails}>
+            <Text style={styles.friendName}>{item.username || item.email}</Text>
+            <Text style={[styles.friendStatus, styles.nonFriendStatus]}>
+              Not a friend yet
+            </Text>
+          </View>
+        </View>
+        <View style={styles.rightSection}>
+          {isSelected && (
+            <View style={styles.selectedIndicator}>
+              <Text style={styles.selectedText}>✓</Text>
+            </View>
+          )}
+          <TouchableOpacity
+            onPress={() => handleSendFriendRequest(item._id)}
+            disabled={isLoading}
+            style={styles.addFriendButton}
+          >
+            <IconAddFriend />
+          </TouchableOpacity>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -282,19 +327,55 @@ const InviteFriendsScreen = () => {
         <Logo size="small" />
       </View>
 
-      <Text style={styles.title}>Invite Friends</Text>
+      <Text style={styles.title}>Invite Quizzly Bears</Text>
       <Text style={styles.subtitle}>Room ID: {roomInfo.roomId}</Text>
 
       <View style={styles.selectionInfo}>
         <Text style={styles.selectionText}>
-          Selected: {selectedFriends.length} friends
+          Selected: {selectedFriends.length} Quizzly Bears
         </Text>
       </View>
 
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <SearchFriendInput
+          placeholder="e-mail..."
+          value={searchState.email}
+          onChangeText={(text: string) => {
+            setSearchState((prev) => ({ ...prev, email: text }));
+          }}
+          onSearch={(email) => handleSearchUser(email)}
+        />
+
+        {/* Fixed space for error message */}
+        <View style={styles.errorContainer}>
+          {searchState.error ? (
+            <Text style={styles.errorText}>{searchState.error}</Text>
+          ) : null}
+        </View>
+
+        {/* Search Result */}
+        {searchState.result && (
+          <View style={styles.searchResultContainer}>
+            <Text style={styles.searchResultText}>
+              User found: {searchState.result.email}
+            </Text>
+            <Text style={styles.searchResultSubtext}>
+              {friends.friends.some((friend) => friend._id === searchState.result?._id)
+                ? "Added to your list below"
+                : "Added to list below"}
+            </Text>
+          </View>
+        )}
+      </View>
+
       <FlatList
-        data={friends}
-        renderItem={renderFriendItem}
-        keyExtractor={(item) => item.id}
+        data={[...friends.friends, ...nonFriends]}
+        renderItem={({ item }) => {
+          const isFriend = friends.friends.some((friend) => friend._id === item._id);
+          return isFriend ? renderFriendItem({ item }) : renderNonFriendItem({ item });
+        }}
+        keyExtractor={(item) => item._id}
         style={styles.friendsList}
         showsVerticalScrollIndicator={false}
       />
@@ -305,7 +386,7 @@ const InviteFriendsScreen = () => {
           onPress={() => router.push("/(tabs)/play/MultiplayerLobby")}
         />
         <ButtonPrimary
-          text={`Invite ${selectedFriends.length} Friends`}
+          text={`Invite ${selectedFriends.length} Quizzly Bears`}
           onPress={handleInviteFriends}
         />
       </View>
@@ -314,8 +395,8 @@ const InviteFriendsScreen = () => {
       <CustomAlert
         visible={showNoFriendsAlert}
         onClose={handleNoFriendsAlertClose}
-        title="No Friends Selected"
-        message="Please select at least one friend to invite"
+        title="No Quizzly Bear Selected"
+        message="Please select at least one Quizzly Bear to invite"
         cancelText={null}
         confirmText="OK"
         onConfirm={handleNoFriendsAlertClose}
@@ -433,6 +514,65 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: FontSizes.TextLargeFs,
     color: "#666",
+  },
+  // Added styles from ProfileFriendsScreen.tsx
+  searchContainer: {
+    marginBottom: Gaps.g24,
+  },
+  errorContainer: {
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: Gaps.g8,
+  },
+  friendRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: Gaps.g4,
+    paddingHorizontal: Gaps.g16,
+    marginBottom: 1,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    gap: Gaps.g16,
+  },
+  iconButton: {
+    padding: 4,
+  },
+  // Added by Co-Pilot for non-friend styling
+  nonFriendAvatar: {
+    backgroundColor: "#ff9800", // Orange color for non-friends
+  },
+  nonFriendStatus: {
+    color: "#ff9800",
+    fontStyle: "italic",
+  },
+  rightSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  addFriendButton: {
+    padding: 8,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 8,
+  },
+  searchResultContainer: {
+    backgroundColor: "#e8f5e8",
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  searchResultText: {
+    fontSize: FontSizes.TextMediumFs,
+    fontWeight: "500",
+    color: "#2e7d32",
+  },
+  searchResultSubtext: {
+    fontSize: FontSizes.TextSmallFs,
+    color: "#4caf50",
+    marginTop: 4,
   },
 });
 
