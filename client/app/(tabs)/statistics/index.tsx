@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { Logo } from "@/components/Logos";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { FontSizes, Gaps } from "@/styles/theme";
 import IconMedal1PlaceWebp from "@/assets/icons-webp/IconMedal1PlaceWebp";
 import IconMedal2PlaceWebp from "@/assets/icons-webp/IconMedal2PlaceWebp";
@@ -12,11 +12,29 @@ import Loading from "../../Loading";
 import CustomAlert from "@/components/CustomAlert";
 import { useUser } from "@clerk/clerk-expo";
 import ClerkSettings from "@/app/(auth)/ClerkSettings";
+import { useFocusEffect } from "@react-navigation/native";
 
 const StatisticsScreen = () => {
-  const { userData, loading, userRank, totalUsers } = useStatistics();
+  const { userData, loading, userRank, totalUsers, refetch, onChanges } =
+    useStatistics();
   const [showForm, setShowForm] = useState(false);
   const { user } = useUser();
+
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+    if (!userData && !loading) {
+      timeout = setTimeout(() => {
+        setShowForm(true);
+      }, 3000);
+    }
+    return () => clearTimeout(timeout);
+  }, [userData, loading]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch && refetch.forEach((fn) => fn());
+    }, [onChanges])
+  );
 
   if (!user) {
     return (
@@ -28,12 +46,6 @@ const StatisticsScreen = () => {
       </View>
     );
   }
-
-  useEffect(() => {
-    if (!userData && !loading) {
-      setShowForm(true);
-    }
-  }, [userData, loading]);
 
   if (loading) return <Loading />;
   if (!userData && !loading) {
