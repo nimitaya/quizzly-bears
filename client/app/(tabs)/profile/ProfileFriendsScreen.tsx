@@ -278,9 +278,7 @@ const ProfilFriendsScreen = () => {
         {/* Sent Requests (pending) */}
         {friendsState.sentFriendRequests.friendRequests.map((item) => (
           <View key={item._id} style={styles.friendRow}>
-            <Text style={styles.friendName}>
-              {item.to.email || "NightPulse"}
-            </Text>
+            <Text style={styles.friendName}>{item.to.email}</Text>
             <View style={styles.actionButtons}>
               <TouchableOpacity style={styles.iconButton}>
                 <IconPending />
