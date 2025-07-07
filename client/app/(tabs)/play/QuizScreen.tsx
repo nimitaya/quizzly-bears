@@ -45,7 +45,7 @@ const QuizLogic = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const timerBarWidth = Math.min(348, width - 32); // Gleiche Breite wie QuizButtons
+  const timerBarWidth = Math.min(348, width - 32);
   const { currentLanguage } = useLanguage();
 
   const options = [
@@ -268,6 +268,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: Gaps.g32,
     color: Colors.black,
+    maxWidth: 440,
+    alignSelf: "center",
+    width: "100%",
   },
   contentContainerResult: {
     flexGrow: 1,
