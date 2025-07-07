@@ -7,11 +7,11 @@ import React, {
 } from "react";
 import { useUser, useAuth } from "@clerk/clerk-expo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import LoadingOverlay from "../app/Loading";
 
 type GlobalLoadingContextType = {
   isGloballyLoading: boolean;
   isAuthenticated: boolean;
+  shouldShowLoading: boolean; // Combined state for showing loading
   refreshGlobalState: () => Promise<void>;
   showLoading: (show: boolean) => void;
   withLoading: <T>(promise: Promise<T>) => Promise<T>;
@@ -21,6 +21,7 @@ type GlobalLoadingContextType = {
 const GlobalLoadingContext = createContext<GlobalLoadingContextType>({
   isGloballyLoading: true,
   isAuthenticated: false,
+  shouldShowLoading: true,
   refreshGlobalState: async () => {},
   showLoading: () => {},
   withLoading: (async (promise) => promise) as <T>(
@@ -153,21 +154,21 @@ export const GlobalLoadingProvider: React.FC<{ children: React.ReactNode }> = ({
   // CRITICAL FIX: Remove the automatic router.replace to Loading
   // This was causing an infinite loop
 
+  // Объединенное состояние для показа загрузки
+  const shouldShowLoading = isGloballyLoading || manualLoading;
+
   const contextValue = {
     isGloballyLoading,
     isAuthenticated,
+    shouldShowLoading,
     refreshGlobalState,
     showLoading,
     withLoading,
   };
 
-  // Show loading overlay when either global loading or manual loading is active
-  const shouldShowLoading = isGloballyLoading || manualLoading;
-
   return (
     <GlobalLoadingContext.Provider value={contextValue}>
       {children}
-      {shouldShowLoading && <LoadingOverlay />}
     </GlobalLoadingContext.Provider>
   );
 };

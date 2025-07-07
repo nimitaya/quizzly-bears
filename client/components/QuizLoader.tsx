@@ -3,15 +3,17 @@ import { View, Animated, StyleSheet, Image } from "react-native";
 import { Colors } from "@/styles/theme";
 
 interface QuizLoaderProps {
-  onComplete: () => void; // Callback wenn Loader fertig ist
-  minDuration?: number; // Minimale Anzeigedauer in Millisekunden
+  onComplete: () => void; // Callback when loader is finished
+  minDuration?: number; // Minimum display duration in milliseconds
+  waitForExternal?: boolean; // If true, does not finish automatically by time
 }
 
 const QuizLoader: React.FC<QuizLoaderProps> = ({
   onComplete,
-  minDuration = 10000, // 10 Sekunden für Test
+  minDuration = 10000, // 10 seconds for testing
+  waitForExternal = false, // By default works as before
 }) => {
-  // Separate Animationen für jedes Fragezeichen
+  // Separate animations for each question mark
   const rotationAnimations = useRef([
     new Animated.Value(0),
     new Animated.Value(0),
@@ -19,18 +21,18 @@ const QuizLoader: React.FC<QuizLoaderProps> = ({
     new Animated.Value(0),
   ]).current;
 
-  // Startet eine kontinuierliche Rotation für ein einzelnes Fragezeichen
+  // Starts continuous rotation for a single question mark
   const startContinuousRotation = (anim: Animated.Value) => {
     const spin = () => {
       anim.setValue(0);
       Animated.timing(anim, {
         toValue: 1,
-        duration: 6000, // Eine Umdrehung in 6 Sekunden
+        duration: 6000, // One rotation in 6 seconds
         useNativeDriver: true,
-        easing: undefined, // Konstante Geschwindigkeit
+        easing: undefined, // Constant speed
       }).start(({ finished }) => {
         if (finished) {
-          spin(); // Starte sofort die nächste Runde
+          spin(); // Start the next round immediately
         }
       });
     };
@@ -41,25 +43,30 @@ const QuizLoader: React.FC<QuizLoaderProps> = ({
     // Reset animation values
     rotationAnimations.forEach((anim) => anim.setValue(0));
 
-    // Starte kontinuierliche Rotation für alle 4 Fragezeichen
+    // Start continuous rotation for all 4 question marks
     rotationAnimations.forEach((anim) => {
       startContinuousRotation(anim);
     });
 
-    // Loader läuft für die angegebene Zeit, dann wird onComplete aufgerufen
-    const minDurationTimer = setTimeout(() => {
-      onComplete();
-    }, minDuration);
+    let minDurationTimer: ReturnType<typeof setTimeout> | null = null;
+
+    if (!waitForExternal) {
+      minDurationTimer = setTimeout(() => {
+        onComplete();
+      }, minDuration);
+    }
 
     return () => {
       rotationAnimations.forEach((anim) => anim.stopAnimation());
-      clearTimeout(minDurationTimer);
+      if (minDurationTimer) {
+        clearTimeout(minDurationTimer);
+      }
     };
-  }, [minDuration]);
+  }, [minDuration, waitForExternal]);
 
   const orbitRadius = 100;
 
-  // 4 Positionen: 0°, 90°, 180°, 270°
+  // 4 Positions: 0°, 90°, 180°, 270°
   const positions = [0, 90, 180, 270];
 
   return (

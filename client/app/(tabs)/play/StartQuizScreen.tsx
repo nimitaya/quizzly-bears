@@ -49,7 +49,7 @@ const StartQuizScreen = () => {
     }
   };
 
-  // IMPORTANT - Función handleStartQuiz corregida
+  // IMPORTANT - Corrected handleStartQuiz function
   const handleStartQuiz = async (
     topic: string,
     level: Difficulty,
@@ -60,7 +60,7 @@ const StartQuizScreen = () => {
       setIsGeneratingQuestions(true);
       setShowLocalLoader(true);
 
-      // wir benutzen die Data aus dem Cache, um das Thema zu bekommen
+      // we use the data from the cache to get the topic
       const cachedInfo = await loadCacheData(cacheKey);
       const specificTopic = cachedInfo?.chosenTopic || topic;
 
@@ -68,30 +68,32 @@ const StartQuizScreen = () => {
         `Generiere Fragen für das spezifische Thema: "${specificTopic}"`
       );
 
-      //  WICHTIG: IA muss fertig sein, um weiter zu gehenm
+      // IMPORTANT: AI must finish before proceeding
       const questionsData = await generateMultipleQuizQuestions(
         specificTopic,
         level,
         rounds
       );
 
+      console.log("🌐 AI raw content received!");
       console.log("Generated Questions Data:", questionsData);
       console.log(
         "Questions array length:",
         questionsData.questionArray?.length
       );
 
-      // Die API gibt bereits AiQuestions zurück, speichere direkt
+      // The API already returns AiQuestions, save directly
       await saveDataToCache(cacheAi, questionsData);
       console.log("Questions saved to cache successfully");
 
-      // Starte direkt den Countdown nach der KI-Generierung
+      // Only after receiving data from AI, hide the loader and show countdown
       setShowLocalLoader(false);
+      setIsGeneratingQuestions(false);
       setShowCountdown(true);
     } catch (error) {
       console.error("Error generating questions:", error);
 
-      // Показать ошибку пользователю
+      // Show error to user
       setShowLocalLoader(false);
       setIsGeneratingQuestions(false);
       setErrorMessage(
@@ -117,7 +119,7 @@ const StartQuizScreen = () => {
   const handleErrorAlertConfirm = () => {
     setShowErrorAlert(false);
     setErrorMessage("");
-    // Можно попробовать снова или вернуться назад
+    // You can try again or go back
   };
 
   // ---------- USE EFFECT ----------
@@ -133,16 +135,18 @@ const StartQuizScreen = () => {
     setIsGeneratingQuestions(false);
   }, []);
 
-  // Zeige den lokalen Loader wenn aktiv
-  if (showLocalLoader) {
+  // Show the local loader when AI is generating questions
+  if (showLocalLoader && isGeneratingQuestions) {
     return (
       <QuizLoader
-        key={`local-loader-${Date.now()}`}
+        key={`ai-questions-loader-${Date.now()}`}
         onComplete={() => {
-          setShowLocalLoader(false);
-          setShowCountdown(true);
+          console.log(
+            "QuizLoader animation cycle completed, but waiting for AI..."
+          );
         }}
-        minDuration={3000} // 3 Sekunden für den Loader
+        minDuration={1000} // Minimum display duration for the loader
+        waitForExternal={true} // Wait for external signal (AI generation completion)
       />
     );
   }
