@@ -14,6 +14,7 @@ import { MusicProvider } from "@/providers/MusicProvider";
 import { SoundProvider } from "@/providers/SoundProvider";
 import { OnboardingProvider } from "@/providers/OnboardingProvider";
 import { LanguageProvider } from "@/providers/LanguageContext";
+import LoadingManager from "@/components/LoadingManager";
 
 // Override with safe type casting
 const overrideDefaultFont = () => {
@@ -48,6 +49,7 @@ export default function RootLayout() {
   return (
     <ClerkProvider tokenCache={tokenCache}>
       <UserProvider>
+
         <LanguageProvider>
           <OnboardingProvider>
             <GlobalLoadingProvider>
@@ -66,6 +68,7 @@ export default function RootLayout() {
             </GlobalLoadingProvider>
           </OnboardingProvider>
         </LanguageProvider>
+
       </UserProvider>
     </ClerkProvider>
   );
