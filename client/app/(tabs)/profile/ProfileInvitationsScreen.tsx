@@ -18,6 +18,9 @@ import {
   getReceivedInviteRequests,
 } from "@/utilities/invitationApi";
 import { InviteRequest } from "@/utilities/invitationInterfaces";
+import IconAccept from "@/assets/icons/IconAccept";
+import IconDismiss from "@/assets/icons/IconDismiss";
+import IconPending from "@/assets/icons/IconPending";
 
 const ProfilInvitationsScreen = () => {
   const router = useRouter();
@@ -35,11 +38,11 @@ const ProfilInvitationsScreen = () => {
         return;
       }
       if (isLoading) return; // Prevent multiple simultaneous calls
-      
+
       setIsLoading(true);
       const clerkUserId = user.id;
       await acceptInviteRequest(clerkUserId, inviteId);
-      
+
       // Refresh the invitations list
       const received = await getReceivedInviteRequests(clerkUserId);
       setReceivedInvites(received.inviteRequests || []);
@@ -63,11 +66,11 @@ const ProfilInvitationsScreen = () => {
         return;
       }
       if (isLoading) return; // Prevent multiple simultaneous calls
-      
+
       setIsLoading(true);
       const clerkUserId = user.id;
       await declineInviteRequest(clerkUserId, inviteId);
-      
+
       // Refresh the invitations list
       const received = await getReceivedInviteRequests(clerkUserId);
       setReceivedInvites(received.inviteRequests || []);
@@ -82,7 +85,7 @@ const ProfilInvitationsScreen = () => {
   // =========== useEffect ===========
   useEffect(() => {
     if (!user) return;
-    
+
     // Fetch the received invitations from the API
     const fetchInviteRequests = async () => {
       try {
@@ -98,7 +101,7 @@ const ProfilInvitationsScreen = () => {
         setIsLoading(false);
       }
     };
-    
+
     fetchInviteRequests();
   }, [user]);
 
@@ -139,26 +142,34 @@ const ProfilInvitationsScreen = () => {
         ) : (
           // if there are invitations
           receivedInvites.map((invite, index) => (
-            // ========== NEEDS STYLING TODO ==========
             <View key={invite._id || index}>
-              <Text>Game Invitations:</Text>
+              <Text style={{ fontSize: FontSizes.H3Fs }}>
+                Game Invitations:
+              </Text>
               <Text>From: {invite.from.username || invite.from.email}</Text>
-              <View>
+
+              <View style={styles.actionButtons}>
                 {isLoading ? (
                   <>
-                    <ButtonPrimaryDisabled text="Accept" />
-                    <ButtonPrimaryDisabled text="Decline" />
+                    {/* Loading spinner here? */}
+                    <IconPending />
                   </>
                 ) : (
                   <>
-                    <ButtonPrimary
-                      text="Accept"
-                      onPress={() => handleAcceptInvitation(invite._id, invite.roomcode)}
-                    />
-                    <ButtonPrimary
-                      text="Decline"
+                    <TouchableOpacity
+                      onPress={() =>
+                        handleAcceptInvitation(invite._id, invite.roomcode)
+                      }
+                      style={styles.iconButton}
+                    >
+                      <IconAccept />
+                    </TouchableOpacity>
+                    <TouchableOpacity
                       onPress={() => handleDeclineInvitation(invite._id)}
-                    />
+                      style={styles.iconButton}
+                    >
+                      <IconDismiss />
+                    </TouchableOpacity>
                   </>
                 )}
               </View>
@@ -189,5 +200,12 @@ const styles = StyleSheet.create({
   textBox: {
     alignItems: "center",
     gap: Gaps.g4,
+  },
+  iconButton: {
+    padding: 4,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    gap: Gaps.g16,
   },
 });
