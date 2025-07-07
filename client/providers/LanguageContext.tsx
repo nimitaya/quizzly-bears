@@ -44,6 +44,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
   // const API_BASE_URL = "http://localhost:3000/api";
   const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
+
   useEffect(() => {
     if (user?.id) {
       loadLanguageFromDB(user.id);

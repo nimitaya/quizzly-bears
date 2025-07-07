@@ -176,13 +176,6 @@ const ProfileScreen = () => {
         <Toggle label="Sound" onToggle={toggleSound} enabled={soundEnabled} />
         <Toggle label="Music" enabled={musicEnabled} onToggle={toggleMusic} />
         <LanguageDropdown onLanguageChange={handleLanguageChange} />
-
-        <Text
-          style={{
-            fontSize: FontSizes.H3Fs,
-            paddingHorizontal: Gaps.g32,
-          }}
-        ></Text>
       </View>
       <View style={styles.buttonsBox}>
         <ButtonSecondary
