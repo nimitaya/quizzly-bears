@@ -45,11 +45,12 @@ router.patch(
   "/users/:clerkUserId/settings",
   async (req: Request, res: Response) => {
     const { clerkUserId } = req.params;
-    const { music, sounds } = req.body;
+    const { music, sounds, language } = req.body;
     try {
       const updateFields: any = {};
       if (music !== undefined) updateFields["settings.music"] = music;
       if (sounds !== undefined) updateFields["settings.sounds"] = sounds;
+      if (language !== undefined) updateFields["settings.language"] = language;
 
       const updatedUser = await User.findOneAndUpdate(
         { clerkUserId },

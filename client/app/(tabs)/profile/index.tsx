@@ -24,7 +24,7 @@ const ProfileScreen = () => {
   const router = useRouter();
   const { isAuthenticated, refreshGlobalState, isGloballyLoading } =
     useGlobalLoading();
-    const { changeLanguage } = useLanguage();
+  const { changeLanguage } = useLanguage();
   const isMounted = useRef(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const hasFocusedRef = useRef(false);
@@ -50,11 +50,11 @@ const ProfileScreen = () => {
     }
   };
 
-    //=========Vadim: Funktion to handle language change=========
-    const handleLanguageChange = async (language: any) => {
-      console.log('Language changed to:', language);
-      await changeLanguage(language);
-    };
+  //=========Vadim: Funktion to handle language change=========
+  const handleLanguageChange = async (language: any) => {
+    console.log("Language changed to:", language);
+    await changeLanguage(language);
+  };
 
   // Check for password reset flag on mount and refresh
   useEffect(() => {
@@ -182,8 +182,7 @@ const ProfileScreen = () => {
             fontSize: FontSizes.H3Fs,
             paddingHorizontal: Gaps.g32,
           }}
-        >
-        </Text>
+        ></Text>
       </View>
       <View style={styles.buttonsBox}>
         <ButtonSecondary
