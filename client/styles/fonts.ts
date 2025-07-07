@@ -12,3 +12,12 @@ export const useCustomFonts = () => {
     "NotoSans-SemiBold": NotoSans_600SemiBold,
   });
 };
+
+export const Fonts = {
+  pressStart2P: "'Press Start 2P', monospace",
+};
+
+// Google Fonts Import für Press Start 2P
+export const fontImports = {
+  pressStart2P: "https://fonts.googleapis.com/css2?family=Press+Start+2P:wght@400;700&display=swap",
+};
