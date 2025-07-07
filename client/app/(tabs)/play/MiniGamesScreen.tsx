@@ -36,7 +36,10 @@ const MiniGamesScreen = () => {
 
   const handleGamePress = (gameName: string) => {
     console.log(`Starting ${gameName}`);
-    // Hier können später die einzelnen Spiele gestartet werden
+    if (gameName === "Connect Four") {
+      router.push("/(tabs)/play/ConnectFourScreen");
+    }
+    // Hier können später die anderen Spiele gestartet werden
     // router.push(`/games/${gameName.toLowerCase()}`);
   };
 
@@ -115,8 +118,8 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    marginTop: Gaps.g80,
-    marginBottom: -30,
+    marginTop: Gaps.g40,
+    marginBottom: -10,
   },
   title: {
     fontSize: FontSizes.H1Fs,
