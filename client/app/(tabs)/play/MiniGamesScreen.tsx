@@ -41,6 +41,8 @@ const MiniGamesScreen = () => {
       router.push("/(tabs)/play/SpaceInvadersScreen");
     } else if (gameName === "Ping Pong") {
       router.push("/(tabs)/play/PingPongScreen");
+    } else if (gameName === "Snake") {
+      router.push("/(tabs)/play/SnakeScreen");
     }
     // Hier können später die anderen Spiele gestartet werden
     // router.push(`/games/${gameName.toLowerCase()}`);

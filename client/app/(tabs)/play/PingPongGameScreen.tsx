@@ -171,16 +171,16 @@ const PingPongGameScreen = () => {
     
     switch(gameSettings.difficulty) {
       case 'easy':
-        newPaddleSpeed = 5;
-        newBallSpeed = 4;
+        newPaddleSpeed = 3;  // Langsamere KI
+        newBallSpeed = 2;    // Deutlich langsamerer Ball
         break;
       case 'medium':
-        newPaddleSpeed = 7;
-        newBallSpeed = 5;
+        newPaddleSpeed = 6;  // Mittlere KI-Geschwindigkeit
+        newBallSpeed = 4;    // Mittlere Ball-Geschwindigkeit
         break;
       case 'hard':
-        newPaddleSpeed = 9;
-        newBallSpeed = 6;
+        newPaddleSpeed = 10; // Schnelle KI
+        newBallSpeed = 6;    // Schneller Ball
         break;
     }
     

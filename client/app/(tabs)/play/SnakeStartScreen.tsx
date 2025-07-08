@@ -1,23 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors, Gaps, FontSizes, FontWeights } from '@/styles/theme';
 import IconArrowBack from '@/assets/icons/IconArrowBack';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface GameSettings {
-  side: 'left' | 'right';
   difficulty: 'easy' | 'medium' | 'hard';
-  maxPoints: number;
+  maxScore: number;
   gameMode: 'standard' | 'survival';
 }
 
-const PingPongStartScreen = () => {
+const SnakeStartScreen = () => {
   const router = useRouter();
   const [gameSettings, setGameSettings] = useState<GameSettings>({
-    side: 'left',
     difficulty: 'medium',
-    maxPoints: 10,
+    maxScore: 50,
     gameMode: 'standard',
   });
 
@@ -30,12 +27,11 @@ const PingPongStartScreen = () => {
   };
 
   const startGame = () => {
-    // Navigate to game screen with settings
     router.push({
-      pathname: "/(tabs)/play/PingPongGameScreen",
+      pathname: "/(tabs)/play/SnakeGameScreen",
       params: {
         settings: JSON.stringify(gameSettings),
-        soundOn: 'true', // Default sound on
+        soundOn: 'true',
       }
     });
   };
@@ -47,42 +43,9 @@ const PingPongStartScreen = () => {
       </TouchableOpacity>
 
       <View style={styles.menuContainer}>
-        <Text style={styles.menuTitle}>Ping Pong</Text>
+        <Text style={styles.menuTitle}>Snake</Text>
         
-        {/* Settings Row - Only Side Selection */}
-        <View style={styles.settingsRow}>
-          <View style={styles.settingItem}>
-            <Text style={styles.settingLabel}>Side:</Text>
-            <View style={styles.selectContainer}>
-              <TouchableOpacity 
-                style={[
-                  styles.selectOption, 
-                  gameSettings.side === 'left' && styles.selectOptionActive
-                ]}
-                onPress={() => updateGameSettings('side', 'left')}
-              >
-                <Text style={[
-                  styles.selectOptionText,
-                  gameSettings.side === 'left' && styles.selectOptionTextActive
-                ]}>Left</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[
-                  styles.selectOption, 
-                  gameSettings.side === 'right' && styles.selectOptionActive
-                ]}
-                onPress={() => updateGameSettings('side', 'right')}
-              >
-                <Text style={[
-                  styles.selectOptionText,
-                  gameSettings.side === 'right' && styles.selectOptionTextActive
-                ]}>Right</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* Difficulty - Under the side buttons */}
+        {/* Difficulty */}
         <View style={styles.settingItem}>
           <Text style={styles.settingLabel}>Difficulty:</Text>
           <View style={styles.selectContainer}>
@@ -125,21 +88,21 @@ const PingPongStartScreen = () => {
           </View>
         </View>
 
-        {/* Max Points */}
+        {/* Max Score */}
         <View style={styles.settingItem}>
-          <Text style={styles.settingLabel}>Point Limit (0 = Endless):</Text>
+          <Text style={styles.settingLabel}>Score Limit (0 = Endless):</Text>
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.numberInput}
-              value={gameSettings.maxPoints.toString()}
-              onChangeText={(text) => updateGameSettings('maxPoints', parseInt(text) || 0)}
+              value={gameSettings.maxScore.toString()}
+              onChangeText={(text) => updateGameSettings('maxScore', parseInt(text) || 0)}
               keyboardType="numeric"
               editable={gameSettings.gameMode === 'standard'}
             />
           </View>
         </View>
 
-        {/* Game Mode with spacing */}
+        {/* Game Mode */}
         <View style={styles.settingItem}>
           <Text style={styles.settingLabel}>Game Mode:</Text>
           <View style={styles.selectContainer}>
@@ -170,8 +133,8 @@ const PingPongStartScreen = () => {
           </View>
           <Text style={styles.modeDescription}>
             {gameSettings.gameMode === 'standard' 
-              ? 'Standard: Win by reaching the point limit.'
-              : 'Survival: Max 3 goals conceded. Ball speeds up every 10 seconds.'
+              ? 'Standard: Win by reaching the score limit.'
+              : 'Survival: Survive as long as possible. Speed increases over time.'
             }
           </Text>
         </View>
@@ -208,11 +171,6 @@ const styles = StyleSheet.create({
     color: Colors.darkGreen,
     marginBottom: Gaps.g24,
     textAlign: 'center',
-  },
-  settingsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: Gaps.g16,
   },
   settingItem: {
     flexDirection: 'column',
@@ -282,4 +240,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default PingPongStartScreen; 
+export default SnakeStartScreen; 
