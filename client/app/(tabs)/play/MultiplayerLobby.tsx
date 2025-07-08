@@ -75,13 +75,26 @@ const MultiplayerLobby = () => {
     }
   };
 
+  // ----- Filter sent invites to exclude players who already joined -----
+  const getFilteredSentInvites = () => {
+    if (!currentRoom || !sentInvites) return sentInvites;
+    
+    // Get list of player emails/usernames who are already in the room
+    const joinedPlayerEmails = currentRoom.players.map(player => player.name.toLowerCase());
+    
+    // Filter out invites for players who have already joined
+    return sentInvites.filter(invite => {
+      const inviteUserEmail = (invite.to.username || invite.to.email).toLowerCase();
+      return !joinedPlayerEmails.includes(inviteUserEmail);
+    });
+  };
+
   // ----- Handler Remove ALL Invitations -----
-  // IMPORTANT: This should be done after the quiz is over
+  // IMPORTANT: This should also be done after the quiz is over
   const handleRemoveAllInvites = async () => {
     try {
       if (!userData) return;
       await removeAllInvites(userData.clerkUserId);
-      // THIS NEEDS TO BE DONE AFTER THE WHOLE QUIZ IS OVER
     } catch (error) {
       console.error("Error removing all invitations:", error);
     }
@@ -135,11 +148,15 @@ const MultiplayerLobby = () => {
     socketService.onPlayerJoined((data) => {
       console.log("Player joined:", data.player.name);
       setCurrentRoom(data.room);
+      // Refresh invites when a player joins to update the filtered list
+      fetchInvites();
     });
 
     socketService.onPlayerLeft((data) => {
       console.log("Player left:", data.playerName);
       setCurrentRoom(data.room);
+      // Refresh invites when a player leaves
+      fetchInvites();
     });
 
     socketService.onPlayerReadyUpdated((data) => {
@@ -289,6 +306,10 @@ const MultiplayerLobby = () => {
         socketService.leaveRoom(roomInfo.roomId, playerId);
       }
       socketService.disconnect();
+      // Clear cache for current room
+      saveDataToCache(CACHE_KEY.currentRoom, null);
+      // Remove all sent invitations
+      handleRemoveAllInvites();
       // Go back to QuizTypeSelectionScreen
       router.push("/(tabs)/play/QuizTypeSelectionScreen");
     }
@@ -304,6 +325,8 @@ const MultiplayerLobby = () => {
       if (playerId) {
         socketService.leaveRoom(roomInfo.roomId, playerId);
         socketService.disconnect();
+        // Clear cache for current room
+        saveDataToCache(CACHE_KEY.currentRoom, null);
         router.back();
       }
     }
@@ -378,6 +401,7 @@ const MultiplayerLobby = () => {
         BackButton HERE
       </TouchableOpacity>
 
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -396,6 +420,20 @@ const MultiplayerLobby = () => {
             {roomInfo.selectedTopic || roomInfo.selectedCategory}
           </Text>
         )}
+
+{/* Show sent invitations */}
+<View style={styles.playersContainer}>
+        <Text style={styles.playersTitle}>
+          Sent invitations: ({getFilteredSentInvites().length}/{currentRoom.maxPlayers})
+        </Text>
+        <FlatList
+          data={getFilteredSentInvites()}
+          renderItem={renderInviteRequest}
+          keyExtractor={(item) => item._id}
+          style={styles.playersList}
+        />
+      </View>
+
 
         {/* Show sent invitations */}
         <View style={styles.playersContainer}>
