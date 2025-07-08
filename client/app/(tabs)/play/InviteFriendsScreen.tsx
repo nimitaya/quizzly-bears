@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -19,9 +19,9 @@ import {
 } from "@/utilities/invitationApi";
 import { getFriends, sendFriendRequest } from "@/utilities/friendRequestApi";
 import { FriendsResponse, User } from "@/utilities/friendInterfaces";
-import { useUser } from "@clerk/clerk-expo";
 import { SearchFriendInput } from "@/components/Inputs";
 import IconAddFriend from "@/assets/icons/IconAddFriend";
+import { UserContext } from "@/providers/UserProvider";
 
 interface RoomInfo {
   roomId: string;
@@ -32,7 +32,8 @@ interface RoomInfo {
 
 const InviteFriendsScreen = () => {
   const router = useRouter();
-  const { user } = useUser();
+  const { userData } = useContext(UserContext);
+
   const [showNoFriendsAlert, setShowNoFriendsAlert] = useState(false);
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
@@ -54,9 +55,9 @@ const InviteFriendsScreen = () => {
   // ----- Handler Fetch Friendlist -----
   const fetchFriends = async () => {
     try {
-      if (!user) return;
+      if (!userData) return;
       setIsLoading(true);
-      const clerkUserId = user.id;
+      const clerkUserId = userData.clerkUserId;
 
       const friends = await getFriends(clerkUserId);
 
@@ -70,7 +71,7 @@ const InviteFriendsScreen = () => {
 
   // ----- Handler Search User -----
   const handleSearchUser = async (email: string) => {
-    if (!email.trim() || !user) {
+    if (!email.trim() || !userData) {
       setSearchState((prev) => ({
         ...prev,
         error: "Please enter a valid email",
@@ -82,7 +83,7 @@ const InviteFriendsScreen = () => {
       setIsLoading(true);
       setSearchState((prev) => ({ ...prev, result: null, error: "" }));
 
-      const result = await searchUserByEmail(email, user.id);
+      const result = await searchUserByEmail(email, userData.clerkUserId);
 
       if (result.user) {
         setSearchState((prev) => ({
@@ -107,7 +108,9 @@ const InviteFriendsScreen = () => {
         } else {
           // User is not a friend - add to nonFriends list and select for invitation
           setNonFriends((prev) => {
-            const isAlreadyInNonFriends = prev.some((user) => user._id === result.user._id);
+            const isAlreadyInNonFriends = prev.some(
+              (user) => user._id === result.user._id
+            );
             if (!isAlreadyInNonFriends) {
               return [...prev, result.user];
             }
@@ -136,11 +139,11 @@ const InviteFriendsScreen = () => {
 
   // ----- Handler Send Friend Request -----
   const handleSendFriendRequest = async (targetUserId: string) => {
-    if (!user) return;
+    if (!userData) return;
 
     try {
       setIsLoading(true);
-      await sendFriendRequest(user.id, targetUserId);
+      await sendFriendRequest(userData.clerkUserId, targetUserId);
 
       // Clear search result after sending request
       setSearchState((prev) => ({ ...prev, email: "", result: null }));
@@ -156,11 +159,15 @@ const InviteFriendsScreen = () => {
 
   // ----- Handler Send Invite Request -----
   const handleSendInviteRequest = async (targetUserId: string) => {
-    if (!user) return;
+    if (!userData) return;
 
     try {
       setIsLoading(true);
-      await sendInviteRequest(user.id, targetUserId, roomInfo?.roomId || "");
+      await sendInviteRequest(
+        userData.clerkUserId,
+        targetUserId,
+        roomInfo?.roomId || ""
+      );
 
       // Clear search result after sending request
       setSearchState((prev) => ({ ...prev, email: "", result: null }));
@@ -361,7 +368,9 @@ const InviteFriendsScreen = () => {
               User found: {searchState.result.email}
             </Text>
             <Text style={styles.searchResultSubtext}>
-              {friends.friends.some((friend) => friend._id === searchState.result?._id)
+              {friends.friends.some(
+                (friend) => friend._id === searchState.result?._id
+              )
                 ? "Added to your list below"
                 : "Added to list below"}
             </Text>
@@ -372,8 +381,12 @@ const InviteFriendsScreen = () => {
       <FlatList
         data={[...friends.friends, ...nonFriends]}
         renderItem={({ item }) => {
-          const isFriend = friends.friends.some((friend) => friend._id === item._id);
-          return isFriend ? renderFriendItem({ item }) : renderNonFriendItem({ item });
+          const isFriend = friends.friends.some(
+            (friend) => friend._id === item._id
+          );
+          return isFriend
+            ? renderFriendItem({ item })
+            : renderNonFriendItem({ item });
         }}
         keyExtractor={(item) => item._id}
         style={styles.friendsList}

@@ -25,17 +25,16 @@ import {
   searchUserByEmail,
   sendFriendRequest,
 } from "@/utilities/friendRequestApi";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { FriendsState, User } from "@/utilities/friendInterfaces";
-import { useUser } from "@clerk/clerk-expo";
+import { UserContext } from "@/providers/UserProvider";
 
 // const API_BASE_URL = "http://localhost:3000/api";
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 const ProfilFriendsScreen = () => {
   const router = useRouter();
-  // get current user from Clerk:
-  const { user } = useUser();
+  const { userData } = useContext(UserContext);
   const [isLoading, setIsLoading] = useState(false);
   const [searchState, setSearchState] = useState<{
     email: string;
@@ -55,7 +54,7 @@ const ProfilFriendsScreen = () => {
   // =========== Functions ==========
   // Handler Search User
   const handleSearchUser = async (email: string) => {
-    if (!email.trim() || !user) {
+    if (!email.trim() || !userData) {
       setSearchState((prev) => ({
         ...prev,
         error: "Please enter a valid email",
@@ -67,7 +66,7 @@ const ProfilFriendsScreen = () => {
       setIsLoading(true);
       setSearchState((prev) => ({ ...prev, result: null, error: "" }));
 
-      const result = await searchUserByEmail(email, user.id);
+      const result = await searchUserByEmail(email, userData.clerkUserId);
       setSearchState((prev) => ({ ...prev, result: result.user, email: "" }));
     } catch (error: any) {
       setSearchState((prev) => ({
@@ -82,14 +81,14 @@ const ProfilFriendsScreen = () => {
 
   // Handler Send Friend Request
   const handleSendFriendRequest = async (targetUserId: string) => {
-    if (!user) return;
+    if (!userData) return;
 
     try {
       setIsLoading(true);
-      await sendFriendRequest(user.id, targetUserId);
+      await sendFriendRequest(userData.clerkUserId, targetUserId);
 
       // Refresh the sent requests list
-      const sent = await getSentFriendRequests(user.id);
+      const sent = await getSentFriendRequests(userData.clerkUserId);
       setFriendsState((prev) => ({
         ...prev,
         sentFriendRequests: sent,
@@ -110,12 +109,12 @@ const ProfilFriendsScreen = () => {
   // Handler Accept
   const handleAcceptFriendRequest = async (requestId: string) => {
     try {
-      if (!user) return;
-      await acceptFriendRequest(user.id, requestId);
+      if (!userData) return;
+      await acceptFriendRequest(userData.clerkUserId, requestId);
       // Refresh the friends list after accepting
-      const friends = await getFriends(user.id);
-      const received = await getReceivedFriendRequests(user.id);
-      const sent = await getSentFriendRequests(user.id);
+      const friends = await getFriends(userData.clerkUserId);
+      const received = await getReceivedFriendRequests(userData.clerkUserId);
+      const sent = await getSentFriendRequests(userData.clerkUserId);
 
       setFriendsState({
         friendList: friends,
@@ -130,10 +129,10 @@ const ProfilFriendsScreen = () => {
   // Handler Decline
   const handleDeclineFriendRequest = async (requestId: string) => {
     try {
-      if (!user) return;
-      await declineFriendRequest(user.id, requestId);
+      if (!userData) return;
+      await declineFriendRequest(userData.clerkUserId, requestId);
       // Refresh the friends list after declining
-      const received = await getReceivedFriendRequests(user.id);
+      const received = await getReceivedFriendRequests(userData.clerkUserId);
       setFriendsState((prev) => ({
         ...prev,
         receivedFriendRequests: received,
@@ -146,10 +145,10 @@ const ProfilFriendsScreen = () => {
   // Handler Remove
   const handleRemoveFriend = async (friendId: string) => {
     try {
-      if (!user) return;
-      await removeFriend(user.id, friendId);
+      if (!userData) return;
+      await removeFriend(userData.clerkUserId, friendId);
       // Refresh the friends list after removing
-      const friends = await getFriends(user.id);
+      const friends = await getFriends(userData.clerkUserId);
       setFriendsState((prev) => ({
         ...prev,
         friendList: friends,
@@ -172,13 +171,13 @@ const ProfilFriendsScreen = () => {
   }, [searchState.error]);
 
   useEffect(() => {
-    if (!user) {
+    if (!userData) {
       return;
     }
     // Fetch friends when the component mounts
     const fetchFriends = async () => {
       try {
-        const clerkUserId = user.id;
+        const clerkUserId = userData.clerkUserId;
 
         const friends = await getFriends(clerkUserId);
         const received = await getReceivedFriendRequests(clerkUserId);

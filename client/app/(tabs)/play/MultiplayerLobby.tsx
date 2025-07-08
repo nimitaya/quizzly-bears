@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext, use } from "react";
 import {
   View,
   Text,
@@ -18,13 +18,12 @@ import {
 } from "@/utilities/cacheUtils";
 import CustomAlert from "@/components/CustomAlert";
 import { InviteRequest } from "@/utilities/invitationInterfaces";
-import { useUser } from "@clerk/clerk-expo";
 import {
   getSentInviteRequests,
   getAcceptedInvites,
-  removeInvite,
   removeAllInvites,
 } from "@/utilities/invitationApi";
+import {UserContext} from "@/providers/UserProvider";
 
 interface RoomInfo {
   roomId: string;
@@ -38,7 +37,8 @@ interface RoomInfo {
 
 const MultiplayerLobby = () => {
   const router = useRouter();
-  const { user } = useUser(); 
+  const {userData} = useContext(UserContext);
+
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [currentRoom, setCurrentRoom] = useState<QuizRoom | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -61,9 +61,9 @@ const MultiplayerLobby = () => {
   const fetchInvites = async () => {
     try {
       setIsLoading(true);
-      if (!user) return;
-      const sent = await getSentInviteRequests(user.id);
-      const accepted = await getAcceptedInvites(user.id);
+      if (!userData) return;
+      const sent = await getSentInviteRequests(userData.clerkUserId);
+      const accepted = await getAcceptedInvites(userData.clerkUserId);
 
       setSentInvites(sent.inviteRequests || []);
       setAcceptedInvites(accepted.inviteRequests || []);
@@ -74,25 +74,12 @@ const MultiplayerLobby = () => {
     }
   };
 
-  // ----- Handler Remove Invite -----
-  const handleRemoveInvite = async (friendId: string) => {
-    try {
-      if (!user) return;
-      await removeInvite(user.id, friendId);
-      // Refresh the invites list after removing
-      const sent = await getSentInviteRequests(user.id);
-      setSentInvites((prev) => [...prev, ...sent.inviteRequests]);
-    } catch (error) {
-      console.error("Error removing invitation:", error);
-    }
-  };
-
   // ----- Handler Remove ALL Invitations -----
   // IMPORTANT: This should be done after the quiz is over
   const handleRemoveAllInvites = async () => {
     try {
-      if (!user) return;
-      await removeAllInvites(user.id);
+      if (!userData) return;
+      await removeAllInvites(userData.clerkUserId);
       // THIS NEEDS TO BE DONE AFTER THE WHOLE QUIZ IS OVER
     } catch (error) {
       console.error("Error removing all invitations:", error);
