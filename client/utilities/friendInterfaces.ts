@@ -1,5 +1,6 @@
 export interface User {
   _id: string;
+  clerkUserId?: string; // Add this for online status tracking
   username?: string;
   email: string;
   bearPawIcon: boolean;

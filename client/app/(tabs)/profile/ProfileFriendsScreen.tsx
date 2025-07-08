@@ -28,6 +28,8 @@ import {
 import { useEffect, useState, useContext } from "react";
 import { FriendsState, User } from "@/utilities/friendInterfaces";
 import { UserContext } from "@/providers/UserProvider";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import socketService from "@/utilities/socketService";
 
 // const API_BASE_URL = "http://localhost:3000/api";
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -50,6 +52,12 @@ const ProfilFriendsScreen = () => {
     receivedFriendRequests: { friendRequests: [] },
     sentFriendRequests: { friendRequests: [] },
   });
+
+  // State for friend IDs for online status tracking
+  const [friendIds, setFriendIds] = useState<string[]>([]);
+  
+  // Use the online status hook
+  const { isUserOnline } = useOnlineStatus(friendIds);
 
   // =========== Functions ==========
   // Handler Search User
@@ -160,15 +168,15 @@ const ProfilFriendsScreen = () => {
 
   // =========== UseEffect ==========
   // Auto-hide error after 5 seconds
-  useEffect(() => {
-    if (searchState.error) {
-      const timer = setTimeout(() => {
-        setSearchState((prev) => ({ ...prev, error: "" }));
-      }, 5000);
+  // useEffect(() => {
+  //   if (searchState.error) {
+  //     const timer = setTimeout(() => {
+  //       setSearchState((prev) => ({ ...prev, error: "" }));
+  //     }, 5000);
 
-      return () => clearTimeout(timer);
-    }
-  }, [searchState.error]);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [searchState.error]);
 
   useEffect(() => {
     if (!userData) {
@@ -188,12 +196,66 @@ const ProfilFriendsScreen = () => {
           receivedFriendRequests: received,
           sentFriendRequests: sent,
         });
+
+        // Debug: Log the actual friend data to see what we're getting
+        console.log('🔍 DEBUG - Friend data from server:', friends);
+        console.log('🔍 DEBUG - First friend object:', friends.friends?.[0]);
       } catch (error) {
         console.error("Error fetching friends:", error);
       }
     };
     fetchFriends();
   }, []);
+
+  // Connect to socket when user is available
+  useEffect(() => {
+    if (userData && !socketService.isConnected()) {
+      const connectSocket = async () => {
+        try {
+          console.log('🔌 Connecting socket for user:', userData.clerkUserId);
+          await socketService.connect();
+          console.log('✅ Socket connected for online status tracking');
+        } catch (error) {
+          console.error('❌ Failed to connect socket:', error);
+        }
+      };
+      connectSocket();
+    }
+  }, [userData]);
+
+  // Debug: Log friend IDs when they change
+  useEffect(() => {
+    console.log('👥 Friend IDs for tracking:', friendIds);
+  }, [friendIds]);
+
+  // Update friendIds when friends list changes
+  useEffect(() => {
+    console.log('🔍 DEBUG - Full friends state:', friendsState.friendList);
+    console.log('🔍 DEBUG - Friends array:', friendsState.friendList.friends);
+    
+    const newFriendIds = friendsState.friendList.friends
+      .map(friend => {
+        console.log('🔍 DEBUG - Processing friend:', JSON.stringify(friend, null, 2));
+        console.log('🔍 DEBUG - Friend clerkUserId:', friend.clerkUserId);
+        console.log('🔍 DEBUG - Friend keys:', Object.keys(friend));
+        return friend.clerkUserId;
+      })
+      .filter(Boolean) as string[];
+    
+    console.log('🔄 Updating friendIds state:', newFriendIds);
+    setFriendIds(newFriendIds);
+  }, [friendsState.friendList.friends]);
+
+  // Auto-hide error after 5 seconds
+  useEffect(() => {
+    if (searchState.error) {
+      const timer = setTimeout(() => {
+        setSearchState((prev) => ({ ...prev, error: "" }));
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [searchState.error]);
 
   return (
     <View style={styles.container}>
@@ -289,9 +351,26 @@ const ProfilFriendsScreen = () => {
         {/* Friends List */}
         {friendsState.friendList.friends.map((item) => (
           <View key={item._id} style={styles.friendRow}>
-            <Text style={styles.friendName}>
-              {item.email || item.username || "Friend"}
-            </Text>
+            <View style={styles.friendInfo}>
+              {/* Online Status Indicator */}
+              <View 
+                style={[
+                  styles.statusDot,
+                  { backgroundColor: isUserOnline(item.clerkUserId || '') ? '#4CAF50' : '#9E9E9E' }
+                ]}
+              />
+              <View style={styles.friendTextContainer}>
+                <Text style={styles.friendName}>
+                  {item.email || item.username || "Friend"}
+                </Text>
+                <Text style={[
+                  styles.statusText,
+                  { color: isUserOnline(item.clerkUserId || '') ? '#4CAF50' : '#9E9E9E' }
+                ]}>
+                  {isUserOnline(item.clerkUserId || '') ? 'Online' : 'Offline'}
+                </Text>
+              </View>
+            </View>
             <View style={styles.actionButtons}>
               <TouchableOpacity
                 onPress={() => handleRemoveFriend(item._id)}
@@ -393,4 +472,24 @@ const styles = StyleSheet.create({
     color: Colors.black,
     textAlign: "center",
   },
+  // =============== NEW added from Co-Pilot ===============
+  friendInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: Gaps.g8,
+  },
+  friendTextContainer: {
+    flex: 1,
+  },
+   statusText: {
+    fontSize: FontSizes.TextSmallFs,
+    marginTop: 2,
+  },
+  // =======================================================
 });

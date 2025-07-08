@@ -330,6 +330,27 @@ class SocketService {
   onError(callback: (data: { message: string; code?: string }) => void) {
     this.on("error", callback);
   }
+
+  // ==========ONLINE STATUS METHODS==========
+  // Set user as online
+  setUserOnline(userId: string) {
+    this.emit("user-online", { userId });
+  }
+
+  // Get online status of friends
+  getFriendsStatus(friendIds: string[]) {
+    this.emit("get-friends-status", { friendIds });
+  }
+
+  // Listen for friend status changes
+  onFriendStatusChanged(callback: (data: { userId: string; isOnline: boolean }) => void) {
+    this.on("friend-status-changed", callback);
+  }
+
+  // Listen for friends status response
+  onFriendsStatus(callback: (friendsStatus: { userId: string; isOnline: boolean }[]) => void) {
+    this.on("friends-status", callback);
+  }
 }
 
 // Export singleton
