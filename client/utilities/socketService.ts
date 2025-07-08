@@ -80,7 +80,11 @@ const getSocketUrls = () => {
 };
 
 const SOCKET_URLS = getSocketUrls();
-const SOCKET_URL = __DEV__ ? SOCKET_URLS[0] : "YOUR_PRODUCTION_URL";
+
+// Best practice: Use environment variables for production URL
+const PRODUCTION_URL = process.env.EXPO_PUBLIC_SOCKET_URL || "https://quizzly-bears.onrender.com";
+
+const SOCKET_URL = __DEV__ ? SOCKET_URLS[0] : PRODUCTION_URL;
 
 class SocketService {
   private socket: Socket | null = null;
