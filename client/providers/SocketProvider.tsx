@@ -11,16 +11,8 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     socket.on("pointsUpdated", () => {
-      if (Array.isArray(refetch)) {
-        refetch.forEach((fn, idx) => {
-          console.log(`Calling refetch[${idx}]`);
-          fn?.(); // Trigger fetchTopPlayers
-        });
-      } else if (typeof refetch === "object" && refetch !== null) {
-        (refetch as any).userData?.();
-        (refetch as any).topPlayers?.();
-        console.log("🔁 pointsUpdated received- second if");
-      }
+      refetch && refetch.forEach((fn) => fn());
+      console.log("🔁 pointsUpdated received");
     });
 
     return () => {
