@@ -47,7 +47,8 @@ const getSocketUrls = () => {
   // ========== No hardcoded IP address anymore, needed to be added to be used on different IP addresses ==========
   // Common IP ranges to try - covers most home/office networks
   const commonIPs = [
-    "192.168.178.21", // Your current IP
+    "192.168.178.21", // Sonja current IP
+    "192.168.0.226", // Natallia IP
     "192.168.1.100",  // Common router range (192.168.1.x)
     "192.168.0.100",  // Common router range (192.168.0.x) 
     "192.168.2.100",  // Another common range
