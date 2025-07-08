@@ -39,6 +39,8 @@ const MiniGamesScreen = () => {
       router.push("/(tabs)/play/ConnectFourScreen");
     } else if (gameName === "Space Invaders") {
       router.push("/(tabs)/play/SpaceInvadersScreen");
+    } else if (gameName === "Ping Pong") {
+      router.push("/(tabs)/play/PingPongScreen");
     }
     // Hier können später die anderen Spiele gestartet werden
     // router.push(`/games/${gameName.toLowerCase()}`);
