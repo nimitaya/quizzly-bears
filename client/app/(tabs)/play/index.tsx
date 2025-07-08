@@ -9,8 +9,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import Loading from "../../Loading";
 import CustomAlert from "@/components/CustomAlert";
 import { useUser } from "@clerk/clerk-expo";
-import { useFocusEffect } from "@react-navigation/native";
-import { io } from "socket.io-client";
+// import { useFocusEffect } from "@react-navigation/native";
 
 const PlayScreen = () => {
   const { topPlayers, loading, totalUsers, userRank, onChanges, refetch } =
@@ -20,36 +19,28 @@ const PlayScreen = () => {
   const { user } = useUser();
 
   useEffect(() => {
-    const socket = io("https://quizzly-bears.onrender.com");
+    console.log("State updated:");
+    console.log("Top Players:", topPlayers);
+    console.log("User Rank:", userRank);
+    console.log("Total Users:", totalUsers);
 
-    const handleUpdate = async () => {
-      console.log("🟢 Points updated from someone else");
-      refetch[0](); // user data
-      refetch[1](); // top players
-    };
-
-    socket.on("pointsUpdated", handleUpdate);
-
-    return () => {
-      socket.off("pointsUpdated", handleUpdate);
-      socket.disconnect(); // обов'язково відключайтесь
-    };
-  }, []);
+    // Perform additional actions if needed
+  }, [topPlayers, userRank, totalUsers]);
 
   useEffect(() => {
-    if (!topPlayers && !loading) {
+    if (topPlayers.length === 0 && !loading) {
       setShowForm(true);
     }
   }, [topPlayers, loading]);
 
-  useFocusEffect(
-    useCallback(() => {
-      refetch && refetch.forEach((fn) => fn());
-    }, [onChanges])
-  );
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     refetch && refetch.forEach((fn) => fn());
+  //   }, [onChanges])
+  // );
 
   if (loading) return <Loading />;
-  if (!topPlayers && !loading) {
+  if (topPlayers.length === 0 && !loading) {
     return (
       <CustomAlert
         visible={showForm}

@@ -71,10 +71,32 @@ const sendPoints = async (req: Request, res: Response): Promise<void> => {
     }
 
     // Emit updated points to all connected clients
-    io.emit("pointsUpdated");
+
     // Save the updated user
 
     await user.save();
+
+    console.log("User saved successfully");
+
+    // Recalculate top players
+    const topPlayers = await User.find({})
+      .sort({ "points.totalPoints": -1 })
+      .limit(10)
+      .select("email points.totalPoints");
+
+    console.log("Top players:", topPlayers);
+
+    const totalUsers = await User.countDocuments();
+    console.log("Total users:", totalUsers);
+
+    const userRank = await User.findOne({ email: req.body.email })
+      .sort({ "points.totalPoints": -1 })
+      .select("rank");
+
+    console.log("User rank:", userRank);
+
+    // Emit updated points and top players to all connected clients
+    io.emit("pointsUpdated", { topPlayers, totalUsers, userRank });
 
     // Return success response with updated data
     res.status(200).json({
