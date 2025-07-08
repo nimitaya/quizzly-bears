@@ -2,9 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
 import { useUser } from "@clerk/clerk-expo";
 
-// const API_BASE_URL = "http://localhost:3000/api";
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
-
 
 type UserContextType = {
   updateUserSettings: (newSettings: {
@@ -53,6 +51,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loadingUserData, setLoadingUserData] = useState(true);
   const [loadingTopPlayers, setLoadingTopPlayers] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState(Date.now());
 
   const fetchUserData = async () => {
     if (!user) {
