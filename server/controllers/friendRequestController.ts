@@ -386,15 +386,31 @@ export const getFriendList = async (
     }
 
     // Find current user and populate friends data
-    const user = await User.findOne({ clerkUserId }).populate(
-      "friends",
-      "username email bearPawIcon points.totalPoints"
-    );
+    const user = await User.findOne({ clerkUserId }).populate({
+      path: "friends",
+      select: "username email bearPawIcon points.totalPoints clerkUserId"
+    });
 
     if (!user) {
       res.status(404).json({ error: "User not found" });
       return;
     }
+
+    // Debug: Log what we're actually returning
+    console.log('🔍 DEBUG - User found:', user.email);
+    console.log('🔍 DEBUG - Friends count:', user.friends?.length);
+    console.log('🔍 DEBUG - Friends being returned:', JSON.stringify(user.friends, null, 2));
+    console.log('🔍 DEBUG - First friend structure:', user.friends?.[0]);
+
+    // Check if any friends are missing clerkUserId
+    if (user.friends) {
+      user.friends.forEach((friend: any, index: number) => {
+        if (!friend.clerkUserId) {
+          console.log(`⚠️  WARNING: Friend ${index} (${friend.email}) is missing clerkUserId!`);
+        }
+      });
+    }
+    console.log('🔍 DEBUG - First friend:', user.friends?.[0]);
 
     // ----- Response -----
     res.json({ friends: user.friends });

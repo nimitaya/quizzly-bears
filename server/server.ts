@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import connectDB from "./database/connectDB";
+import { User } from "./models/User"; // Import User model for online status
 import clerkWebhookRouter from "./routes/ClerkWebhook";
 import friendRequestRouter from "./routes/friendRequestRoutes";
 import quizRoomsRouter, { setRoomsReference } from "./routes/QuizRooms";
@@ -65,11 +66,36 @@ interface Player {
 // Room storage (in production, better to use Redis)
 const quizRooms = new Map<string, QuizRoom>();
 
+// Online users tracking (userId -> socketId)
+const onlineUsers = new Map<string, string>();
+
 // Socket.IO handlers
 io.on("connection", (socket) => {
   console.log(`User connected: ${socket.id}`);
 
-  // Room creation
+  // ==========ONLINE STATUS HANDLERS==========
+  // User comes online
+  socket.on("user-online", async (data: { userId: string }) => {
+    const { userId } = data;
+    onlineUsers.set(userId, socket.id);
+    console.log(`User ${userId} is now online`);
+    
+    // Notify friends that this user is online
+    await notifyFriendsOfStatusChange(userId, true);
+  });
+
+  // Get online status of friends
+  socket.on("get-friends-status", (data: { friendIds: string[] }) => {
+    const { friendIds } = data;
+    const friendsStatus = friendIds.map(friendId => ({
+      userId: friendId,
+      isOnline: onlineUsers.has(friendId)
+    }));
+    
+    socket.emit("friends-status", friendsStatus);
+  });
+
+  // ==========QUIZ ROOM HANDLERS==========
   socket.on(
     "create-room",
     (data: {
@@ -294,8 +320,22 @@ io.on("connection", (socket) => {
   });
 
   // Disconnect
-  socket.on("disconnect", () => {
+  socket.on("disconnect", async () => {
     console.log(`User disconnected: ${socket.id}`);
+
+    // Find which user disconnected and handle online status
+    let disconnectedUserId: string | null = null;
+    for (const [userId, socketId] of onlineUsers.entries()) {
+      if (socketId === socket.id) {
+        disconnectedUserId = userId;
+        onlineUsers.delete(userId);
+        console.log(`User ${userId} is now offline`);
+        
+        // Notify friends that this user is offline
+        await notifyFriendsOfStatusChange(userId, false);
+        break;
+      }
+    }
 
     // Find and remove player from all rooms
     for (const [roomId, room] of quizRooms.entries()) {
@@ -315,6 +355,35 @@ io.on("connection", (socket) => {
 function generateRoomId(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
+
+// ========== Notify friends when user status changes ========== IMPORTANT
+async function notifyFriendsOfStatusChange(userId: string, isOnline: boolean) {
+  try {
+    // Find the user and get their friends list
+    const user = await User.findOne({ clerkUserId: userId }).populate('friends', 'clerkUserId');
+    if (!user || !user.friends) return;
+
+    console.log(`📡 Notifying friends of ${userId} status change (${isOnline ? 'online' : 'offline'})`);
+    console.log(`👥 User has ${user.friends.length} friends`);
+
+    // Notify each online friend about the status change
+    user.friends.forEach((friend: any) => {
+      const friendSocketId = onlineUsers.get(friend.clerkUserId);
+      if (friendSocketId) {
+        console.log(`📤 Notifying friend ${friend.clerkUserId} (socket: ${friendSocketId})`);
+        io.to(friendSocketId).emit("friend-status-changed", {
+          userId: userId,
+          isOnline: isOnline
+        });
+      } else {
+        console.log(`❌ Friend ${friend.clerkUserId} is not online`);
+      }
+    });
+  } catch (error) {
+    console.error("Error notifying friends of status change:", error);
+  }
+}
+// ==================================================
 
 function leaveRoom(socket: any, roomId: string, playerId: string) {
   const room = quizRooms.get(roomId);

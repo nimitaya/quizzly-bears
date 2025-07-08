@@ -69,6 +69,7 @@ export interface IUser extends Document {
   };
   bearPawIcon: boolean;
   pushTokens: IPushToken[];
+  isOnline: boolean;
   isAdmin: boolean;
   settings: {
     language: string;
@@ -116,6 +117,7 @@ const userSchema = new Schema<IUser>(
     },
     bearPawIcon: { type: Boolean, default: false },
     pushTokens: [pushTokenSchema],
+    isOnline: {type: Boolean, default: false},
     isAdmin: { type: Boolean, default: false },
     settings: {
       language: { type: String, default: "en" },
