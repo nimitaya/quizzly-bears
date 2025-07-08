@@ -141,40 +141,42 @@ const ProfilInvitationsScreen = () => {
           </View>
         ) : (
           // if there are invitations
-          receivedInvites.map((invite, index) => (
-            <View key={invite._id || index}>
-              <Text style={{ fontSize: FontSizes.H3Fs }}>
-                Game Invitations:
-              </Text>
-              <Text>From: {invite.from.username || invite.from.email}</Text>
+          <View style={styles.invitationsContainer}>
+            <Text style={styles.invitationsTitle}>Game Invitations:</Text>
+            {receivedInvites.map((invite, index) => (
+              <View key={invite._id || index} style={styles.inviteRow}>
+                <Text style={{ fontSize: FontSizes.TextLargeFs }}>
+                  {invite.from.username || invite.from.email}
+                </Text>
 
-              <View style={styles.actionButtons}>
-                {isLoading ? (
-                  <>
-                    {/* Loading spinner here? */}
-                    <IconPending />
-                  </>
-                ) : (
-                  <>
-                    <TouchableOpacity
-                      onPress={() =>
-                        handleAcceptInvitation(invite._id, invite.roomcode)
-                      }
-                      style={styles.iconButton}
-                    >
-                      <IconAccept />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleDeclineInvitation(invite._id)}
-                      style={styles.iconButton}
-                    >
-                      <IconDismiss />
-                    </TouchableOpacity>
-                  </>
-                )}
+                <View style={styles.actionButtons}>
+                  {isLoading ? (
+                    <>
+                      {/* Loading spinner here? */}
+                      <IconPending />
+                    </>
+                  ) : (
+                    <>
+                      <TouchableOpacity
+                        onPress={() =>
+                          handleAcceptInvitation(invite._id, invite.roomcode)
+                        }
+                        style={styles.iconButton}
+                      >
+                        <IconAccept />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleDeclineInvitation(invite._id)}
+                        style={styles.iconButton}
+                      >
+                        <IconDismiss />
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </View>
               </View>
-            </View>
-          ))
+            ))}
+          </View>
         )}
       </ScrollView>
     </View>
@@ -201,11 +203,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Gaps.g4,
   },
+  invitationsContainer: {
+    width: "100%",
+    paddingHorizontal: Gaps.g32,
+  },
+  invitationsTitle: {
+    fontSize: FontSizes.H3Fs,
+    textAlign: "left",
+    marginBottom: Gaps.g16,
+  },
   iconButton: {
     padding: 4,
   },
   actionButtons: {
     flexDirection: "row",
     gap: Gaps.g16,
+  },
+  inviteRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: Gaps.g4,
+    marginBottom: 1,
+    width: "100%",
   },
 });
