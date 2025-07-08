@@ -2,7 +2,7 @@ import { View, StyleSheet, Text, ScrollView } from "react-native";
 import ClerkSettings, {
   ClerkSettingsRefType,
 } from "@/app/(auth)/ClerkSettings";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useSegments } from "expo-router";
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { FontSizes, Gaps } from "@/styles/theme";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
@@ -22,6 +22,7 @@ import { useLanguage } from "@/providers/LanguageContext";
 
 const ProfileScreen = () => {
   const router = useRouter();
+  const segments = useSegments();
   const { isAuthenticated, refreshGlobalState, isGloballyLoading } =
     useGlobalLoading();
   const { changeLanguage } = useLanguage();
@@ -110,7 +111,7 @@ const ProfileScreen = () => {
     if (hasFocusedRef.current) {
       const timer = setTimeout(() => {
         hasFocusedRef.current = false;
-      }, 5000); // Reset after 5 seconds to allow future focus events
+      }, 1000);
       return () => clearTimeout(timer);
     }
   });
