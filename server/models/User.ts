@@ -75,6 +75,7 @@ export interface IUser extends Document {
     sounds: boolean;
     music: boolean;
   };
+  isOnline: boolean;
 }
 
 const DEFAULT_CATEGORIES = [
@@ -122,6 +123,7 @@ const userSchema = new Schema<IUser>(
       sounds: { type: Boolean, default: true },
       music: { type: Boolean, default: true },
     },
+    isOnline: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
