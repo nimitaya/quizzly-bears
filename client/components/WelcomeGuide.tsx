@@ -7,11 +7,25 @@ import { StyleSheet } from "react-native";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
 
 interface WelcomeGuideProps {
-  onNext: () => void;
+  onNext?: () => void;
   buttonText?: string;
+  showButton?: boolean;
 }
 
-export default function WelcomeGuide({ onNext, buttonText = "Next" }: WelcomeGuideProps) {
+export default function WelcomeGuide({
+  onNext,
+  buttonText = "Next",
+  showButton = true,
+}: WelcomeGuideProps) {
+  const handlePress = () => {
+    console.log("WelcomeGuide: Button pressed");
+    if (onNext) {
+      onNext();
+    } else {
+      console.error("WelcomeGuide: onNext function is undefined");
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={{ marginBottom: Gaps.g16 }}>
@@ -68,7 +82,9 @@ export default function WelcomeGuide({ onNext, buttonText = "Next" }: WelcomeGui
         </View>
       </View>
 
-      <ButtonPrimary text={buttonText} onPress={onNext} />
+      {showButton && onNext && (
+        <ButtonPrimary text={buttonText} onPress={handlePress} />
+      )}
     </View>
   );
 }
@@ -76,7 +92,7 @@ export default function WelcomeGuide({ onNext, buttonText = "Next" }: WelcomeGui
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginTop: Gaps.g80,
+    marginTop: Gaps.g40,
     alignItems: "center",
   },
   descriptionContainer: {
