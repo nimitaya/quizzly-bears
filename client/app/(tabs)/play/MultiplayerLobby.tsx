@@ -78,13 +78,17 @@ const MultiplayerLobby = () => {
   // ----- Filter sent invites to exclude players who already joined -----
   const getFilteredSentInvites = () => {
     if (!currentRoom || !sentInvites) return sentInvites;
-    
+
     // Get list of player emails/usernames who are already in the room
-    const joinedPlayerEmails = currentRoom.players.map(player => player.name.toLowerCase());
-    
+    const joinedPlayerEmails = currentRoom.players.map((player) =>
+      player.name.toLowerCase()
+    );
+
     // Filter out invites for players who have already joined
-    return sentInvites.filter(invite => {
-      const inviteUserEmail = (invite.to.username || invite.to.email).toLowerCase();
+    return sentInvites.filter((invite) => {
+      const inviteUserEmail = (
+        invite.to.username || invite.to.email
+      ).toLowerCase();
       return !joinedPlayerEmails.includes(inviteUserEmail);
     });
   };
@@ -401,7 +405,6 @@ const MultiplayerLobby = () => {
         BackButton HERE
       </TouchableOpacity>
 
-
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -421,32 +424,17 @@ const MultiplayerLobby = () => {
           </Text>
         )}
 
-{/* Show sent invitations */}
-<View style={styles.playersContainer}>
-        <Text style={styles.playersTitle}>
-          Sent invitations: ({getFilteredSentInvites().length}/{currentRoom.maxPlayers})
-        </Text>
-        <FlatList
-          data={getFilteredSentInvites()}
-          renderItem={renderInviteRequest}
-          keyExtractor={(item) => item._id}
-          style={styles.playersList}
-        />
-      </View>
-
-
         {/* Show sent invitations */}
         <View style={styles.playersContainer}>
           <Text style={styles.playersTitle}>
-            Sent invitations: ({sentInvites.length}/{currentRoom.maxPlayers})
+            Sent invitations: ({getFilteredSentInvites().length}/
+            {currentRoom.maxPlayers})
           </Text>
           <FlatList
-            data={sentInvites}
+            data={getFilteredSentInvites()}
             renderItem={renderInviteRequest}
             keyExtractor={(item) => item._id}
             style={styles.playersList}
-            nestedScrollEnabled={true}
-            scrollEnabled={false}
           />
         </View>
 
