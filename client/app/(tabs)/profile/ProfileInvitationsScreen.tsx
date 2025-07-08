@@ -21,6 +21,8 @@ import { InviteRequest } from "@/utilities/invitationInterfaces";
 import IconAccept from "@/assets/icons/IconAccept";
 import IconDismiss from "@/assets/icons/IconDismiss";
 import IconPending from "@/assets/icons/IconPending";
+import { socketService } from "@/utilities/socketService";
+import { saveDataToCache, CACHE_KEY } from "@/utilities/cacheUtils";
 
 const ProfilInvitationsScreen = () => {
   const router = useRouter();
@@ -41,19 +43,47 @@ const ProfilInvitationsScreen = () => {
 
       setIsLoading(true);
       const clerkUserId = user.id;
+      
+      // Accept the invitation on the backend
       await acceptInviteRequest(clerkUserId, inviteId);
 
-      // Refresh the invitations list
-      const received = await getReceivedInviteRequests(clerkUserId);
-      setReceivedInvites(received.inviteRequests || []);
+      // Connect to socket service if not already connected
+      if (!socketService.isConnected()) {
+        await socketService.connect();
+      }
 
-      // ~~~~~ send user to the correct game screen IMPORTANT TODO ~~~~~
-      router.push(`../play/MultiPlayerLobby/${roomcode}`);
+      // Join the room via socket
+      const playerName = user.firstName || user.emailAddresses[0]?.emailAddress || "Player";
+      socketService.joinRoom(roomcode, clerkUserId, playerName);
+
+      // Listen for successful room join
+      socketService.onRoomJoined((data) => {
+        console.log("Successfully joined room:", data.room);
+        
+        // Save room info to cache for MultiplayerLobby to use
+        const roomInfo = {
+          roomId: roomcode,
+          room: data.room,
+          isHost: false, // Since we're joining, we're not the host
+        };
+        
+        saveDataToCache(CACHE_KEY.currentRoom, roomInfo);
+        
+        // Navigate to MultiplayerLobby
+        router.push("../play/MultiplayerLobby");
+      });
+
+      // Handle potential errors
+      socketService.onError((error) => {
+        console.error("Socket error when joining room:", error);
+        setIsLoading(false);
+        // TODO: Add user-facing error handling (toast/alert)
+      });
+
     } catch (error) {
       console.error("Error accepting invitation:", error);
-      // maybe TODO: Add user-facing error handling (toast/alert)
-    } finally {
       setIsLoading(false);
+      // TODO: Add user-facing error handling (toast/alert)
     }
   };
 
@@ -103,6 +133,12 @@ const ProfilInvitationsScreen = () => {
     };
 
     fetchInviteRequests();
+
+    // Cleanup socket listeners when component unmounts
+    return () => {
+      socketService.off("room-joined");
+      socketService.off("error");
+    };
   }, [user]);
 
   // =========== TODO add global loading, while loading invitations ===========
