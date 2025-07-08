@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import { User, IUser } from "../models/User";
+import { io } from "../server";
 
 const pointsRouter = express.Router();
 
@@ -69,7 +70,10 @@ const sendPoints = async (req: Request, res: Response): Promise<void> => {
       });
     }
 
+    // Emit updated points to all connected clients
+    io.emit("pointsUpdated");
     // Save the updated user
+
     await user.save();
 
     // Return success response with updated data
