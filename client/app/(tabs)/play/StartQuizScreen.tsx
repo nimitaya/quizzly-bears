@@ -7,8 +7,8 @@ import { useRouter } from "expo-router";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
 import { useState, useEffect } from "react";
 import { loadCacheData, saveDataToCache } from "@/utilities/cacheUtils";
-// import { generateMultipleQuizQuestions } from "@/utilities/api/QiuzzApiTest";
-import { generateMultipleQuizQuestions } from "@/utilities/api/quizApi";
+//import { generateMultipleQuizQuestions } from "@/utilities/api/QiuzzApiTest"; //openrouter
+import { generateMultipleQuizQuestions } from "@/utilities/api/quizApi"; // groq
 import { Difficulty } from "@/utilities/types";
 import { PlayStyle } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { CACHE_KEY } from "@/utilities/cacheUtils";
@@ -77,10 +77,6 @@ const StartQuizScreen = () => {
 
       console.log("🌐 AI raw content received!");
       console.log("Generated Questions Data:", questionsData);
-      console.log(
-        "Questions array length:",
-        questionsData.questionArray?.length
-      );
 
       // The API already returns AiQuestions, save directly
       await saveDataToCache(cacheAi, questionsData);
