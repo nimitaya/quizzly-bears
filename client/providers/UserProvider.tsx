@@ -51,7 +51,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loadingUserData, setLoadingUserData] = useState(true);
   const [loadingTopPlayers, setLoadingTopPlayers] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState(Date.now());
 
   const fetchUserData = async () => {
     if (!user) {

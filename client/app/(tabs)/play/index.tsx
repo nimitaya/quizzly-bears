@@ -10,6 +10,7 @@ import Loading from "../../Loading";
 import CustomAlert from "@/components/CustomAlert";
 import { useUser } from "@clerk/clerk-expo";
 // import { useFocusEffect } from "@react-navigation/native";
+import { io } from "socket.io-client";
 
 const PlayScreen = () => {
   const { topPlayers, loading, totalUsers, userRank, onChanges, refetch } =
@@ -17,15 +18,23 @@ const PlayScreen = () => {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const { user } = useUser();
+  const socket = io("https://quizzly-bears.onrender.com");
 
   useEffect(() => {
-    console.log("State updated:");
-    console.log("Top Players:", topPlayers);
-    console.log("User Rank:", userRank);
-    console.log("Total Users:", totalUsers);
+    socket.on("pointsUpdated", () => {
+      console.log("🔁 pointsUpdated received - outside");
+      refetch &&
+        refetch.forEach((fn) => {
+          console.log("🔁 pointsUpdated received - inside");
+          fn();
+        });
+    });
 
-    // Perform additional actions if needed
-  }, [topPlayers, userRank, totalUsers]);
+    return () => {
+      socket.off("pointsUpdated");
+      socket.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     if (topPlayers.length === 0 && !loading) {
