@@ -79,7 +79,7 @@ const SpaceInvadersScreen = () => {
   });
 
   const [soundOn, setSoundOn] = useState(true);
-  const [musicOn, setMusicOn] = useState(true);
+  const [musicOn, setMusicOn] = useState(false);
   const [paused, setPaused] = useState(false);
   const [sounds, setSounds] = useState<{[key: string]: Audio.Sound | null}>({});
   const [bgMusic, setBgMusic] = useState<Audio.Sound | null>(null);
@@ -621,8 +621,6 @@ const SpaceInvadersScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Space Invaders</Text>
-        
         {/* HUD */}
         <View style={styles.hud}>
           <Text style={styles.hudText}>SCORE: {gameState.score}</Text>
