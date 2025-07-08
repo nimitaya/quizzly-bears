@@ -44,23 +44,36 @@ export interface QuizSettings {
 // Configuration
 // Platform-specific URLs for React Native development
 const getSocketUrls = () => {
+  // ========== No hardcoded IP address anymore, needed to be added to be used on different IP addresses ==========
+  // Common IP ranges to try - covers most home/office networks
+  const commonIPs = [
+    "192.168.178.21", // Your current IP
+    "192.168.1.100",  // Common router range (192.168.1.x)
+    "192.168.0.100",  // Common router range (192.168.0.x) 
+    "192.168.2.100",  // Another common range
+    "10.0.0.100",     // Some routers use 10.x.x.x
+  ];
+  
   if (Platform.OS === "android") {
     return [
+      ...commonIPs.map(ip => `http://${ip}:3000`), // Try common IPs for real device
       "http://10.0.2.2:3000", // Android emulator
-      "http://192.168.0.226:3000", // Current local IP for real device
     ];
   } else if (Platform.OS === "ios") {
     return [
-      "http://192.168.0.226:3000", // Current local IP for real device (primary for Expo Go)
+      // "http://192.168.0.226:3000", // Current local IP for real device (primary for Expo Go)
       // Uncomment below for iOS simulator testing:
       // "http://localhost:3000", // iOS simulator
       // "http://127.0.0.1:3000", // iOS simulator fallback
+      ...commonIPs.map(ip => `http://${ip}:3000`), // Try common IPs for real device
+      "http://localhost:3000", // iOS simulator
+      "http://127.0.0.1:3000", // iOS simulator fallback
     ];
   } else {
     return [
-      "http://localhost:3000", // Web
-      "http://127.0.0.1:3000",
-      "http://192.168.0.226:3000", // Fallback to local IP
+      "http://localhost:3000", // Web (primary)
+      "http://127.0.0.1:3000", // Web fallback
+      ...commonIPs.map(ip => `http://${ip}:3000`), // Network fallbacks
     ];
   }
 };

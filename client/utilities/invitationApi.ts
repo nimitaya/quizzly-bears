@@ -174,7 +174,7 @@ export const removeAllInvites = async (
 ): Promise<{ message: string; deletedCount: number }> => {
   try {
     const response = await axios.delete(
-      `${API_BASE_URL}/invite-request/remove`,
+      `${API_BASE_URL}/invite-request/remove-all`,
       {
         data: {
           clerkUserId,
@@ -186,6 +186,6 @@ export const removeAllInvites = async (
     if (error.response?.data?.error) {
       throw new Error(error.response.data.error);
     }
-    throw new Error("Failed to remove invitation");
+    throw new Error("Failed to remove all invitations");
   }
 };
