@@ -94,7 +94,7 @@ const InviteFriendsScreen = () => {
         setSearchState((prev) => ({
           ...prev,
           result: result.user,
-          email: email,
+          email: "", // Clear the input field after successful search
         }));
 
         // Check if user is already a friend
@@ -103,12 +103,18 @@ const InviteFriendsScreen = () => {
         );
 
         if (isAlreadyFriend) {
-          // User is already a friend - just select them for invitation
+          // User is already a friend - select them for invitation
           setSelectedFriends((prev) => {
-            if (!prev.includes(result.user._id)) {
-              return [...prev, result.user._id];
+            if (gameStyle === "duel") {
+              // In duel mode, replace any existing selection
+              return [result.user._id];
+            } else {
+              // In group mode, add to selection if not already included
+              if (!prev.includes(result.user._id)) {
+                return [...prev, result.user._id];
+              }
+              return prev;
             }
-            return prev;
           });
         } else {
           // User is not a friend - add to nonFriends list and select for invitation
@@ -124,10 +130,16 @@ const InviteFriendsScreen = () => {
 
           // Add to selected friends for invitation
           setSelectedFriends((prev) => {
-            if (!prev.includes(result.user._id)) {
-              return [...prev, result.user._id];
+            if (gameStyle === "duel") {
+              // In duel mode, replace any existing selection
+              return [result.user._id];
+            } else {
+              // In group mode, add to selection if not already included
+              if (!prev.includes(result.user._id)) {
+                return [...prev, result.user._id];
+              }
+              return prev;
             }
-            return prev;
           });
         }
       }
@@ -274,6 +286,28 @@ const InviteFriendsScreen = () => {
     fetchFriends();
   }, []);
 
+  // Auto-hide error message after 5 seconds
+  useEffect(() => {
+    if (searchState.error) {
+      const timer = setTimeout(() => {
+        setSearchState((prev) => ({ ...prev, error: "" }));
+      }, 5000); // 5 seconds
+
+      return () => clearTimeout(timer); // Cleanup timer on unmount or error change
+    }
+  }, [searchState.error]);
+
+  // Auto-hide search result message after 3 seconds
+  useEffect(() => {
+    if (searchState.result) {
+      const timer = setTimeout(() => {
+        setSearchState((prev) => ({ ...prev, result: null }));
+      }, 5000); // 5 seconds
+
+      return () => clearTimeout(timer); // Cleanup timer on unmount or result change
+    }
+  }, [searchState.result]);
+
   // ========== Render Functions ==========
   // ----- Render Friend Item ----- TODO check online status
   const renderFriendItem = ({ item }: { item: User }) => {
@@ -308,7 +342,9 @@ const InviteFriendsScreen = () => {
           )}
 
           <View style={styles.friendDetails}>
-            <Text style={styles.friendName}>{item.username || item.email}</Text>
+            <Text style={styles.friendName}>
+              {item.username || item.email.split('@')[0]}
+            </Text>
             <Text style={styles.friendStatus}>
               {" "}
               Online/ Offline TODO!
@@ -351,9 +387,8 @@ const InviteFriendsScreen = () => {
           )}
 
           <View style={styles.friendDetails}>
-            <Text style={styles.friendName}>{item.username || item.email}</Text>
-            <Text style={[styles.friendStatus, styles.nonFriendStatus]}>
-              Not a friend yet
+            <Text style={styles.friendName}>
+              {item.username || item.email.split('@')[0]}
             </Text>
           </View>
         </View>
@@ -361,7 +396,7 @@ const InviteFriendsScreen = () => {
           <TouchableOpacity
             onPress={() => handleSendFriendRequest(item._id)}
             disabled={isLoading}
-            style={styles.addFriendButton}
+            // style={styles.addFriendButton}
           >
             <IconAddFriend />
           </TouchableOpacity>
@@ -426,22 +461,20 @@ const InviteFriendsScreen = () => {
         {/* Search Result !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/}
         {searchState.result && (
           <View style={styles.searchResultContainer}>
-            <Text style={styles.searchResultText}>
-              User found: {searchState.result.email}
-            </Text>
-            <Text style={styles.searchResultSubtext}>
+            <Text style={styles.searchResultText}>User found and added</Text>
+            {/* <Text style={styles.searchResultSubtext}>
               {friends.friends.some(
                 (friend) => friend._id === searchState.result?._id
               )
                 ? "Added to your list below"
                 : "Added to list below"}
-            </Text>
+            </Text> */}
           </View>
         )}
       </View>
 
       <FlatList
-        data={[...friends.friends, ...nonFriends]}
+        data={[...nonFriends, ...friends.friends]}
         renderItem={({ item }) => {
           const isFriend = friends.friends.some(
             (friend) => friend._id === item._id
@@ -582,7 +615,7 @@ const styles = StyleSheet.create({
     marginBottom: Gaps.g16,
   },
   errorContainer: {
-    height: 24,
+    minHeight: 20,
     justifyContent: "center",
     alignItems: "center",
     marginTop: Gaps.g8,
@@ -603,37 +636,28 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   // Added by Co-Pilot for non-friend styling
-  nonFriendAvatar: {
-    backgroundColor: "#ff9800", // Orange color for non-friends
-  },
+
   nonFriendStatus: {
-    color: "#ff9800",
-    fontStyle: "italic",
+    color: Colors.systemOrange,
   },
   rightSection: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-  addFriendButton: {
-    padding: 8,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 8,
-  },
-  searchResultContainer: {
-    backgroundColor: "#e8f5e8",
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 8,
-  },
+  // addFriendButton: {
+  //   padding: 8,
+  //   backgroundColor: "#f0f0f0",
+  //   borderRadius: 8,
+  // },
+  searchResultContainer: {},
   searchResultText: {
-    fontSize: FontSizes.TextMediumFs,
-    fontWeight: "500",
-    color: "#2e7d32",
+    fontSize: FontSizes.TextSmallFs,
+    color: Colors.darkGreen,
   },
   searchResultSubtext: {
     fontSize: FontSizes.TextSmallFs,
-    color: "#4caf50",
+    color: Colors.darkGreen,
     marginTop: 4,
   },
 });
