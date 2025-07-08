@@ -16,7 +16,7 @@ const httpServer = createServer(app);
 export const io = new Server(httpServer, {
   cors: {
     origin: "*", // In production, specify concrete domains
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PATCH", "DELETE"],
   },
 });
 const port = process.env.PORT || 3000;
