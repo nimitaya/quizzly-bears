@@ -456,6 +456,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   controls: {
+    marginTop: -Gaps.g16,
     marginBottom: Gaps.g4,
   },
   controlButton: {
@@ -564,7 +565,7 @@ const styles = StyleSheet.create({
   pauseContainer: {
     width: GAME_WIDTH,
     alignItems: 'flex-end',
-    marginBottom: Gaps.g4,
+    marginBottom: 0,
   },
 });
 
