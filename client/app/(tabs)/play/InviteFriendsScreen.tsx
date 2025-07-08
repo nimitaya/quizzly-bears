@@ -10,7 +10,7 @@ import { useRouter } from "expo-router";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
 import IconArrowBack from "@/assets/icons/IconArrowBack";
-import { FontSizes, Gaps } from "@/styles/theme";
+import { Colors, FontSizes, Gaps } from "@/styles/theme";
 import { loadCacheData, CACHE_KEY } from "@/utilities/cacheUtils";
 import CustomAlert from "@/components/CustomAlert";
 import {
@@ -22,6 +22,8 @@ import { FriendsResponse, User } from "@/utilities/friendInterfaces";
 import { SearchFriendInput } from "@/components/Inputs";
 import IconAddFriend from "@/assets/icons/IconAddFriend";
 import { UserContext } from "@/providers/UserProvider";
+import { Checkbox } from "@/components/Checkbox";
+import { RadioButton } from "@/components/RadioButton";
 
 interface RoomInfo {
   roomId: string;
@@ -35,12 +37,15 @@ const InviteFriendsScreen = () => {
   const { userData } = useContext(UserContext);
 
   const [showNoFriendsAlert, setShowNoFriendsAlert] = useState(false);
+  const [showErrorAlert, setShowErrorAlert] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [friends, setFriends] = useState<FriendsResponse>({ friends: [] });
   // New for invites:
   const [nonFriends, setNonFriends] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [gameStyle, setGameStyle] = useState<"duel" | "group" | null>(null);
   const [searchState, setSearchState] = useState<{
     email: string;
     result: User | null;
@@ -193,13 +198,31 @@ const InviteFriendsScreen = () => {
     }
   };
 
+  // ----- Load Game Style -----
+  const loadGameStyle = async () => {
+    try {
+      const cachedQuizSettings = await loadCacheData(CACHE_KEY.quizSettings);
+      if (cachedQuizSettings && cachedQuizSettings.quizPlayStyle) {
+        setGameStyle(cachedQuizSettings.quizPlayStyle);
+      }
+    } catch (error) {
+      console.error("Error loading game style:", error);
+    }
+  };
+
   // ----- Toggle Friend Selection -----
   const toggleFriendSelection = (friendId: string) => {
     setSelectedFriends((prev) => {
-      if (prev.includes(friendId)) {
-        return prev.filter((id) => id !== friendId);
+      if (gameStyle === "duel") {
+        // For duel mode, only allow one selection
+        return prev.includes(friendId) ? [] : [friendId];
       } else {
-        return [...prev, friendId];
+        // For group mode, allow multiple selections
+        if (prev.includes(friendId)) {
+          return prev.filter((id) => id !== friendId);
+        } else {
+          return [...prev, friendId];
+        }
       }
     });
   };
@@ -209,10 +232,22 @@ const InviteFriendsScreen = () => {
     setShowNoFriendsAlert(false);
   };
 
+  const handleErrorAlertClose = () => {
+    setShowErrorAlert(false);
+    setErrorMessage("");
+  };
+
   // ----- Handle Invite Friends -----
   const handleInviteFriends = async () => {
     if (selectedFriends.length === 0) {
       setShowNoFriendsAlert(true);
+      return;
+    }
+
+    if (gameStyle === "duel" && selectedFriends.length > 1) {
+      // This shouldn't happen due to our selection logic, but just in case
+      setErrorMessage("You can only challenge one player in duel mode");
+      setShowErrorAlert(true);
       return;
     }
 
@@ -235,6 +270,7 @@ const InviteFriendsScreen = () => {
   // =========== UseEffect ==========
   useEffect(() => {
     loadRoomInfo();
+    loadGameStyle();
     fetchFriends();
   }, []);
 
@@ -250,25 +286,36 @@ const InviteFriendsScreen = () => {
       >
         <View style={styles.friendInfo}>
           {/* <View style={[styles.avatar, !item.isOnline && styles.avatarOffline]}> */}
-          <View style={styles.avatar}>
+          {/* <View style={styles.avatar}>
             <Text style={styles.avatarText}>
               {item.username?.charAt(0) || item.email.charAt(0)}
             </Text>
-          </View>
+          </View> */}
+
+          {/* Show appropriate selection component based on game style */}
+          {gameStyle === "duel" ? (
+            <RadioButton
+              label=""
+              selected={isSelected}
+              onChange={() => toggleFriendSelection(item._id)}
+            />
+          ) : (
+            <Checkbox
+              label=""
+              checked={isSelected}
+              onChange={() => toggleFriendSelection(item._id)}
+            />
+          )}
+
           <View style={styles.friendDetails}>
             <Text style={styles.friendName}>{item.username || item.email}</Text>
             <Text style={styles.friendStatus}>
               {" "}
-              Online/ Offline
+              Online/ Offline TODO!
               {/* {item.isOnline ? "Online" : "Offline"} */}
             </Text>
           </View>
         </View>
-        {isSelected && (
-          <View style={styles.selectedIndicator}>
-            <Text style={styles.selectedText}>✓</Text>
-          </View>
-        )}
       </TouchableOpacity>
     );
   };
@@ -282,11 +329,27 @@ const InviteFriendsScreen = () => {
         onPress={() => toggleFriendSelection(item._id)}
       >
         <View style={styles.friendInfo}>
-          <View style={[styles.avatar, styles.nonFriendAvatar]}>
+          {/* <View style={[styles.avatar, styles.nonFriendAvatar]}>
             <Text style={styles.avatarText}>
               {item.username?.charAt(0) || item.email.charAt(0)}
             </Text>
-          </View>
+          </View> */}
+
+          {/* Show appropriate selection component based on game style */}
+          {gameStyle === "duel" ? (
+            <RadioButton
+              label=""
+              selected={isSelected}
+              onChange={() => toggleFriendSelection(item._id)}
+            />
+          ) : (
+            <Checkbox
+              label=""
+              checked={isSelected}
+              onChange={() => toggleFriendSelection(item._id)}
+            />
+          )}
+
           <View style={styles.friendDetails}>
             <Text style={styles.friendName}>{item.username || item.email}</Text>
             <Text style={[styles.friendStatus, styles.nonFriendStatus]}>
@@ -295,11 +358,6 @@ const InviteFriendsScreen = () => {
           </View>
         </View>
         <View style={styles.rightSection}>
-          {isSelected && (
-            <View style={styles.selectedIndicator}>
-              <Text style={styles.selectedText}>✓</Text>
-            </View>
-          )}
           <TouchableOpacity
             onPress={() => handleSendFriendRequest(item._id)}
             disabled={isLoading}
@@ -334,14 +392,18 @@ const InviteFriendsScreen = () => {
         <Logo size="small" />
       </View>
 
-      <Text style={styles.title}>Invite Quizzly Bears</Text>
+      <Text style={styles.title}>
+        {gameStyle === "duel"
+          ? "Challenge a Quizzly Bear"
+          : "Invite Quizzly Bears"}
+      </Text>
       <Text style={styles.subtitle}>Room ID: {roomInfo.roomId}</Text>
 
-      <View style={styles.selectionInfo}>
+      {/* <View style={styles.selectionInfo}>
         <Text style={styles.selectionText}>
           Selected: {selectedFriends.length} Quizzly Bears
         </Text>
-      </View>
+      </View> */}
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
@@ -361,7 +423,7 @@ const InviteFriendsScreen = () => {
           ) : null}
         </View>
 
-        {/* Search Result */}
+        {/* Search Result !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/}
         {searchState.result && (
           <View style={styles.searchResultContainer}>
             <Text style={styles.searchResultText}>
@@ -394,12 +456,22 @@ const InviteFriendsScreen = () => {
       />
 
       <View style={styles.buttonContainer}>
+        {/* Skip & Continue button commented out - not needed
         <ButtonSecondary
           text="Skip & Continue"
           onPress={() => router.push("/(tabs)/play/MultiplayerLobby")}
         />
+        */}
         <ButtonPrimary
-          text={`Invite ${selectedFriends.length} Quizzly Bears`}
+          text={
+            gameStyle === "duel"
+              ? `Challenge ${selectedFriends.length} Quizzly Bear${
+                  selectedFriends.length !== 1 ? "s" : ""
+                }`
+              : `Invite ${selectedFriends.length} Quizzly Bear${
+                  selectedFriends.length !== 1 ? "s" : ""
+                }`
+          }
           onPress={handleInviteFriends}
         />
       </View>
@@ -409,10 +481,25 @@ const InviteFriendsScreen = () => {
         visible={showNoFriendsAlert}
         onClose={handleNoFriendsAlertClose}
         title="No Quizzly Bear Selected"
-        message="Please select at least one Quizzly Bear to invite"
+        message={
+          gameStyle === "duel"
+            ? "Please select a Quizzly Bear to challenge"
+            : "Please select at least one Quizzly Bear to invite"
+        }
         cancelText={null}
         confirmText="OK"
         onConfirm={handleNoFriendsAlertClose}
+        noInternet={false}
+      />
+
+      <CustomAlert
+        visible={showErrorAlert}
+        onClose={handleErrorAlertClose}
+        title="Error"
+        message={errorMessage}
+        cancelText={null}
+        confirmText="OK"
+        onConfirm={handleErrorAlertClose}
         noInternet={false}
       />
     </View>
@@ -434,13 +521,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: FontSizes.H1Fs,
-    fontWeight: "bold",
     marginBottom: Gaps.g8,
   },
   subtitle: {
     fontSize: FontSizes.TextMediumFs,
     marginBottom: Gaps.g24,
-    color: "#666",
+    color: Colors.black,
   },
   selectionInfo: {
     alignSelf: "flex-start",
@@ -448,7 +534,6 @@ const styles = StyleSheet.create({
   },
   selectionText: {
     fontSize: FontSizes.TextMediumFs,
-    fontWeight: "500",
   },
   friendsList: {
     flex: 1,
@@ -458,39 +543,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: Gaps.g16,
+    padding: Gaps.g8,
     marginBottom: Gaps.g8,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "transparent",
   },
-  friendItemSelected: {
-    backgroundColor: "#e3f2fd",
-    borderColor: "#2196f3",
-  },
+  friendItemSelected: {},
   friendInfo: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#2196f3",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: Gaps.g16,
-  },
-  avatarOffline: {
-    backgroundColor: "#bdbdbd",
-  },
-  avatarText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: FontSizes.TextMediumFs,
-  },
+
   friendDetails: {
     flex: 1,
   },
@@ -500,24 +562,11 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   friendNameOffline: {
-    color: "#999",
+    color: Colors.systemRed,
   },
   friendStatus: {
     fontSize: FontSizes.TextSmallFs,
-    color: "#666",
-  },
-  selectedIndicator: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#4caf50",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  selectedText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 12,
+    color: Colors.darkGreen,
   },
   buttonContainer: {
     width: "100%",
@@ -525,15 +574,15 @@ const styles = StyleSheet.create({
     paddingBottom: Gaps.g24,
   },
   errorText: {
-    fontSize: FontSizes.TextLargeFs,
-    color: "#666",
+    fontSize: FontSizes.TextSmallFs,
+    color: Colors.systemRed,
   },
   // Added styles from ProfileFriendsScreen.tsx
   searchContainer: {
-    marginBottom: Gaps.g24,
+    marginBottom: Gaps.g16,
   },
   errorContainer: {
-    height: 32,
+    height: 24,
     justifyContent: "center",
     alignItems: "center",
     marginTop: Gaps.g8,

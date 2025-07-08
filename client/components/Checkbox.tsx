@@ -4,13 +4,24 @@ import { Pressable, Text, View, StyleSheet } from "react-native";
 
 type CheckboxProps = {
   label: string;
+  checked?: boolean;
+  onChange?: (checked: boolean) => void;
 };
 
-export const Checkbox = ({ label }: CheckboxProps) => {
-  const [checked, setChecked] = useState(false);
+export const Checkbox = ({ label, checked: controlledChecked, onChange }: CheckboxProps) => {
+  const [internalChecked, setInternalChecked] = useState(false);
+  const checked = controlledChecked !== undefined ? controlledChecked : internalChecked;
+
+  const handlePress = () => {
+    if (onChange) {
+      onChange(!checked);
+    } else {
+      setInternalChecked(!checked);
+    }
+  };
 
   return (
-    <Pressable style={styles.container} onPress={() => setChecked(!checked)}>
+    <Pressable style={styles.container} onPress={handlePress}>
       <View style={[styles.box, checked && styles.checkedBox]}>
         {checked && <Text style={styles.checkmark}>✓</Text>}
       </View>
