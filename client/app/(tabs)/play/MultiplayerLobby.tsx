@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   FlatList,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
@@ -23,7 +24,7 @@ import {
   getAcceptedInvites,
   removeAllInvites,
 } from "@/utilities/invitationApi";
-import {UserContext} from "@/providers/UserProvider";
+import { UserContext } from "@/providers/UserProvider";
 
 interface RoomInfo {
   roomId: string;
@@ -37,7 +38,7 @@ interface RoomInfo {
 
 const MultiplayerLobby = () => {
   const router = useRouter();
-  const {userData} = useContext(UserContext);
+  const { userData } = useContext(UserContext);
 
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [currentRoom, setCurrentRoom] = useState<QuizRoom | null>(null);
@@ -54,10 +55,10 @@ const MultiplayerLobby = () => {
   // For invitation handling
   const [isLoading, setIsLoading] = useState(false);
   const [sentInvites, setSentInvites] = useState<InviteRequest[]>([]);
-    const [acceptedInvites, setAcceptedInvites] = useState<InviteRequest[]>([]);
+  const [acceptedInvites, setAcceptedInvites] = useState<InviteRequest[]>([]);
 
   // =========== Functions ==========
-// ----- Handler fetch Invites -----
+  // ----- Handler fetch Invites -----
   const fetchInvites = async () => {
     try {
       setIsLoading(true);
@@ -90,7 +91,7 @@ const MultiplayerLobby = () => {
   useEffect(() => {
     loadRoomInfo();
     setupSocketListeners();
-    fetchInvites()
+    fetchInvites();
 
     // Also listen for cache updates (when admin selects category)
     const interval = setInterval(async () => {
@@ -116,7 +117,7 @@ const MultiplayerLobby = () => {
   }, []);
 
   // ==============================
-// ----- Load Room Info -----
+  // ----- Load Room Info -----
   const loadRoomInfo = async () => {
     try {
       const cachedRoomInfo = await loadCacheData(CACHE_KEY.currentRoom);
@@ -373,46 +374,59 @@ const MultiplayerLobby = () => {
         style={styles.backButton}
         onPress={leaveRoom}
         accessibilityLabel="Leave room"
-      >BackButton HERE</TouchableOpacity>
+      >
+        BackButton HERE
+      </TouchableOpacity>
 
-      <View style={{ marginBottom: Gaps.g24 }}>
-        <Logo size="small" />
-      </View>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={{ marginBottom: Gaps.g24 }}>
+          <Logo size="small" />
+        </View>
 
-      <Text style={styles.roomTitle}>{currentRoom.name}</Text>
-      <Text style={styles.roomId}>Room ID: {roomInfo.roomId}</Text>
+        <Text style={styles.roomTitle}>{currentRoom.name}</Text>
+        <Text style={styles.roomId}>Room ID: {roomInfo.roomId}</Text>
 
-      {roomInfo.selectedCategory && (
-        <Text style={styles.selectedCategory}>
-          Selected Topic: {roomInfo.selectedTopic || roomInfo.selectedCategory}
-        </Text>
-      )}
+        {roomInfo.selectedCategory && (
+          <Text style={styles.selectedCategory}>
+            Selected Topic:{" "}
+            {roomInfo.selectedTopic || roomInfo.selectedCategory}
+          </Text>
+        )}
 
-{/* Show sent invitations */}
-<View style={styles.playersContainer}>
-        <Text style={styles.playersTitle}>
-          Sent invitations: ({sentInvites.length}/{currentRoom.maxPlayers})
-        </Text>
-        <FlatList
-          data={sentInvites}
-          renderItem={renderInviteRequest}
-          keyExtractor={(item) => item._id}
-          style={styles.playersList}
-        />
-      </View>
+        {/* Show sent invitations */}
+        <View style={styles.playersContainer}>
+          <Text style={styles.playersTitle}>
+            Sent invitations: ({sentInvites.length}/{currentRoom.maxPlayers})
+          </Text>
+          <FlatList
+            data={sentInvites}
+            renderItem={renderInviteRequest}
+            keyExtractor={(item) => item._id}
+            style={styles.playersList}
+            nestedScrollEnabled={true}
+            scrollEnabled={false}
+          />
+        </View>
 
-{/* Show joined players */}
-      <View style={styles.playersContainer}>
-        <Text style={styles.playersTitle}>
-          Players ({currentRoom.players.length}/{currentRoom.maxPlayers})
-        </Text>
-        <FlatList
-          data={currentRoom.players}
-          renderItem={renderPlayer}
-          keyExtractor={(item) => item.id}
-          style={styles.playersList}
-        />
-      </View>
+        {/* Show joined players */}
+        <View style={styles.playersContainer}>
+          <Text style={styles.playersTitle}>
+            Players ({currentRoom.players.length}/{currentRoom.maxPlayers})
+          </Text>
+          <FlatList
+            data={currentRoom.players}
+            renderItem={renderPlayer}
+            keyExtractor={(item) => item.id}
+            style={styles.playersList}
+            nestedScrollEnabled={true}
+            scrollEnabled={false}
+          />
+        </View>
+      </ScrollView>
 
       <View style={styles.buttonContainer}>
         {!roomInfo.isAdmin && (
@@ -489,8 +503,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     marginTop: Gaps.g80,
-    alignItems: "center",
     paddingHorizontal: 20,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    alignItems: "center",
+    paddingBottom: Gaps.g16,
   },
   backButton: {
     position: "absolute",
@@ -507,7 +527,6 @@ const styles = StyleSheet.create({
   roomId: {
     fontSize: FontSizes.TextMediumFs,
     marginBottom: Gaps.g32,
-    color: "#666",
   },
   selectedCategory: {
     fontSize: FontSizes.TextMediumFs,
@@ -516,7 +535,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   playersContainer: {
-    flex: 1,
     width: "100%",
     marginBottom: Gaps.g32,
   },
@@ -526,7 +544,7 @@ const styles = StyleSheet.create({
     marginBottom: Gaps.g16,
   },
   playersList: {
-    flex: 1,
+    maxHeight: 200,
   },
   playerItem: {
     flexDirection: "row",
@@ -557,6 +575,10 @@ const styles = StyleSheet.create({
   buttonContainer: {
     width: "100%",
     gap: Gaps.g16,
+    paddingVertical: Gaps.g16,
+    backgroundColor: "white",
+    borderTopWidth: 1,
+    borderTopColor: "#e0e0e0",
   },
   errorText: {
     fontSize: FontSizes.TextLargeFs,
