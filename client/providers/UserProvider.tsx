@@ -23,7 +23,7 @@ type UserContextType = {
   refetch: Array<() => void>;
 };
 
-const UserContext = createContext<UserContextType>({
+export const UserContext = createContext<UserContextType>({
   updateUserSettings: async () => {},
   setOnChanges: () => {},
   onChanges: false,
