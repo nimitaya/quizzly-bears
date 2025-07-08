@@ -10,7 +10,7 @@ import {
 import { useRouter } from "expo-router";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
-import { FontSizes, Gaps } from "@/styles/theme";
+import { Colors, FontSizes, Gaps } from "@/styles/theme";
 import { socketService, Player, QuizRoom } from "@/utilities/socketService";
 import {
   loadCacheData,
@@ -25,6 +25,9 @@ import {
   removeAllInvites,
 } from "@/utilities/invitationApi";
 import { UserContext } from "@/providers/UserProvider";
+import IconPending from "@/assets/icons/IconPending";
+import IconAccept from "@/assets/icons/IconAccept";
+import IconDismiss from "@/assets/icons/IconDismiss";
 
 interface RoomInfo {
   roomId: string;
@@ -337,35 +340,72 @@ const MultiplayerLobby = () => {
   };
 
   // ========== Render Functions ==========
-  // ----- Render Invite Item -----
-  const renderInviteRequest = ({ item }: { item: InviteRequest }) => (
-    <View style={styles.playerItem}>
-      <Text style={styles.playerName}>
-        {item.to.username || item.to.email} (Invited)
-      </Text>
-      <View style={styles.readyIndicator}>
-        <Text style={styles.readyText}>
-          {item.status === "pending" ? "Pending" : item.status}
-        </Text>
-      </View>
-    </View>
-  );
+  // ----- Get Combined Players and Invites List -----
+  const getCombinedPlayersList = () => {
+    const invites = getFilteredSentInvites().map((invite) => ({
+      type: "invite" as const,
+      id: invite._id,
+      name: invite.to.username || invite.to.email.split("@")[0],
+      status: invite.status,
+      data: invite,
+    }));
 
-  // ----- Render Player Item -----
-  const renderPlayer = ({ item }: { item: Player }) => (
+    const players = currentRoom
+      ? currentRoom.players.map((player) => {
+          const isHost = player.id === currentRoom?.host;
+          let displayName = player.name;
+
+          // If this is the host and we have user data, show real name/email
+          if (isHost && userData) {
+            displayName = userData.username || userData.email.split("@")[0];
+          } else {
+            // For other players, clean up the display name
+            displayName = player.name.includes("@")
+              ? player.name.split("@")[0]
+              : player.name;
+          }
+
+          return {
+            type: "player" as const,
+            id: player.id,
+            name: displayName,
+            isReady: player.isReady,
+            isHost,
+            data: player,
+          };
+        })
+      : [];
+
+    return [...invites, ...players];
+  };
+
+  // ----- Render Combined Item -----
+  const renderCombinedItem = ({ item }: { item: any }) => (
     <View style={styles.playerItem}>
       <Text style={styles.playerName}>
-        {item.name} {item.id === currentRoom?.host && "(Host)"}
+        {item.name} {item.isHost && "(Host)"}
       </Text>
       <View
         style={[
           styles.readyIndicator,
-          item.isReady && styles.readyIndicatorActive,
+          item.type === "player" && item.isReady && styles.readyIndicatorActive,
         ]}
       >
-        <Text style={styles.readyText}>
-          {item.isReady ? "Ready" : "Not Ready"}
-        </Text>
+        {item.type === "invite" ? (
+          item.status === "pending" ? (
+            <IconPending />
+          ) : item.status === "declined" ? (
+            <IconDismiss />
+          ) : item.status === "accepted" ? (
+            <IconAccept />
+          ) : (
+            <Text style={styles.readyText}>{item.status}</Text>
+          )
+        ) : item.isReady ? (
+          <IconAccept />
+        ) : (
+          <IconDismiss />
+        )}
       </View>
     </View>
   );
@@ -424,30 +464,12 @@ const MultiplayerLobby = () => {
           </Text>
         )}
 
-        {/* Show sent invitations */}
+        {/* Show combined players and invitations */}
         <View style={styles.playersContainer}>
-          <Text style={styles.playersTitle}>
-            Sent invitations: ({getFilteredSentInvites().length}/
-            {currentRoom.maxPlayers})
-          </Text>
           <FlatList
-            data={getFilteredSentInvites()}
-            renderItem={renderInviteRequest}
-            keyExtractor={(item) => item._id}
-            style={styles.playersList}
-          />
-        </View>
-
-        {/* Show joined players */}
-        <View style={styles.playersContainer}>
-          <Text style={styles.playersTitle}>
-            Players ({currentRoom.players.length}/{currentRoom.maxPlayers})
-          </Text>
-          <FlatList
-            data={currentRoom.players}
-            renderItem={renderPlayer}
+            data={getCombinedPlayersList()}
+            renderItem={renderCombinedItem}
             keyExtractor={(item) => item.id}
-            style={styles.playersList}
             nestedScrollEnabled={true}
             scrollEnabled={false}
           />
@@ -569,31 +591,23 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: Gaps.g16,
   },
-  playersList: {
-    maxHeight: 200,
-  },
+  // playersList: {
+  //   maxHeight: 200,
+  // },
   playerItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: Gaps.g16,
-    marginBottom: Gaps.g8,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 8,
+    marginLeft: Gaps.g16,
   },
   playerName: {
-    fontSize: FontSizes.TextMediumFs,
-    fontWeight: "500",
+    fontSize: FontSizes.TextLargeFs,
   },
   readyIndicator: {
     paddingHorizontal: Gaps.g16,
     paddingVertical: Gaps.g4,
-    borderRadius: 12,
-    backgroundColor: "#ffebee",
   },
-  readyIndicatorActive: {
-    backgroundColor: "#e8f5e8",
-  },
+  readyIndicatorActive: {},
   readyText: {
     fontSize: FontSizes.TextSmallFs,
     color: "#666",
@@ -602,9 +616,6 @@ const styles = StyleSheet.create({
     width: "100%",
     gap: Gaps.g16,
     paddingVertical: Gaps.g16,
-    backgroundColor: "white",
-    borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
   },
   errorText: {
     fontSize: FontSizes.TextLargeFs,
