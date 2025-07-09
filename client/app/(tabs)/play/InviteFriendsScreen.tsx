@@ -16,17 +16,15 @@ import CustomAlert from "@/components/CustomAlert";
 import {
   searchUserByEmail,
   sendInviteRequest,
-  getSentInviteRequests,
 } from "@/utilities/invitationApi";
 import { getFriends, sendFriendRequest } from "@/utilities/friendRequestApi";
 import { FriendsResponse, User } from "@/utilities/friendInterfaces";
 import { SearchFriendInput } from "@/components/Inputs";
 import IconAddFriend from "@/assets/icons/IconAddFriend";
+import { UserContext } from "@/providers/UserProvider";
 import { Checkbox } from "@/components/Checkbox";
 import { RadioButton } from "@/components/RadioButton";
-import { io } from "socket.io-client";
-import { InviteRequest } from "@/utilities/invitationInterfaces";
-import { useStatistics } from "@/providers/UserProvider";
+
 interface RoomInfo {
   roomId: string;
   room: any;
@@ -36,7 +34,7 @@ interface RoomInfo {
 
 const InviteFriendsScreen = () => {
   const router = useRouter();
-  const { userData } = useStatistics();
+  const { userData } = useContext(UserContext);
 
   const [showNoFriendsAlert, setShowNoFriendsAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
@@ -58,39 +56,6 @@ const InviteFriendsScreen = () => {
     error: "",
   });
 
-  const [sentInvites, setSentInvites] = useState<InviteRequest[]>([]);
-  const [onlineStatus, setOnlineStatus] = useState<Record<string, boolean>>({});
-  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL, {
-    auth: { clerkUserId: userData?.clerkUserId },
-  });
-
-  useEffect(() => {
-    socket.on("connect", () => {
-      console.log("🟢 Socket connected");
-
-      // Запросити список онлайн юзерів
-      socket.emit("get-online-users", null, (onlineUserIds: string[]) => {
-        const initialStatus = onlineUserIds.reduce((acc, id) => {
-          acc[id] = true;
-          return acc;
-        }, {} as Record<string, boolean>);
-        setOnlineStatus(initialStatus);
-      });
-    });
-
-    socket.on("user-online", ({ clerkUserId }) => {
-      setOnlineStatus((prev) => ({ ...prev, [clerkUserId]: true }));
-    });
-
-    socket.on("user-offline", ({ clerkUserId }) => {
-      setOnlineStatus((prev) => ({ ...prev, [clerkUserId]: false }));
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
-
   // =========== Functions ==========
   // ----- Handler Fetch Friendlist -----
   const fetchFriends = async () => {
@@ -109,28 +74,6 @@ const InviteFriendsScreen = () => {
     }
   };
 
-  const fetchSentInvites = async () => {
-    try {
-      if (!userData) return;
-      const clerkUserId = userData.clerkUserId;
-
-      const sent = await getSentInviteRequests(clerkUserId);
-      setSentInvites(sent.inviteRequests || []);
-      if (sent.inviteRequests && sent.inviteRequests.length === 0) {
-        router.replace("/(tabs)/play/InviteFriendsScreen");
-      }
-      console.log("Updated sent invites:", sent.inviteRequests || []);
-    } catch (error) {
-      console.error("Error fetching sent invites:", error);
-    }
-  };
-
-  const handleInviteDeclined = (data: any) => {
-    console.log("❌ Invite request declined:", data);
-
-    // Fetch updated sent invitations
-    fetchSentInvites();
-  };
   // ----- Handler Search User -----
   const handleSearchUser = async (email: string) => {
     if (!email.trim() || !userData) {
@@ -343,16 +286,6 @@ const InviteFriendsScreen = () => {
     fetchFriends();
   }, []);
 
-  useEffect(() => {
-    // Register socket listener for declined invitations
-    socket.on("inviteRequestDeclined", handleInviteDeclined);
-
-    // Cleanup socket listener on unmount
-    return () => {
-      socket.off("inviteRequestDeclined", handleInviteDeclined);
-    };
-  }, [userData]);
-
   // Auto-hide error message after 5 seconds
   useEffect(() => {
     if (searchState.error) {
@@ -379,9 +312,6 @@ const InviteFriendsScreen = () => {
   // ----- Render Friend Item ----- TODO check online status
   const renderFriendItem = ({ item }: { item: User }) => {
     const isSelected = selectedFriends.includes(item._id);
-    const isOnline = item.clerkUserId
-      ? onlineStatus[item.clerkUserId] ?? false
-      : false;
     return (
       <TouchableOpacity
         style={[styles.friendItem, isSelected && styles.friendItemSelected]}
@@ -417,7 +347,7 @@ const InviteFriendsScreen = () => {
             </Text>
             <Text style={styles.friendStatus}>
               {" "}
-              {isOnline ? "Online" : "Offline"}
+              Online/ Offline TODO!
               {/* {item.isOnline ? "Online" : "Offline"} */}
             </Text>
           </View>
