@@ -28,6 +28,7 @@ import {
 import { useEffect, useState, useContext } from "react";
 import { FriendsState, User } from "@/utilities/friendInterfaces";
 import { UserContext } from "@/providers/UserProvider";
+import { io } from "socket.io-client";
 
 // const API_BASE_URL = "http://localhost:3000/api";
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -50,6 +51,8 @@ const ProfilFriendsScreen = () => {
     receivedFriendRequests: { friendRequests: [] },
     sentFriendRequests: { friendRequests: [] },
   });
+
+  const socket = io(process.env.EXPO_PUBLIC_SOCKET_BASE_URL);
 
   // =========== Functions ==========
   // Handler Search User
@@ -194,6 +197,67 @@ const ProfilFriendsScreen = () => {
     };
     fetchFriends();
   }, []);
+
+  useEffect(() => {
+    socket.on("friendRequestSent", (data) => {
+      console.log("Friend request sent:", data);
+      // Update the sent friend requests list
+      if (userData) {
+        getSentFriendRequests(userData.clerkUserId).then((sent) => {
+          setFriendsState((prev) => ({
+            ...prev,
+            sentFriendRequests: sent,
+          }));
+        });
+      }
+    });
+
+    socket.on("friendRequestAccepted", (data) => {
+      console.log("Friend request accepted:", data);
+      // Update the friends list
+      if (userData) {
+        getFriends(userData.clerkUserId).then((friends) => {
+          setFriendsState((prev) => ({
+            ...prev,
+            friendList: friends,
+          }));
+        });
+      }
+    });
+
+    socket.on("friendRequestDeclined", (data) => {
+      console.log("Friend request declined:", data);
+      // Update the received friend requests list
+      if (userData) {
+        getReceivedFriendRequests(userData.clerkUserId).then((received) => {
+          setFriendsState((prev) => ({
+            ...prev,
+            receivedFriendRequests: received,
+          }));
+        });
+      }
+    });
+
+    socket.on("friendRemoved", (data) => {
+      console.log("Friend removed:", data);
+      // Update the friends list
+      if (userData) {
+        getFriends(userData.clerkUserId).then((friends) => {
+          setFriendsState((prev) => ({
+            ...prev,
+            friendList: friends,
+          }));
+        });
+      }
+    });
+
+    return () => {
+      socket.off("friendRequestSent");
+      socket.off("friendRequestAccepted");
+      socket.off("friendRequestDeclined");
+      socket.off("friendRemoved");
+    };
+  }, [userData]);
 
   return (
     <View style={styles.container}>
