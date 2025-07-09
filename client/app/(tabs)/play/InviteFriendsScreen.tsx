@@ -60,8 +60,32 @@ const InviteFriendsScreen = () => {
   });
 
   const [sentInvites, setSentInvites] = useState<InviteRequest[]>([]);
-
+  const [onlineFriendIds, setOnlineFriendIds] = useState<string[]>([]);
   const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
+
+  useEffect(() => {
+    if (!socket || !userData) return;
+
+    socket.emit("get-online-users", null, (onlineUserIds: string[]) => {
+      console.log("👀 Онлайн юзери:", onlineUserIds);
+      setOnlineFriendIds(onlineUserIds);
+    });
+
+    // Слухай оновлення онлайн-статусу в реальному часі
+    socket.on("user-online", ({ clerkUserId }) => {
+      setOnlineFriendIds((prev) =>
+        prev.includes(clerkUserId) ? prev : [...prev, clerkUserId]
+      );
+    });
+    socket.on("user-offline", ({ clerkUserId }) => {
+      setOnlineFriendIds((prev) => prev.filter((id) => id !== clerkUserId));
+    });
+
+    return () => {
+      socket.off("user-online");
+      socket.off("user-offline");
+    };
+  }, [socket, userData]);
 
   // =========== Functions ==========
   // ----- Handler Fetch Friendlist -----
@@ -122,7 +146,14 @@ const InviteFriendsScreen = () => {
       if (result.user) {
         setSearchState((prev) => ({
           ...prev,
-          result: result.user,
+          result: {
+            _id: result.user._id,
+            username: result.user.username,
+            email: result.user.email,
+            bearPawIcon: result.user.bearPawIcon,
+            points: (result.user as any).points,
+            clerkUserId: (result.user as any).clerkUserId, // Type assertion to bypass TS error
+          },
           email: "", // Clear the input field after successful search
         }));
 
@@ -152,7 +183,16 @@ const InviteFriendsScreen = () => {
               (user) => user._id === result.user._id
             );
             if (!isAlreadyInNonFriends) {
-              return [...prev, result.user];
+              // Ensure all required User fields are present
+              const userToAdd: User = {
+                _id: result.user._id,
+                username: result.user.username,
+                email: result.user.email,
+                bearPawIcon: result.user.bearPawIcon,
+                points: (result.user as any).points,
+                clerkUserId: (result.user as any).clerkUserId,
+              };
+              return [...prev, userToAdd];
             }
             return prev;
           });
@@ -351,6 +391,9 @@ const InviteFriendsScreen = () => {
   // ----- Render Friend Item ----- TODO check online status
   const renderFriendItem = ({ item }: { item: User }) => {
     const isSelected = selectedFriends.includes(item._id);
+    const isOnline = item.clerkUserId
+      ? onlineFriendIds.includes(item.clerkUserId)
+      : false;
     return (
       <TouchableOpacity
         style={[styles.friendItem, isSelected && styles.friendItemSelected]}
@@ -386,7 +429,8 @@ const InviteFriendsScreen = () => {
             </Text>
             <Text style={styles.friendStatus}>
               {" "}
-              Online/ Offline TODO!
+              ID: {item.clerkUserId || "N/A"}
+              {isOnline ? "🟢 Online" : "⚫ Offline"} TODO!
               {/* {item.isOnline ? "Online" : "Offline"} */}
             </Text>
           </View>

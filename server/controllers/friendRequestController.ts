@@ -418,7 +418,7 @@ export const getFriendList = async (
     // Find current user and populate friends data
     const user = await User.findOne({ clerkUserId }).populate(
       "friends",
-      "username email bearPawIcon points.totalPoints"
+      "username email bearPawIcon points.totalPoints clerkUserId"
     );
 
     if (!user) {

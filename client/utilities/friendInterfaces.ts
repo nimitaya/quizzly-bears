@@ -9,7 +9,7 @@ export interface User {
     correctAnswers: number;
     totalAnswers: number;
   };
-  clerkUserId?: string | undefined;
+  clerkUserId: string | undefined;
 }
 
 export interface FriendRequest {
