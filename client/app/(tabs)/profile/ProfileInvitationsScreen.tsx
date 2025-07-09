@@ -11,7 +11,7 @@ import { FontSizes, Gaps, Colors } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import { ButtonPrimary, ButtonPrimaryDisabled } from "@/components/Buttons";
 import { useUser } from "@clerk/clerk-expo";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import {
   acceptInviteRequest,
   declineInviteRequest,
@@ -23,12 +23,16 @@ import IconDismiss from "@/assets/icons/IconDismiss";
 import IconPending from "@/assets/icons/IconPending";
 import { socketService } from "@/utilities/socketService";
 import { saveDataToCache, CACHE_KEY } from "@/utilities/cacheUtils";
+import { UserContext } from "@/providers/UserProvider";
+import { io } from "socket.io-client";
 
 const ProfilInvitationsScreen = () => {
   const router = useRouter();
   const { user } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [receivedInvites, setReceivedInvites] = useState<InviteRequest[]>([]);
+  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
+  const { userData } = useContext(UserContext);
 
   // =========== Functions ===========
   // ----- Handler Accept -----
@@ -43,7 +47,7 @@ const ProfilInvitationsScreen = () => {
 
       setIsLoading(true);
       const clerkUserId = user.id;
-      
+
       // Accept the invitation on the backend
       await acceptInviteRequest(clerkUserId, inviteId);
 
@@ -53,22 +57,23 @@ const ProfilInvitationsScreen = () => {
       }
 
       // Join the room via socket
-      const playerName = user.firstName || user.emailAddresses[0]?.emailAddress || "Player";
+      const playerName =
+        user.firstName || user.emailAddresses[0]?.emailAddress || "Player";
       socketService.joinRoom(roomcode, clerkUserId, playerName);
 
       // Listen for successful room join
       socketService.onRoomJoined((data) => {
         console.log("Successfully joined room:", data.room);
-        
+
         // Save room info to cache for MultiplayerLobby to use
         const roomInfo = {
           roomId: roomcode,
           room: data.room,
           isHost: false, // Since we're joining, we're not the host
         };
-        
+
         saveDataToCache(CACHE_KEY.currentRoom, roomInfo);
-        
+
         // Navigate to MultiplayerLobby
         router.push("../play/MultiplayerLobby");
       });
@@ -79,7 +84,6 @@ const ProfilInvitationsScreen = () => {
         setIsLoading(false);
         // TODO: Add user-facing error handling (toast/alert)
       });
-
     } catch (error) {
       console.error("Error accepting invitation:", error);
       setIsLoading(false);
@@ -142,6 +146,46 @@ const ProfilInvitationsScreen = () => {
   }, [user]);
 
   // =========== TODO add global loading, while loading invitations ===========
+
+  useEffect(() => {
+    if (!user || !userData) return;
+
+    const clerkUserId = user.id;
+
+    const fetchAndSetInvites = async () => {
+      try {
+        const received = await getReceivedInviteRequests(clerkUserId);
+        setReceivedInvites(received.inviteRequests || []);
+      } catch (err) {
+        console.error("Error fetching updated invites:", err);
+      }
+    };
+
+    const handleInviteSent = (data: any) => {
+      console.log("📩 Invite request sent:", data);
+      fetchAndSetInvites();
+    };
+
+    const handleInviteAccepted = (data: any) => {
+      console.log("✅ Invite request accepted:", data);
+      fetchAndSetInvites();
+    };
+
+    const handleInviteDeclined = (data: any) => {
+      console.log("❌ Invite request declined:", data);
+      fetchAndSetInvites();
+    };
+
+    socket.on("inviteRequestSent", handleInviteSent);
+    socket.on("inviteRequestAccepted", handleInviteAccepted);
+    socket.on("inviteRequestDeclined", handleInviteDeclined);
+
+    return () => {
+      socket.off("inviteRequestSent", handleInviteSent);
+      socket.off("inviteRequestAccepted", handleInviteAccepted);
+      socket.off("inviteRequestDeclined", handleInviteDeclined);
+    };
+  }, [user, userData]);
 
   return (
     <View style={styles.container}>

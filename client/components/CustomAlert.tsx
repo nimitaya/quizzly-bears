@@ -34,10 +34,12 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
   <Modal transparent visible={visible} animationType="fade">
     <View style={styles.overlay}>
       <View style={styles.alertBox}>
+
         {imageSource && (
           <Image source={imageSource} style={styles.image} />
         )}
         {noInternet ? <Logo size="small" /> : null}
+
         <Text style={styles.message}>{message}</Text>
         <View
           style={[

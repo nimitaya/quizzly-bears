@@ -121,7 +121,10 @@ export const checkCache = async (clerkUserId: string) => {
 
 // ---------- SEND cached data TO DATABASE ----------
 // Fixed version - accepts callback for setOnChanges:
-export const sendPointsToDatabase = async (clerkUserId: string, onSuccess?: () => void) => {
+export const sendPointsToDatabase = async (
+  clerkUserId: string,
+  onSuccess?: () => void
+) => {
   try {
     const finalGameData: GameInformation = await loadCacheData(cacheKey);
     if (!finalGameData) {
@@ -139,7 +142,7 @@ export const sendPointsToDatabase = async (clerkUserId: string, onSuccess?: () =
     });
 
     console.log("Points successfully sent to database");
-    
+
     // Call the success callback if provided
     if (onSuccess) {
       onSuccess();
@@ -149,30 +152,3 @@ export const sendPointsToDatabase = async (clerkUserId: string, onSuccess?: () =
     throw error;
   }
 };
-
-// OLD VERSION (COMMENTED - HOOK PROBLEM):
-// export const sendPointsToDatabase = async (clerkUserId: string) => {
-//   try {
-//     const finalGameData: GameInformation = await loadCacheData(cacheKey);
-//     if (!finalGameData) {
-//       console.log("No cached data found to send");
-//       return;
-//     }
-
-//     // Send data to database
-//     await sendPoints({
-//       clerkUserId,
-//       totalPoints: finalGameData.points,
-//       correctAnswers: finalGameData.correctAnswers,
-//       totalAnswers: finalGameData.totalAnswers,
-//       category: finalGameData.category,
-//     });
-
-//     console.log("Points successfully sent to database");
-//   } catch (error) {
-//     console.error("Failed to send points to database:", error);
-//     throw error;
-//   } finally {
-//     setOnChanges(true);  // PROBLEM: setOnChanges not available
-//   }
-// };

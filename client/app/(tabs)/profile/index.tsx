@@ -2,9 +2,15 @@ import { View, StyleSheet, Text, ScrollView } from "react-native";
 import ClerkSettings, {
   ClerkSettingsRefType,
 } from "@/app/(auth)/ClerkSettings";
-import { useFocusEffect, useSegments } from "expo-router";
-import React, { useRef, useState, useEffect, useCallback } from "react";
-import { FontSizes, Gaps } from "@/styles/theme";
+import { useFocusEffect } from "expo-router";
+import React, {
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+  useContext,
+} from "react";
+import { Gaps, Colors } from "@/styles/theme";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Loading from "@/app/Loading";
@@ -19,10 +25,12 @@ import { useUser } from "@clerk/clerk-expo";
 import { resetOnboarding } from "@/providers/OnboardingProvider";
 import LanguageDropdown from "@/app/(tabs)/profile/LanguageDropdown";
 import { useLanguage } from "@/providers/LanguageContext";
+import { UserContext } from "@/providers/UserProvider";
+import { io } from "socket.io-client";
+import { getReceivedFriendRequests } from "@/utilities/friendRequestApi";
 
 const ProfileScreen = () => {
   const router = useRouter();
-  const segments = useSegments();
   const { isAuthenticated, refreshGlobalState, isGloballyLoading } =
     useGlobalLoading();
   const { changeLanguage } = useLanguage();
@@ -38,6 +46,10 @@ const ProfileScreen = () => {
   const { soundEnabled, toggleSound } = useSound();
   const { playSound } = useSound();
   const { user } = useUser();
+  const { userData, receivedRequestsCount, setReceivedRequestsCount } =
+    useContext(UserContext);
+
+  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
 
   // Function to test onboarding
   const handleShowOnboarding = async () => {
@@ -66,6 +78,7 @@ const ProfileScreen = () => {
         const resetFlag = await AsyncStorage.getItem("password_recently_reset");
         if (isMounted) {
           setPasswordResetFlag(resetFlag);
+          console.log("receivedRequestsCount:", receivedRequestsCount);
         }
       } catch (err) {
         console.log("Error checking password reset flag:", err);
@@ -76,7 +89,7 @@ const ProfileScreen = () => {
     return () => {
       isMounted = false;
     };
-  }, [refreshKey]);
+  }, [refreshKey, receivedRequestsCount]);
 
   // IMPORTANT: Trigger manual refresh via ref when auth state changes
   useEffect(() => {
@@ -158,6 +171,27 @@ const ProfileScreen = () => {
       return () => clearTimeout(timer);
     }, [])
   );
+  useEffect(() => {
+    if (userData) {
+      const handleFriendRequestSent = (data: any) => {
+        console.log("Friend request sent:", data);
+
+        getReceivedFriendRequests(userData.clerkUserId).then((received) => {
+          setReceivedRequestsCount(received.friendRequests.length);
+        });
+      };
+
+      socket.on("friendRequestSent", handleFriendRequestSent);
+      socket.on("friendRequestAccepted", handleFriendRequestSent);
+      socket.on("friendRequestDeclined", handleFriendRequestSent);
+
+      return () => {
+        socket.off("friendRequestSent", handleFriendRequestSent);
+        socket.off("friendRequestAccepted", handleFriendRequestSent);
+        socket.off("friendRequestDeclined", handleFriendRequestSent);
+      };
+    }
+  }, [userData]);
 
   if (isGloballyLoading) {
     return <Loading />;
@@ -186,6 +220,7 @@ const ProfileScreen = () => {
         {user ? (
           <ButtonSecondary
             text="Friends"
+            showBadge={(receivedRequestsCount ?? 0) > 0}
             onPress={() => router.push("/profile/ProfileFriendsScreen")}
           />
         ) : (

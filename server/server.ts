@@ -13,10 +13,10 @@ import invitationsRouter from "./routes/InvitationsRoutes";
 
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer, {
+export const io = new Server(httpServer, {
   cors: {
     origin: "*", // In production, specify concrete domains
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PATCH", "DELETE"],
   },
 });
 const port = process.env.PORT || 3000;
@@ -28,7 +28,7 @@ app.use(cors());
 app.use("/api/clerk-webhook", cors());
 app.use("/api", clerkWebhookRouter);
 app.use("/api/friend-request", friendRequestRouter);
-app.use("/api/invite-request", invitationsRouter)
+app.use("/api/invite-request", invitationsRouter);
 app.use("/api/quiz", quizRoomsRouter);
 app.use("/api", userRoutes);
 app.use("/api/points", pointsRouter);

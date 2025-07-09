@@ -5,33 +5,45 @@ import { useRouter } from "expo-router";
 import { Text, View, ScrollView } from "react-native";
 import { StyleSheet } from "react-native";
 import { useStatistics } from "@/providers/UserProvider";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import Loading from "../../Loading";
 import CustomAlert from "@/components/CustomAlert";
 import { useUser } from "@clerk/clerk-expo";
-import { useFocusEffect } from "@react-navigation/native";
+// import { useFocusEffect } from "@react-navigation/native";
+import { io } from "socket.io-client";
 
 const PlayScreen = () => {
-  const { topPlayers, loading, totalUsers, userRank, onChanges, refetch } =
+  const { topPlayers, loading, totalUsers, userRank, refetch } =
     useStatistics();
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const { user } = useUser();
+  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
 
   useEffect(() => {
-    if (!topPlayers && !loading) {
+    socket.on("pointsUpdated", () => {
+      console.log("🔁 pointsUpdated received - outside");
+      refetch &&
+        refetch.forEach((fn) => {
+          console.log("🔁 pointsUpdated received - inside");
+          fn();
+        });
+    });
+
+    return () => {
+      socket.off("pointsUpdated");
+      socket.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (topPlayers.length === 0 && !loading) {
       setShowForm(true);
     }
   }, [topPlayers, loading]);
 
-  useFocusEffect(
-    useCallback(() => {
-      refetch && refetch.forEach((fn) => fn());
-    }, [onChanges])
-  );
-
   if (loading) return <Loading />;
-  if (!topPlayers && !loading) {
+  if (topPlayers.length === 0 && !loading) {
     return (
       <CustomAlert
         visible={showForm}

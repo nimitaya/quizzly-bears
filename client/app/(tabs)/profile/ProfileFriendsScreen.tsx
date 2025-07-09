@@ -28,9 +28,7 @@ import {
 import { useEffect, useState, useContext } from "react";
 import { FriendsState, User } from "@/utilities/friendInterfaces";
 import { UserContext } from "@/providers/UserProvider";
-
-// const API_BASE_URL = "http://localhost:3000/api";
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+import { io } from "socket.io-client";
 
 const ProfilFriendsScreen = () => {
   const router = useRouter();
@@ -50,6 +48,8 @@ const ProfilFriendsScreen = () => {
     receivedFriendRequests: { friendRequests: [] },
     sentFriendRequests: { friendRequests: [] },
   });
+
+  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
 
   // =========== Functions ==========
   // Handler Search User
@@ -194,6 +194,87 @@ const ProfilFriendsScreen = () => {
     };
     fetchFriends();
   }, []);
+
+  useEffect(() => {
+    socket.on("friendRequestSent", (data) => {
+      console.log("Friend request sent:", data);
+
+      // Update the received friend requests list in real time
+      if (userData) {
+        getReceivedFriendRequests(userData.clerkUserId).then((received) => {
+          setFriendsState((prev) => ({
+            ...prev,
+            receivedFriendRequests: received,
+          }));
+        });
+      }
+    });
+
+    socket.on("friendRequestAccepted", (data) => {
+      console.log("Friend request accepted:", data);
+
+      if (userData) {
+        const clerkUserId = userData.clerkUserId;
+
+        // Update the friends list
+        getFriends(clerkUserId).then((friends) => {
+          setFriendsState((prev) => ({
+            ...prev,
+            friendList: friends,
+          }));
+        });
+
+        // Update the requests list (remove the accepted one)
+        getSentFriendRequests(clerkUserId).then((sent) => {
+          setFriendsState((prev) => ({
+            ...prev,
+            sentFriendRequests: sent,
+          }));
+        });
+      }
+    });
+
+    socket.on("friendRequestDeclined", (data) => {
+      console.log("Friend request declined:", data);
+
+      // Update the received friend requests list
+      if (userData) {
+        getReceivedFriendRequests(userData.clerkUserId).then((received) => {
+          setFriendsState((prev) => ({
+            ...prev,
+            receivedFriendRequests: received,
+          }));
+        });
+        getSentFriendRequests(userData.clerkUserId).then((sent) => {
+          setFriendsState((prev) => ({
+            ...prev,
+            sentFriendRequests: sent,
+          }));
+        });
+      }
+    });
+
+    socket.on("friendRemoved", (data) => {
+      console.log("Friend removed:", data);
+
+      // Update the friends list
+      if (userData) {
+        getFriends(userData.clerkUserId).then((friends) => {
+          setFriendsState((prev) => ({
+            ...prev,
+            friendList: friends,
+          }));
+        });
+      }
+    });
+
+    return () => {
+      socket.off("friendRequestSent");
+      socket.off("friendRequestAccepted");
+      socket.off("friendRequestDeclined");
+      socket.off("friendRemoved");
+    };
+  }, [userData]);
 
   return (
     <View style={styles.container}>
@@ -345,10 +426,8 @@ const styles = StyleSheet.create({
   },
   pageTitle: {
     fontSize: FontSizes.H2Fs,
-    fontWeight: "600",
     textAlign: "center",
     marginBottom: Gaps.g24,
-    color: Colors.black,
   },
   searchContainer: {
     marginBottom: Gaps.g24,
@@ -374,7 +453,6 @@ const styles = StyleSheet.create({
   },
   friendName: {
     fontSize: FontSizes.TextLargeFs,
-    color: Colors.black,
     flex: 1,
   },
   actionButtons: {
@@ -382,7 +460,7 @@ const styles = StyleSheet.create({
     gap: Gaps.g16,
   },
   iconButton: {
-    padding: 4,
+    padding: Gaps.g4,
   },
   emptyContainer: {
     alignItems: "center",
@@ -390,7 +468,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FontSizes.TextLargeFs,
-    color: Colors.black,
     textAlign: "center",
   },
 });
