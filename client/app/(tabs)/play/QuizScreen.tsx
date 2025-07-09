@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import {
   ScrollView,
   View,
@@ -42,6 +42,20 @@ const QuizLogic = () => {
     handleAnswerSubmit,
     handleNextQuestion,
   } = useQuizLogic();
+
+  // ===== Debug logging =====
+  useEffect(() => {
+    console.log("=== QuizScreen Debug Info ===");
+    console.log("Current Question Data:", currentQuestionData);
+    console.log("Current Question Index:", currQuestionIndex);
+    console.log("Game State:", gameState);
+    console.log("Answer State:", answerState);
+    console.log("Read Timer:", readTimer);
+    console.log("Show Result:", showResult);
+    console.log("===============================");
+  }, [currentQuestionData, currQuestionIndex, gameState, answerState, readTimer, showResult]);
+  // =========================
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -59,6 +73,7 @@ const QuizLogic = () => {
     questions: CACHE_KEY.aiQuestions,
     points: CACHE_KEY.gameData,
     settings: CACHE_KEY.quizSettings,
+    currentRoom: CACHE_KEY.currentRoom,
   };
 
   const { userData } = useContext(UserContext);
@@ -93,6 +108,7 @@ const QuizLogic = () => {
     clearCacheData(cacheKey.questions);
     clearCacheData(cacheKey.points);
     clearCacheData(cacheKey.settings);
+    clearCacheData(cacheKey.currentRoom);
     handleRemoveAllInvites();
     router.push("./");
   };
@@ -107,15 +123,40 @@ const QuizLogic = () => {
       }
     };
 
-  // Languge utility functions
+  // Language utility functions
   const getQuestionText = () => {
     if (!currentQuestionData?.question) return "";
-    return getLocalizedText(currentQuestionData.question, currentLanguage.code);
+    console.log("Question data:", currentQuestionData.question);
+    
+    // If question is already a string, return it
+    if (typeof currentQuestionData.question === 'string') {
+      return currentQuestionData.question;
+    }
+    
+    const result = getLocalizedText(currentQuestionData.question, currentLanguage.code);
+    console.log("Final question text:", result);
+    
+    // Ensure we return a string
+    return typeof result === 'string' ? result : String(result || '');
   };
 
   const getOptionText = (optionData: any) => {
     if (!optionData) return "";
-    return getLocalizedText(optionData, currentLanguage.code);
+    console.log("Option data:", optionData);
+    
+    // If optionData is already a string, return it
+    if (typeof optionData === 'string') {
+      return optionData;
+    }
+    
+    // Create a localized string object by extracting the text part (without isCorrect)
+    const { isCorrect, ...localizedText } = optionData;
+    console.log("Localized text object:", localizedText);
+    const result = getLocalizedText(localizedText, currentLanguage.code);
+    console.log("Final option text:", result);
+    
+    // Ensure we return a string
+    return typeof result === 'string' ? result : String(result || '');
   };
 
   return (
@@ -222,7 +263,9 @@ const QuizLogic = () => {
                   {/* show one quiz button for each option */}
                   {options &&
                     options.map(({ key, data }) => {
+                      console.log(`Processing option ${key}:`, data);
                       const optionText = getOptionText(data);
+                      console.log(`Option ${key} text:`, optionText);
                       return (
                         <QuizButton
                           key={key}

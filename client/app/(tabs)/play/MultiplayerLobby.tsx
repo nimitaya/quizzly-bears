@@ -29,6 +29,8 @@ import IconPending from "@/assets/icons/IconPending";
 import IconAccept from "@/assets/icons/IconAccept";
 import IconDismiss from "@/assets/icons/IconDismiss";
 import IconArrowBack from "@/assets/icons/IconArrowBack";
+import Countdown from "@/components/Countdown";
+import QuizLoader from "@/components/QuizLoader";
 
 interface RoomInfo {
   roomId: string;
@@ -66,6 +68,9 @@ const MultiplayerLobby = () => {
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [showCountdown, setShowCountdown] = useState(false);
   const [showLocalLoader, setShowLocalLoader] = useState(false);
+
+  // Test
+  const [gefetchteInfo, setGefetchteInfo] = useState<any>(null);
 
   // ====================== Invite Functions =====================
   // ----- Handler fetch Invites -----
@@ -178,8 +183,59 @@ const MultiplayerLobby = () => {
       setCurrentRoom(data.room);
     });
 
-    socketService.onGameStarted((data) => {
+    socketService.onGameStarted(async (data) => {
       console.log("Game started!");
+      
+      // If we received questions from the server, cache them locally
+      if (data.questions && data.questions.length > 0) {
+        console.log("Received questions from server:", data.questions.length);
+        
+        // Transform questions from socket format to the format expected by useQuizLogic
+        const transformedQuestions = {
+          questionArray: data.questions.map((q: any) => ({
+            question: {
+              en: q.question,
+              de: q.question, // For now, use English as fallback for other languages
+              es: q.question,
+              fr: q.question,
+            },
+            optionA: { 
+              isCorrect: q.correctAnswer === q.options[0], 
+              en: q.options[0],
+              de: q.options[0],
+              es: q.options[0],
+              fr: q.options[0],
+            },
+            optionB: { 
+              isCorrect: q.correctAnswer === q.options[1], 
+              en: q.options[1],
+              de: q.options[1],
+              es: q.options[1],
+              fr: q.options[1],
+            },
+            optionC: { 
+              isCorrect: q.correctAnswer === q.options[2], 
+              en: q.options[2],
+              de: q.options[2],
+              es: q.options[2],
+              fr: q.options[2],
+            },
+            optionD: { 
+              isCorrect: q.correctAnswer === q.options[3], 
+              en: q.options[3],
+              de: q.options[3],
+              es: q.options[3],
+              fr: q.options[3],
+            },
+          })),
+        };
+        
+        // Cache the transformed questions
+        const { saveDataToCache, CACHE_KEY } = await import("@/utilities/cacheUtils");
+        await saveDataToCache(CACHE_KEY.aiQuestions, transformedQuestions);
+        console.log("Questions cached successfully");
+      }
+      
       // Go to quiz screen
       router.push("/(tabs)/play/QuizScreen");
     });
@@ -258,6 +314,11 @@ const MultiplayerLobby = () => {
           10 // question count
         );
 
+        setGefetchteInfo(fetchedQuestions);
+        saveDataToCache(CACHE_KEY.aiQuestions, fetchedQuestions);
+        console.log("====DO WE GET HERE?====", fetchedQuestions);
+        
+
         if (
           !fetchedQuestions ||
           !fetchedQuestions.questionArray ||
@@ -270,24 +331,31 @@ const MultiplayerLobby = () => {
 
         // Transform questions to socket format
         const socketQuestions = fetchedQuestions.questionArray.map(
-          (q: any, index: number) => ({
-            id: index.toString(),
-            question: q.question.en || q.question,
-            options: [
-              q.optionA.text?.en || q.optionA.en,
-              q.optionB.text?.en || q.optionB.en,
-              q.optionC.text?.en || q.optionC.en,
-              q.optionD.text?.en || q.optionD.en,
-            ],
-            correctAnswer: q.correctAnswer?.en || q.correctAnswer,
-            category: q.category || "general",
-            difficulty: "medium" as const,
-            timeLimit: 30,
-          })
+          (q: any, index: number) => {
+            // Find the correct answer by checking which option has isCorrect: true
+            const correctOption = [q.optionA, q.optionB, q.optionC, q.optionD].find(
+              (option) => option.isCorrect
+            );
+            
+            return {
+              id: index.toString(),
+              question: q.question.en || q.question,
+              options: [
+                q.optionA.en || q.optionA,
+                q.optionB.en || q.optionB,
+                q.optionC.en || q.optionC,
+                q.optionD.en || q.optionD,
+              ],
+              correctAnswer: correctOption?.en || correctOption || "",
+              category: q.category || "general",
+              difficulty: "medium" as const,
+              timeLimit: 30,
+            };
+          }
         );
         setShowLocalLoader(false);
       setIsGeneratingQuestions(false);
-      setShowCountdown(true);
+      // setShowCountdown(true);
         socketService.startGame(roomInfo.roomId, socketQuestions);
       } catch (error) {
         console.error("Error starting game:", error);
@@ -295,6 +363,48 @@ const MultiplayerLobby = () => {
         setShowErrorAlert(true);
       }
     }
+  };
+
+  // IMPORTANT CHECK
+  const handleCountdownComplete = () => {
+    console.log("=======Gefetchte Infos=======:", gefetchteInfo);
+    
+    // Transform questions to socket format
+    const socketQuestions = gefetchteInfo.questionArray.map(
+      (q: any, index: number) => {
+        // Find the correct answer by checking which option has isCorrect: true
+        const correctOption = [q.optionA, q.optionB, q.optionC, q.optionD].find(
+          (option) => option.isCorrect
+        );
+        
+        return {
+          id: index.toString(),
+          question: q.question.en || q.question,
+          options: [
+            q.optionA.en || q.optionA,
+            q.optionB.en || q.optionB,
+            q.optionC.en || q.optionC,
+            q.optionD.en || q.optionD,
+          ],
+          correctAnswer: correctOption?.en || correctOption || "",
+          category: q.category || "general",
+          difficulty: "medium" as const,
+          timeLimit: 30,
+        };
+      }
+    );
+    console.log("Countdown complete - navigating to QuizScreen");
+    setShowCountdown(false);
+    setIsGeneratingQuestions(false);
+    if (roomInfo && roomInfo.roomId) {
+      // Start the game with the questions{
+    socketService.startGame(roomInfo.roomId, socketQuestions);
+    } else {
+      console.error("Room info is not available to start the game");
+      setErrorMessage("Failed to start the game - room info missing");
+      setShowErrorAlert(true);
+    }
+    
   };
 
   // ----- Admin goes to select category/topic -----
@@ -449,6 +559,35 @@ const MultiplayerLobby = () => {
       <View style={styles.container}>
         <Text style={styles.errorText}>Loading room...</Text>
       </View>
+    );
+  }
+
+  // ==================== Render Component ====================
+// Show the local loader when AI is generating questions
+  if (showLocalLoader && isGeneratingQuestions) {
+    return (
+      <QuizLoader
+        key={`ai-questions-loader-${Date.now()}`}
+        onComplete={() => {
+          console.log(
+            "QuizLoader animation cycle completed, but waiting for AI..."
+          );
+        }}
+        minDuration={1000} // Minimum display duration for the loader
+        waitForExternal={true} // Wait for external signal (AI generation completion)
+      />
+    );
+  }
+
+  // Zeige den Countdown wenn aktiv
+  if (showCountdown) {
+    return (
+      <Countdown
+        key={`countdown-${Date.now()}`} // Eindeutiger key für jeden Countdown
+        onComplete={handleCountdownComplete}
+        startNumber={3}
+        duration={1500}
+      />
     );
   }
 

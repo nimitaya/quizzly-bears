@@ -211,7 +211,7 @@ io.on("connection", (socket) => {
     console.log(
       `Emitting game-started to room ${data.roomId} with ${room.players.length} players`
     );
-    io.to(data.roomId).emit("game-started", { room });
+    io.to(data.roomId).emit("game-started", { room, questions: data.questions });
     console.log(`Game started in room ${data.roomId}`);
   });
 

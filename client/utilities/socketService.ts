@@ -305,7 +305,7 @@ class SocketService {
     this.on("host-changed", callback);
   }
 
-  onGameStarted(callback: (data: { room: QuizRoom }) => void) {
+  onGameStarted(callback: (data: { room: QuizRoom; questions?: QuizQuestion[] }) => void) {
     this.on("game-started", callback);
   }
 

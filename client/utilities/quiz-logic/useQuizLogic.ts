@@ -89,14 +89,23 @@ export function useQuizLogic() {
   // ----- fetch Data and set Game State -----
   const fetchGameInfo = async () => {
     try {
+      console.log("=== useQuizLogic: Fetching game info ===");
       const cachedInfo = await loadCacheData(key.quizSettings);
+      console.log("Cached quiz settings:", cachedInfo);
       if (cachedInfo) {
+        console.log("Setting game state:", {
+          difficulty: cachedInfo.quizLevel,
+          category: cachedInfo.quizCategory,
+          playStyle: cachedInfo.quizPlayStyle,
+        });
         setGameState((prev) => ({
           ...prev,
           difficulty: cachedInfo.quizLevel,
           category: cachedInfo.quizCategory,
           playStyle: cachedInfo.quizPlayStyle,
         }));
+      } else {
+        console.log("No cached quiz settings found");
       }
     } catch (error) {
       console.error("Error loading settings:", error);
@@ -106,9 +115,14 @@ export function useQuizLogic() {
   // ----- fetch Data and set all Questions Array -----
   const fetchAiData = async () => {
     try {
+      console.log("=== useQuizLogic: Fetching AI data ===");
       const cachedInfo = await loadCacheData(key.aiQuestions);
+      console.log("Cached AI questions:", cachedInfo);
       if (cachedInfo) {
+        console.log("Setting questions array:", cachedInfo.questionArray?.length, "questions");
         setCurrQuestionsArray(cachedInfo.questionArray);
+      } else {
+        console.log("No cached AI questions found");
       }
     } catch (error) {
       console.error("Error loading questions:", error);
@@ -119,14 +133,25 @@ export function useQuizLogic() {
   // ----- LOAD current question data -----
   const loadQuestions = async (): Promise<void> => {
     try {
+      console.log("=== useQuizLogic: Loading questions ===");
+      console.log("Current question index:", currQuestionIndex);
+      
       // fetch questions from cache
       let questions = await fetchFromCache(key.aiQuestions);
+      console.log("Questions from cache:", questions);
+      
       if (!questions) {
+        console.log("No questions in cache, using dummy data");
         // Fallback to dummy data if cache is empty TODO delete later
         questions = aiQuestions;
         setCurrQuestionsArray(questions.questionArray);
+      } else {
+        console.log("Questions loaded from cache:", questions.questionArray?.length, "questions");
+        setCurrQuestionsArray(questions.questionArray);
       }
+      
       if (currQuestionIndex < questions.questionArray.length) {
+        console.log("Setting current question:", questions.questionArray[currQuestionIndex]);
         // Check if questions have the right structure
         // Reset
         setCurrentQuestionData(questions.questionArray[currQuestionIndex]);
