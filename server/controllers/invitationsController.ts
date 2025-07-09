@@ -347,8 +347,10 @@ export const declineInvitationRequest = async (
 
     // Emit event to notify the requester about the declined friend request
     io.emit("inviteRequestDeclined", {
+      inviteId: inviteRequest._id,
       from: inviteRequest.from,
       to: inviteRequest.to,
+      status: "declined",
     });
 
     // ----- Response -----

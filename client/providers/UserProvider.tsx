@@ -21,6 +21,8 @@ type UserContextType = {
   setReceivedRequestsCount: React.Dispatch<React.SetStateAction<number>>;
   allRequests?: number;
   setAllRequests?: React.Dispatch<React.SetStateAction<number>>;
+  receivedInviteRequests?: number;
+  setReceivedInviteRequests?: React.Dispatch<React.SetStateAction<number>>;
 };
 
 export const UserContext = createContext<UserContextType>({
@@ -37,6 +39,8 @@ export const UserContext = createContext<UserContextType>({
   setReceivedRequestsCount: () => {},
   allRequests: 0,
   setAllRequests: () => {},
+  receivedInviteRequests: 0,
+  setReceivedInviteRequests: () => {},
 });
 
 type TopPlayer = { username?: string; email: string; totalPoints: number };
@@ -55,6 +59,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loadingTopPlayers, setLoadingTopPlayers] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [receivedRequestsCount, setReceivedRequestsCount] = useState(0);
+  const [receivedInviteRequests, setReceivedInviteRequests] = useState(0);
   const [allRequests, setAllRequests] = useState(0);
 
   const fetchUserData = async () => {
@@ -149,7 +154,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         receivedRequestsCount,
         setReceivedRequestsCount,
         allRequests,
-        setAllRequests, // Fallback to empty function
+        setAllRequests,
+        receivedInviteRequests,
+        setReceivedInviteRequests,
       }}
     >
       {children}
