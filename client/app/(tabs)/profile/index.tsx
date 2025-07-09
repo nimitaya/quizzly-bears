@@ -303,6 +303,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: Gaps.g80,
     maxWidth: 440,
+    alignSelf: "center",
   },
   contentContainer: {
     alignItems: "center",
