@@ -10,7 +10,7 @@ import React, {
   useCallback,
   useContext,
 } from "react";
-import { Gaps } from "@/styles/theme";
+import { Gaps, Colors } from "@/styles/theme";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Loading from "@/app/Loading";
@@ -219,11 +219,8 @@ const ProfileScreen = () => {
         />
         {user ? (
           <ButtonSecondary
-            text={`Friends  ${
-              (receivedRequestsCount ?? 0) > 0
-                ? ` (${receivedRequestsCount ?? 0})`
-                : ""
-            }`}
+            text="Friends"
+            showBadge={(receivedRequestsCount ?? 0) > 0}
             onPress={() => router.push("/profile/ProfileFriendsScreen")}
           />
         ) : (
