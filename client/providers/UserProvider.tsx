@@ -19,6 +19,8 @@ type UserContextType = {
   loading: boolean;
   error: string | null;
   refetch: Array<() => void>;
+  receivedRequestsCount?: number;
+  setReceivedRequestsCount: React.Dispatch<React.SetStateAction<number>>;
 };
 
 export const UserContext = createContext<UserContextType>({
@@ -33,6 +35,8 @@ export const UserContext = createContext<UserContextType>({
   loading: true,
   error: null,
   refetch: [],
+  receivedRequestsCount: 0,
+  setReceivedRequestsCount: () => {},
 });
 
 type TopPlayer = { username?: string; email: string; totalPoints: number };
@@ -51,6 +55,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loadingUserData, setLoadingUserData] = useState(true);
   const [loadingTopPlayers, setLoadingTopPlayers] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [receivedRequestsCount, setReceivedRequestsCount] = useState(0);
 
   const fetchUserData = async () => {
     if (!user) {
@@ -144,6 +149,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         setOnChanges,
         onChanges,
         updateUserSettings,
+        receivedRequestsCount,
+        setReceivedRequestsCount,
       }}
     >
       {children}

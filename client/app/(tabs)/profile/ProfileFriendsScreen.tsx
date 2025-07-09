@@ -35,7 +35,7 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 const ProfilFriendsScreen = () => {
   const router = useRouter();
-  const { userData } = useContext(UserContext);
+  const { userData, setReceivedRequestsCount } = useContext(UserContext);
   const [isLoading, setIsLoading] = useState(false);
   const [searchState, setSearchState] = useState<{
     email: string;
@@ -201,8 +201,54 @@ const ProfilFriendsScreen = () => {
   useEffect(() => {
     socket.on("friendRequestSent", (data) => {
       console.log("Friend request sent:", data);
-      // Update the sent friend requests list
+
+      // Update the received friend requests list in real time
       if (userData) {
+        getReceivedFriendRequests(userData.clerkUserId).then((received) => {
+          setReceivedRequestsCount(received.friendRequests.length);
+          setFriendsState((prev) => ({
+            ...prev,
+            receivedFriendRequests: received,
+          }));
+        });
+      }
+    });
+
+    socket.on("friendRequestAccepted", (data) => {
+      console.log("Friend request accepted:", data);
+
+      if (userData) {
+        const clerkUserId = userData.clerkUserId;
+
+        // 🔄 Оновити список друзів
+        getFriends(clerkUserId).then((friends) => {
+          setFriendsState((prev) => ({
+            ...prev,
+            friendList: friends,
+          }));
+        });
+
+        // 🧹 Оновити список запитів (прибрати прийнятий)
+        getSentFriendRequests(clerkUserId).then((sent) => {
+          setFriendsState((prev) => ({
+            ...prev,
+            sentFriendRequests: sent,
+          }));
+        });
+      }
+    });
+
+    socket.on("friendRequestDeclined", (data) => {
+      console.log("Friend request declined:", data);
+
+      // Update the received friend requests list
+      if (userData) {
+        getReceivedFriendRequests(userData.clerkUserId).then((received) => {
+          setFriendsState((prev) => ({
+            ...prev,
+            receivedFriendRequests: received,
+          }));
+        });
         getSentFriendRequests(userData.clerkUserId).then((sent) => {
           setFriendsState((prev) => ({
             ...prev,
@@ -212,34 +258,9 @@ const ProfilFriendsScreen = () => {
       }
     });
 
-    socket.on("friendRequestAccepted", (data) => {
-      console.log("Friend request accepted:", data);
-      // Update the friends list
-      if (userData) {
-        getFriends(userData.clerkUserId).then((friends) => {
-          setFriendsState((prev) => ({
-            ...prev,
-            friendList: friends,
-          }));
-        });
-      }
-    });
-
-    socket.on("friendRequestDeclined", (data) => {
-      console.log("Friend request declined:", data);
-      // Update the received friend requests list
-      if (userData) {
-        getReceivedFriendRequests(userData.clerkUserId).then((received) => {
-          setFriendsState((prev) => ({
-            ...prev,
-            receivedFriendRequests: received,
-          }));
-        });
-      }
-    });
-
     socket.on("friendRemoved", (data) => {
       console.log("Friend removed:", data);
+
       // Update the friends list
       if (userData) {
         getFriends(userData.clerkUserId).then((friends) => {
