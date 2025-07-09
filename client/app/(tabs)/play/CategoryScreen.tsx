@@ -15,7 +15,6 @@ import {
   Difficulty,
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { CACHE_KEY } from "@/utilities/cacheUtils";
-
 //vadim der Funktion
 import { categorizeTopic } from "@/utilities/api/quizApi";
 

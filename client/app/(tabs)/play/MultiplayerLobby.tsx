@@ -28,6 +28,7 @@ import { UserContext } from "@/providers/UserProvider";
 import IconPending from "@/assets/icons/IconPending";
 import IconAccept from "@/assets/icons/IconAccept";
 import IconDismiss from "@/assets/icons/IconDismiss";
+import IconArrowBack from "@/assets/icons/IconArrowBack";
 
 interface RoomInfo {
   roomId: string;
@@ -43,6 +44,7 @@ const MultiplayerLobby = () => {
   const router = useRouter();
   const { userData } = useContext(UserContext);
 
+  // ====================== State Variables =====================
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [currentRoom, setCurrentRoom] = useState<QuizRoom | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -60,7 +62,7 @@ const MultiplayerLobby = () => {
   const [sentInvites, setSentInvites] = useState<InviteRequest[]>([]);
   const [acceptedInvites, setAcceptedInvites] = useState<InviteRequest[]>([]);
 
-  // =========== Functions ==========
+  // ====================== Invite Functions =====================
   // ----- Handler fetch Invites -----
   const fetchInvites = async () => {
     try {
@@ -107,7 +109,7 @@ const MultiplayerLobby = () => {
     }
   };
 
-  // =========== UseEffect ==========
+  // ====================== UseEffect =====================
   useEffect(() => {
     loadRoomInfo();
     setupSocketListeners();
@@ -136,7 +138,7 @@ const MultiplayerLobby = () => {
     };
   }, []);
 
-  // ==============================
+  // ========================== Socket Functions ==========================
   // ----- Load Room Info -----
   const loadRoomInfo = async () => {
     try {
@@ -334,6 +336,8 @@ const MultiplayerLobby = () => {
         socketService.disconnect();
         // Clear cache for current room
         saveDataToCache(CACHE_KEY.currentRoom, null);
+        // Remove all sent invitations
+        handleRemoveAllInvites();
         router.back();
       }
     }
@@ -442,7 +446,7 @@ const MultiplayerLobby = () => {
         onPress={leaveRoom}
         accessibilityLabel="Leave room"
       >
-        BackButton HERE
+        <IconArrowBack/>
       </TouchableOpacity>
 
       <ScrollView
