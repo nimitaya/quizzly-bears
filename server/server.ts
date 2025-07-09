@@ -39,11 +39,6 @@ app.use("/api/invite-request", invitationsRouter);
 app.use("/api/quiz", quizRoomsRouter);
 app.use("/api", userRoutes);
 app.use("/api/points", pointsRouter);
-app.get("/is-online/:clerkUserId", (req, res) => {
-  const { clerkUserId } = req.params;
-  const isOnline = onlineUsers.has(clerkUserId);
-  res.json({ isOnline });
-});
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
@@ -79,19 +74,27 @@ interface Player {
 
 // Room storage (in production, better to use Redis)
 const quizRooms = new Map<string, QuizRoom>();
-const onlineUsers = new Map<string, string>();
 
 // Socket.IO handlers
 io.on("connection", (socket) => {
   console.log(`User connected: ${socket.id}`);
+
+  const onlineUsers = new Map<string, string>();
   const clerkUserId = socket.handshake.auth.clerkUserId;
 
-  if (clerkUserId) {
-    onlineUsers.set(clerkUserId, socket.id);
+  if (!clerkUserId) return;
 
-    // 🔔 Сповісти інших
-    socket.broadcast.emit("user-online", { clerkUserId });
-  }
+  console.log("✅ Connected:", clerkUserId);
+  onlineUsers.set(clerkUserId, socket.id);
+
+  // 🔔 Сповісти інших
+  socket.broadcast.emit("user-online", { clerkUserId });
+
+  // Emit online users to the newly connected user
+  socket.on("get-online-users", (_, callback) => {
+    const onlineIds = Array.from(onlineUsers.keys());
+    callback(onlineIds);
+  });
 
   // Room creation
   socket.on(
@@ -429,7 +432,9 @@ io.on("connection", (socket) => {
 
   // Disconnect
   socket.on("disconnect", () => {
-    console.log(`User disconnected: ${socket.id}`);
+    console.log("❌ Disconnected:", clerkUserId);
+    onlineUsers.delete(clerkUserId);
+    socket.broadcast.emit("user-offline", { clerkUserId });
 
     // Find and remove player from all rooms
     for (const [roomId, room] of quizRooms.entries()) {
@@ -441,14 +446,6 @@ io.on("connection", (socket) => {
         leaveRoom(socket, roomId, player.id);
         break;
       }
-    }
-
-    // Remove user from online users
-    if (clerkUserId) {
-      onlineUsers.delete(clerkUserId);
-
-      // 🔕 Сповісти інших
-      socket.broadcast.emit("user-offline", { clerkUserId });
     }
   });
 });
