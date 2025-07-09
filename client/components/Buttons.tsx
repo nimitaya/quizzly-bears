@@ -9,12 +9,25 @@ import {
 import { Colors, Radius, FontSizes, Gaps } from "../styles/theme";
 import IconSearchFriend from "@/assets/icons/IconSearchFriend";
 
+// Constants for button sizing
+const BUTTON_CONSTANTS = {
+  LARGE_MAX_WIDTH: 348,
+  LARGE_MARGIN: 32,
+  SMALL_MAX_WIDTH: 120,
+  SMALL_MARGIN: 16,
+} as const;
+
+// Custom hook for button width calculation
+const useButtonWidth = (maxWidth: number, margin: number) => {
+  const { width } = useWindowDimensions();
+  return Math.min(maxWidth, width - margin);
+};
+
 export function ButtonPrimary({
   text,
   ...props
 }: PressableProps & { text: string }) {
-  const { width } = useWindowDimensions();
-  const buttonWidth = Math.min(348, width - 32);
+  const buttonWidth = useButtonWidth(BUTTON_CONSTANTS.LARGE_MAX_WIDTH, BUTTON_CONSTANTS.LARGE_MARGIN);
 
   return (
     <Pressable {...props}>
@@ -28,8 +41,7 @@ export function ButtonPrimaryDisabled({
   text,
   ...props
 }: PressableProps & { text: string }) {
-  const { width } = useWindowDimensions();
-  const buttonWidth = Math.min(348, width - 32);
+  const buttonWidth = useButtonWidth(BUTTON_CONSTANTS.LARGE_MAX_WIDTH, BUTTON_CONSTANTS.LARGE_MARGIN);
 
   return (
     <Pressable {...props}>
@@ -44,8 +56,7 @@ export function ButtonSecondary({
   icon,
   ...props
 }: PressableProps & { text: string; icon?: React.ReactNode }) {
-  const { width } = useWindowDimensions();
-  const buttonWidth = Math.min(348, width - 32);
+  const buttonWidth = useButtonWidth(BUTTON_CONSTANTS.LARGE_MAX_WIDTH, BUTTON_CONSTANTS.LARGE_MARGIN);
 
   return (
     <Pressable {...props}>
@@ -62,8 +73,7 @@ export function ButtonSecondaryDisabled({
   icon,
   ...props
 }: PressableProps & { text: string; icon?: React.ReactNode }) {
-  const { width } = useWindowDimensions();
-  const buttonWidth = Math.min(348, width - 32);
+  const buttonWidth = useButtonWidth(BUTTON_CONSTANTS.LARGE_MAX_WIDTH, BUTTON_CONSTANTS.LARGE_MARGIN);
 
   return (
     <Pressable disabled={true} {...props}>
@@ -79,8 +89,7 @@ export function ButtonSkip({
   text,
   ...props
 }: PressableProps & { text: string }) {
-  const { width } = useWindowDimensions();
-  const buttonWidth = Math.min(348, width - 32);
+  const buttonWidth = useButtonWidth(BUTTON_CONSTANTS.LARGE_MAX_WIDTH, BUTTON_CONSTANTS.LARGE_MARGIN);
 
   return (
     <Pressable {...props}>
@@ -94,8 +103,7 @@ export function ButtonSmallPrimary({
   text,
   ...props
 }: PressableProps & { text: string }) {
-  const { width } = useWindowDimensions();
-  const buttonWidth = Math.min(120, width - 16);
+  const buttonWidth = useButtonWidth(BUTTON_CONSTANTS.SMALL_MAX_WIDTH, BUTTON_CONSTANTS.SMALL_MARGIN);
 
   return (
     <Pressable {...props}>
@@ -109,8 +117,7 @@ export function ButtonSmallSecondary({
   text,
   ...props
 }: PressableProps & { text: string }) {
-  const { width } = useWindowDimensions();
-  const buttonWidth = Math.min(120, width - 16);
+  const buttonWidth = useButtonWidth(BUTTON_CONSTANTS.SMALL_MAX_WIDTH, BUTTON_CONSTANTS.SMALL_MARGIN);
 
   return (
     <Pressable {...props}>
