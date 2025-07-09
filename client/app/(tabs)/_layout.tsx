@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { UserContext } from "@/providers/UserProvider";
 import { io } from "socket.io-client";
 import { getReceivedFriendRequests } from "@/utilities/friendRequestApi";
+import { getReceivedInviteRequests } from "@/utilities/invitationApi";
 
 const TabIcon = ({ focused, Icon, ActiveIcon, title }: any) => (
   <View style={{ alignItems: "center" }}>
@@ -25,42 +26,76 @@ const _Layout = () => {
     userData,
     receivedRequestsCount,
     setReceivedRequestsCount,
-    allRequests,
-    setAllRequests,
+    setReceivedInviteRequests,
+    receivedInviteRequests,
   } = useContext(UserContext);
 
   const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
 
   useEffect(() => {
-    if (!userData) return;
+    if (userData) {
+      const handleFriendRequestSent = (data: any) => {
+        console.log("Friend request sent:", data);
 
-    const handleFriendRequestSent = async (data: any) => {
-      console.log("Friend request sent:", data);
+        getReceivedFriendRequests(userData.clerkUserId).then((received) => {
+          setReceivedRequestsCount(received.friendRequests.length);
+        });
+      };
 
-      try {
-        const received = await getReceivedFriendRequests(userData.clerkUserId);
-        const receivedCount = received.friendRequests.length;
+      const handleInviteRequestSent = (data: any) => {
+        console.log("📩 Invite request sent:", data);
 
-        setReceivedRequestsCount(receivedCount);
-        if (setAllRequests) {
-          setAllRequests(receivedCount);
+        if (!userData?.clerkUserId) {
+          console.warn("⚠️ clerkUserId відсутній");
+          return;
         }
 
-        console.log("✅ Updated received count:", receivedCount);
-      } catch (error) {
-        console.error("❌ Error fetching received requests:", error);
-      }
-    };
+        getReceivedInviteRequests(userData.clerkUserId)
+          .then((response) => {
+            if (!response?.inviteRequests) {
+              console.warn(
+                "⚠️ Немає поля inviteRequests у відповіді:",
+                response
+              );
+              return;
+            }
 
-    socket.on("friendRequestSent", handleFriendRequestSent);
-    socket.on("friendRequestAccepted", handleFriendRequestSent);
-    socket.on("friendRequestDeclined", handleFriendRequestSent);
+            const allInvites = response.inviteRequests;
+            const pendingInvites = allInvites.filter(
+              (i) => i.status === "pending"
+            );
 
-    return () => {
-      socket.off("friendRequestSent", handleFriendRequestSent);
-      socket.off("friendRequestAccepted", handleFriendRequestSent);
-      socket.off("friendRequestDeclined", handleFriendRequestSent);
-    };
+            console.log("📊 Усього запитів:", allInvites.length);
+            console.log("⏳ Pending:", pendingInvites.length);
+
+            if (typeof setReceivedInviteRequests === "function") {
+              setReceivedInviteRequests(pendingInvites.length);
+              console.log("✅ Оновлено стейт");
+            } else {
+              console.warn("⚠️ setReceivedInviteRequests не є функцією");
+            }
+          })
+          .catch((error) => {
+            console.error("❌ getReceivedInviteRequests помилка:", error);
+          });
+      };
+
+      socket.on("friendRequestSent", handleFriendRequestSent);
+      socket.on("friendRequestAccepted", handleFriendRequestSent);
+      socket.on("friendRequestDeclined", handleFriendRequestSent);
+      socket.on("inviteRequestSent", handleInviteRequestSent);
+      socket.on("inviteRequestAccepted", handleInviteRequestSent);
+      socket.on("inviteRequestDeclined", handleInviteRequestSent);
+
+      return () => {
+        socket.off("friendRequestSent", handleFriendRequestSent);
+        socket.off("friendRequestAccepted", handleFriendRequestSent);
+        socket.off("friendRequestDeclined", handleFriendRequestSent);
+        socket.off("inviteRequestSent", handleInviteRequestSent);
+        socket.off("inviteRequestAccepted", handleInviteRequestSent);
+        socket.off("inviteRequestDeclined", handleInviteRequestSent);
+      };
+    }
   }, [userData]);
 
   return (
@@ -122,8 +157,10 @@ const _Layout = () => {
                   ActiveIcon={IconProfilTabAktiv}
                   title="Profile"
                 />
-                {(allRequests ?? 0) > 0 && (
-                  <View style={styles.tabNotificationBadge} />
+
+                {(receivedRequestsCount ?? 0) + (receivedInviteRequests ?? 0) >
+                  0 && (
+ <View style={styles.tabNotificationBadge} /></View>
                 )}
               </View>
             ),

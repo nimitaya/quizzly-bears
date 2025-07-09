@@ -32,7 +32,8 @@ const ProfilInvitationsScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [receivedInvites, setReceivedInvites] = useState<InviteRequest[]>([]);
   const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
-  const { userData } = useContext(UserContext);
+  const { userData, receivedInviteRequests, setReceivedInviteRequests } =
+    useContext(UserContext);
 
   // =========== Functions ===========
   // ----- Handler Accept -----
@@ -153,14 +154,7 @@ const ProfilInvitationsScreen = () => {
     const clerkUserId = user.id;
 
     const fetchAndSetInvites = async () => {
-      try {
-        console.log("Fetching updated invites...");
-        const received = await getReceivedInviteRequests(clerkUserId);
-        setReceivedInvites(received.inviteRequests || []);
-        console.log("Updated invites:", received.inviteRequests || []);
-      } catch (err) {
-        console.error("Error fetching updated invites:", err);
-      }
+      await fetchInvitations(clerkUserId);
     };
 
     const socketEventHandlers = {
@@ -190,6 +184,23 @@ const ProfilInvitationsScreen = () => {
       });
     };
   }, [user, userData]);
+
+  // Fetch both received and sent invitations
+  const fetchInvitations = async (clerkUserId: string) => {
+    try {
+      console.log("Fetching received and sent invites...");
+      const [received] = await Promise.all([
+        getReceivedInviteRequests(clerkUserId),
+      ]);
+
+      setReceivedInvites(received.inviteRequests || []);
+
+      console.log("Updated received invites:", received.inviteRequests || []);
+    } catch (error) {
+      console.error("Error fetching invitations:", error);
+      setReceivedInvites([]);
+    }
+  };
 
   return (
     <View style={styles.container}>
