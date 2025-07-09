@@ -191,6 +191,17 @@ class SocketService {
     this.emit("join-room", { roomId, playerId, playerName, language });
   }
 
+  // Add method to rejoin a room (for when user returns from another screen)
+  rejoinRoom(roomId: string, playerId: string, playerName: string, language?: string) {
+    // Emit rejoin event to update server state and socket room
+    this.emit("rejoin-room", { roomId, playerId, playerName, language });
+  }
+
+  // Add method to request current room state
+  requestRoomState(roomId: string) {
+    this.emit("get-room-state", { roomId });
+  }
+
   leaveRoom(roomId: string, playerId: string) {
     this.emit("leave-room", { roomId, playerId });
   }
@@ -270,6 +281,14 @@ class SocketService {
 
   onPlayerJoined(callback: (data: { player: Player; room: QuizRoom }) => void) {
     this.on("player-joined", callback);
+  }
+
+  onPlayerRejoined(callback: (data: { player: Player; room: QuizRoom }) => void) {
+    this.on("player-rejoined", callback);
+  }
+
+  onRoomStateUpdated(callback: (data: { room: QuizRoom }) => void) {
+    this.on("room-state-updated", callback);
   }
 
   onPlayerLeft(

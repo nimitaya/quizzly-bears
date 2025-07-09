@@ -160,6 +160,110 @@ io.on("connection", (socket) => {
     }
   );
 
+  // Rejoin room (for users returning from another screen)
+  socket.on(
+    "rejoin-room",
+    (data: { roomId: string; playerId: string; playerName: string; language?: string }) => {
+      console.log(`Rejoin room request: ${data.playerId} wants to rejoin ${data.roomId}`);
+      const room = quizRooms.get(data.roomId);
+
+      if (!room) {
+        console.log(`Room ${data.roomId} not found for rejoin`);
+        socket.emit("error", { message: "Room not found" });
+        return;
+      }
+
+      console.log(`Room ${data.roomId} current players:`, room.players.map(p => ({ id: p.id, name: p.name, language: p.language })));
+
+      // Check if player is already in the room
+      const existingPlayer = room.players.find((p) => p.id === data.playerId);
+      if (existingPlayer) {
+        console.log(`Player ${data.playerId} found in room, updating socket ID and language`);
+        // Update the socket ID and language for the existing player
+        existingPlayer.socketId = socket.id;
+        if (data.language) {
+          existingPlayer.language = data.language;
+        }
+        
+        // Join the socket room
+        socket.join(data.roomId);
+
+        // Update host socket ID if this player is the host
+        if (room.host === data.playerId) {
+          console.log(`Updating host socket ID for ${data.playerId}`);
+          room.hostSocketId = socket.id;
+        }
+
+        console.log(`Sending room state to rejoining player. Room has ${room.players.length} players`);
+        room.players.forEach((p, index) => {
+          console.log(`Player ${index + 1}: ${p.name}, Language: ${p.language}, ID: ${p.id}`);
+        });
+
+        // Send current room state to rejoining player
+        socket.emit("room-joined", { room });
+        
+        // Notify all players about the updated room state
+        io.to(data.roomId).emit("player-rejoined", {
+          player: existingPlayer,
+          room: room,
+        });
+
+        console.log(`${data.playerName} rejoined room ${data.roomId}`);
+      } else {
+        // Player not in room, treat as new join
+        if (room.isStarted) {
+          socket.emit("error", { message: "Game already started" });
+          return;
+        }
+
+        if (room.players.length >= room.maxPlayers) {
+          socket.emit("error", { message: "Room is full" });
+          return;
+        }
+
+        const newPlayer: Player = {
+          id: data.playerId,
+          name: data.playerName,
+          socketId: socket.id,
+          score: 0,
+          isReady: false,
+          language: data.language,
+        };
+
+        room.players.push(newPlayer);
+        socket.join(data.roomId);
+
+        // Notify all players in the room about the new player
+        io.to(data.roomId).emit("player-joined", {
+          player: newPlayer,
+          room: room,
+        });
+
+        socket.emit("room-joined", { room });
+        console.log(`${data.playerName} joined room ${data.roomId} (via rejoin)`);
+      }
+    }
+  );
+
+  // Get current room state
+  socket.on("get-room-state", (data: { roomId: string }) => {
+    console.log(`Room state request for room ${data.roomId}`);
+    const room = quizRooms.get(data.roomId);
+
+    if (!room) {
+      socket.emit("error", { message: "Room not found" });
+      return;
+    }
+
+    console.log(`Sending room state for ${data.roomId} with ${room.players.length} players`);
+    room.players.forEach((p, index) => {
+      console.log(`Player ${index + 1}: ${p.name}, Language: ${p.language}, ID: ${p.id}`);
+    });
+
+    // Send current room state
+    socket.emit("room-state-updated", { room });
+  });
+
   // Player ready status
   socket.on("player-ready", (data: { roomId: string; playerId: string }) => {
     const room = quizRooms.get(data.roomId);
