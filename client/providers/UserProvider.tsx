@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
 import { useUser } from "@clerk/clerk-expo";
+import { getReceivedInviteRequests } from "@/utilities/invitationApi";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
@@ -19,8 +20,6 @@ type UserContextType = {
   refetch: Array<() => void>;
   receivedRequestsCount?: number;
   setReceivedRequestsCount: React.Dispatch<React.SetStateAction<number>>;
-  allRequests?: number;
-  setAllRequests?: React.Dispatch<React.SetStateAction<number>>;
   receivedInviteRequests?: number;
   setReceivedInviteRequests?: React.Dispatch<React.SetStateAction<number>>;
 };
@@ -37,8 +36,6 @@ export const UserContext = createContext<UserContextType>({
   refetch: [],
   receivedRequestsCount: 0,
   setReceivedRequestsCount: () => {},
-  allRequests: 0,
-  setAllRequests: () => {},
   receivedInviteRequests: 0,
   setReceivedInviteRequests: () => {},
 });
@@ -60,7 +57,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [error, setError] = useState<string | null>(null);
   const [receivedRequestsCount, setReceivedRequestsCount] = useState(0);
   const [receivedInviteRequests, setReceivedInviteRequests] = useState(0);
-  const [allRequests, setAllRequests] = useState(0);
 
   const fetchUserData = async () => {
     if (!user) {
@@ -74,7 +70,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       const res = await axios.get(`${API_BASE_URL}/users/${user.id}`);
       setUserData(res.data);
       setReceivedRequestsCount(res.data.friendRequests.length);
-      setAllRequests(res.data.friendRequests.length);
     } catch (err) {
       console.error("Failed to load user data", err);
       setUserData(null);
@@ -83,6 +78,25 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       setLoadingUserData(false);
     }
   };
+
+  useEffect(() => {
+    const fetchInviteRequests = async () => {
+      if (!userData?.clerkUserId) return;
+
+      try {
+        const response = await getReceivedInviteRequests(userData.clerkUserId);
+        const allInvites = response?.inviteRequests ?? [];
+        const pendingInvites = allInvites.filter((i) => i.status === "pending");
+
+        setReceivedInviteRequests(pendingInvites.length);
+        console.log("📩 Pending invite requests:", pendingInvites.length);
+      } catch (error) {
+        console.error("❌ Failed to fetch invite requests:", error);
+      }
+    };
+
+    fetchInviteRequests();
+  }, [userData?.clerkUserId]);
 
   const fetchTopPlayers = async () => {
     try {
@@ -153,8 +167,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         updateUserSettings,
         receivedRequestsCount,
         setReceivedRequestsCount,
-        allRequests,
-        setAllRequests,
         receivedInviteRequests,
         setReceivedInviteRequests,
       }}

@@ -16,6 +16,7 @@ import CustomAlert from "@/components/CustomAlert";
 import {
   searchUserByEmail,
   sendInviteRequest,
+  getSentInviteRequests,
 } from "@/utilities/invitationApi";
 import { getFriends, sendFriendRequest } from "@/utilities/friendRequestApi";
 import { FriendsResponse, User } from "@/utilities/friendInterfaces";
@@ -24,6 +25,8 @@ import IconAddFriend from "@/assets/icons/IconAddFriend";
 import { UserContext } from "@/providers/UserProvider";
 import { Checkbox } from "@/components/Checkbox";
 import { RadioButton } from "@/components/RadioButton";
+import { io } from "socket.io-client";
+import { InviteRequest } from "@/utilities/invitationInterfaces";
 
 interface RoomInfo {
   roomId: string;
@@ -56,6 +59,10 @@ const InviteFriendsScreen = () => {
     error: "",
   });
 
+  const [sentInvites, setSentInvites] = useState<InviteRequest[]>([]);
+
+  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
+
   // =========== Functions ==========
   // ----- Handler Fetch Friendlist -----
   const fetchFriends = async () => {
@@ -74,6 +81,28 @@ const InviteFriendsScreen = () => {
     }
   };
 
+  const fetchSentInvites = async () => {
+    try {
+      if (!userData) return;
+      const clerkUserId = userData.clerkUserId;
+
+      const sent = await getSentInviteRequests(clerkUserId);
+      setSentInvites(sent.inviteRequests || []);
+      if (sent.inviteRequests && sent.inviteRequests.length === 0) {
+        router.replace("/(tabs)/play/InviteFriendsScreen");
+      }
+      console.log("Updated sent invites:", sent.inviteRequests || []);
+    } catch (error) {
+      console.error("Error fetching sent invites:", error);
+    }
+  };
+
+  const handleInviteDeclined = (data: any) => {
+    console.log("❌ Invite request declined:", data);
+
+    // Fetch updated sent invitations
+    fetchSentInvites();
+  };
   // ----- Handler Search User -----
   const handleSearchUser = async (email: string) => {
     if (!email.trim() || !userData) {
@@ -286,6 +315,16 @@ const InviteFriendsScreen = () => {
     fetchFriends();
   }, []);
 
+  useEffect(() => {
+    // Register socket listener for declined invitations
+    socket.on("inviteRequestDeclined", handleInviteDeclined);
+
+    // Cleanup socket listener on unmount
+    return () => {
+      socket.off("inviteRequestDeclined", handleInviteDeclined);
+    };
+  }, [userData]);
+
   // Auto-hide error message after 5 seconds
   useEffect(() => {
     if (searchState.error) {
@@ -343,7 +382,7 @@ const InviteFriendsScreen = () => {
 
           <View style={styles.friendDetails}>
             <Text style={styles.friendName}>
-              {item.username || item.email.split('@')[0]}
+              {item.username || item.email.split("@")[0]}
             </Text>
             <Text style={styles.friendStatus}>
               {" "}
@@ -388,7 +427,7 @@ const InviteFriendsScreen = () => {
 
           <View style={styles.friendDetails}>
             <Text style={styles.friendName}>
-              {item.username || item.email.split('@')[0]}
+              {item.username || item.email.split("@")[0]}
             </Text>
           </View>
         </View>
