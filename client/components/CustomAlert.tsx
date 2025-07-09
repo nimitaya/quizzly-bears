@@ -28,7 +28,7 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
   <Modal transparent visible={visible} animationType="fade">
     <View style={styles.overlay}>
       <View style={styles.alertBox}>
-        {noInternet ? <Logo size="small" /> : null}
+        {noInternet ? <Logo size="noconnect" /> : <Logo size="small" />}
         <Text style={styles.message}>{message}</Text>
         <View
           style={[
