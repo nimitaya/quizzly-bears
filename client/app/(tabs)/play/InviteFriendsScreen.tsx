@@ -22,12 +22,11 @@ import { getFriends, sendFriendRequest } from "@/utilities/friendRequestApi";
 import { FriendsResponse, User } from "@/utilities/friendInterfaces";
 import { SearchFriendInput } from "@/components/Inputs";
 import IconAddFriend from "@/assets/icons/IconAddFriend";
-import { UserContext } from "@/providers/UserProvider";
 import { Checkbox } from "@/components/Checkbox";
 import { RadioButton } from "@/components/RadioButton";
 import { io } from "socket.io-client";
 import { InviteRequest } from "@/utilities/invitationInterfaces";
-
+import { useStatistics } from "@/providers/UserProvider";
 interface RoomInfo {
   roomId: string;
   room: any;
@@ -37,7 +36,7 @@ interface RoomInfo {
 
 const InviteFriendsScreen = () => {
   const router = useRouter();
-  const { userData } = useContext(UserContext);
+  const { userData } = useStatistics();
 
   const [showNoFriendsAlert, setShowNoFriendsAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
@@ -60,24 +59,31 @@ const InviteFriendsScreen = () => {
   });
 
   const [sentInvites, setSentInvites] = useState<InviteRequest[]>([]);
-  const [onlineFriends, setOnlineFriends] = useState<Set<string>>(new Set());
-  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
+  const [onlineStatus, setOnlineStatus] = useState<Record<string, boolean>>({});
+  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL, {
+    auth: { clerkUserId: userData?.clerkUserId },
+  });
 
   useEffect(() => {
-    const socket = io(process.env.EXPO_PUBLIC_BASE_URL, {
-      auth: { clerkUserId: userData?.clerkUserId },
+    socket.on("connect", () => {
+      console.log("🟢 Socket connected");
+
+      // Запросити список онлайн юзерів
+      socket.emit("get-online-users", null, (onlineUserIds: string[]) => {
+        const initialStatus = onlineUserIds.reduce((acc, id) => {
+          acc[id] = true;
+          return acc;
+        }, {} as Record<string, boolean>);
+        setOnlineStatus(initialStatus);
+      });
     });
 
     socket.on("user-online", ({ clerkUserId }) => {
-      setOnlineFriends((prev) => new Set(prev).add(clerkUserId));
+      setOnlineStatus((prev) => ({ ...prev, [clerkUserId]: true }));
     });
 
     socket.on("user-offline", ({ clerkUserId }) => {
-      setOnlineFriends((prev) => {
-        const updated = new Set(prev);
-        updated.delete(clerkUserId);
-        return updated;
-      });
+      setOnlineStatus((prev) => ({ ...prev, [clerkUserId]: false }));
     });
 
     return () => {
@@ -374,7 +380,7 @@ const InviteFriendsScreen = () => {
   const renderFriendItem = ({ item }: { item: User }) => {
     const isSelected = selectedFriends.includes(item._id);
     const isOnline = item.clerkUserId
-      ? onlineFriends.has(item.clerkUserId)
+      ? onlineStatus[item.clerkUserId] ?? false
       : false;
     return (
       <TouchableOpacity
@@ -411,10 +417,7 @@ const InviteFriendsScreen = () => {
             </Text>
             <Text style={styles.friendStatus}>
               {" "}
-              Online/ Offline TODO!
-              <Text style={styles.friendStatus}>
-                {isOnline ? "Online" : "Offline"}
-              </Text>
+              {isOnline ? "Online" : "Offline"}
               {/* {item.isOnline ? "Online" : "Offline"} */}
             </Text>
           </View>
