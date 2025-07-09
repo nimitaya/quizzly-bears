@@ -544,7 +544,7 @@ const PingPongGameScreen = () => {
           onPressIn={() => handleTouch('up')}
           onPressOut={() => handleTouchEnd('up')}
         >
-          <Text style={styles.controlButtonText}>↑</Text>
+          <Text style={styles.controlButtonText}>▲</Text>
         </TouchableOpacity>
         
         <View style={styles.centerButtons}>
@@ -561,7 +561,7 @@ const PingPongGameScreen = () => {
           onPressIn={() => handleTouch('down')}
           onPressOut={() => handleTouchEnd('down')}
         >
-          <Text style={styles.controlButtonText}>↓</Text>
+          <Text style={styles.controlButtonText}>▼</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

@@ -3,9 +3,6 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions } fr
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors, Gaps, FontSizes, FontWeights } from '@/styles/theme';
 import IconArrowBack from '@/assets/icons/IconArrowBack';
-import IconArrowUp from '@/assets/icons/IconArrowUp';
-import IconArrowDown from '@/assets/icons/IconArrowDown';
-import IconArrowRight from '@/assets/icons/IconArrowRight';
 import IconPlay from '@/assets/icons/IconPlay';
 import IconPause from '@/assets/icons/IconPause';
 import Svg, { Rect, Circle } from 'react-native-svg';
@@ -366,7 +363,7 @@ const SnakeGameScreen = () => {
             style={styles.directionButton} 
             onPress={() => changeDirection({ x: -1, y: 0 })}
           >
-            <IconArrowBack />
+            <Text style={styles.directionButtonText}>◄</Text>
           </TouchableOpacity>
           
           <View style={styles.centerButtons}>
@@ -374,14 +371,14 @@ const SnakeGameScreen = () => {
               style={styles.controlButton} 
               onPress={() => changeDirection({ x: 0, y: -1 })}
             >
-              <IconArrowUp />
+              <Text style={styles.controlButtonText}>▲</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={styles.controlButton} 
               onPress={() => changeDirection({ x: 0, y: 1 })}
             >
-              <IconArrowDown />
+              <Text style={styles.controlButtonText}>▼</Text>
             </TouchableOpacity>
           </View>
           
@@ -389,7 +386,7 @@ const SnakeGameScreen = () => {
             style={styles.directionButton} 
             onPress={() => changeDirection({ x: 1, y: 0 })}
           >
-            <IconArrowRight />
+            <Text style={styles.directionButtonText}>►</Text>
           </TouchableOpacity>
         </View>
       </View>
