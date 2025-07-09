@@ -442,7 +442,7 @@ const MultiplayerLobby = () => {
         onPress={leaveRoom}
         accessibilityLabel="Leave room"
       >
-        BackButton HERE
+        <Text>BackButton HERE</Text>
       </TouchableOpacity>
 
       <ScrollView
