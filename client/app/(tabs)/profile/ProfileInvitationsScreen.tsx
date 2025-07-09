@@ -154,36 +154,40 @@ const ProfilInvitationsScreen = () => {
 
     const fetchAndSetInvites = async () => {
       try {
+        console.log("Fetching updated invites...");
         const received = await getReceivedInviteRequests(clerkUserId);
         setReceivedInvites(received.inviteRequests || []);
+        console.log("Updated invites:", received.inviteRequests || []);
       } catch (err) {
         console.error("Error fetching updated invites:", err);
       }
     };
 
-    const handleInviteSent = (data: any) => {
-      console.log("📩 Invite request sent:", data);
-      fetchAndSetInvites();
+    const socketEventHandlers = {
+      inviteRequestSent: (data: any) => {
+        console.log("📩 Invite request sent:", data);
+        fetchAndSetInvites();
+      },
+      inviteRequestAccepted: (data: any) => {
+        console.log("✅ Invite request accepted:", data);
+        fetchAndSetInvites();
+      },
+      inviteRequestDeclined: (data: any) => {
+        console.log("❌ Invite request declined:", data);
+        fetchAndSetInvites();
+      },
     };
 
-    const handleInviteAccepted = (data: any) => {
-      console.log("✅ Invite request accepted:", data);
-      fetchAndSetInvites();
-    };
+    // Register socket event listeners
+    Object.entries(socketEventHandlers).forEach(([event, handler]) => {
+      socket.on(event, handler);
+    });
 
-    const handleInviteDeclined = (data: any) => {
-      console.log("❌ Invite request declined:", data);
-      fetchAndSetInvites();
-    };
-
-    socket.on("inviteRequestSent", handleInviteSent);
-    socket.on("inviteRequestAccepted", handleInviteAccepted);
-    socket.on("inviteRequestDeclined", handleInviteDeclined);
-
+    // Cleanup socket event listeners on unmount
     return () => {
-      socket.off("inviteRequestSent", handleInviteSent);
-      socket.off("inviteRequestAccepted", handleInviteAccepted);
-      socket.off("inviteRequestDeclined", handleInviteDeclined);
+      Object.entries(socketEventHandlers).forEach(([event, handler]) => {
+        socket.off(event, handler);
+      });
     };
   }, [user, userData]);
 

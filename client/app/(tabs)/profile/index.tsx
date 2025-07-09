@@ -28,6 +28,7 @@ import { useLanguage } from "@/providers/LanguageContext";
 import { UserContext } from "@/providers/UserProvider";
 import { io } from "socket.io-client";
 import { getReceivedFriendRequests } from "@/utilities/friendRequestApi";
+import { getReceivedInviteRequests } from "@/utilities/invitationApi";
 
 const ProfileScreen = () => {
   const router = useRouter();
@@ -46,8 +47,13 @@ const ProfileScreen = () => {
   const { soundEnabled, toggleSound } = useSound();
   const { playSound } = useSound();
   const { user } = useUser();
-  const { userData, receivedRequestsCount, setReceivedRequestsCount } =
-    useContext(UserContext);
+  const {
+    userData,
+    receivedRequestsCount,
+    setReceivedRequestsCount,
+    receivedInviteRequests,
+    setReceivedInviteRequests,
+  } = useContext(UserContext);
 
   const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
 
@@ -181,14 +187,58 @@ const ProfileScreen = () => {
         });
       };
 
+      const handleInviteRequestSent = (data: any) => {
+        console.log("📩 Invite request sent:", data);
+
+        if (!userData?.clerkUserId) {
+          console.warn("⚠️ clerkUserId відсутній");
+          return;
+        }
+
+        getReceivedInviteRequests(userData.clerkUserId)
+          .then((response) => {
+            if (!response?.inviteRequests) {
+              console.warn(
+                "⚠️ Немає поля inviteRequests у відповіді:",
+                response
+              );
+              return;
+            }
+
+            const allInvites = response.inviteRequests;
+            const pendingInvites = allInvites.filter(
+              (i) => i.status === "pending"
+            );
+
+            console.log("📊 Усього запитів:", allInvites.length);
+            console.log("⏳ Pending:", pendingInvites.length);
+
+            if (typeof setReceivedInviteRequests === "function") {
+              setReceivedInviteRequests(pendingInvites.length);
+              console.log("✅ Оновлено стейт");
+            } else {
+              console.warn("⚠️ setReceivedInviteRequests не є функцією");
+            }
+          })
+          .catch((error) => {
+            console.error("❌ getReceivedInviteRequests помилка:", error);
+          });
+      };
+
       socket.on("friendRequestSent", handleFriendRequestSent);
       socket.on("friendRequestAccepted", handleFriendRequestSent);
       socket.on("friendRequestDeclined", handleFriendRequestSent);
+      socket.on("inviteRequestSent", handleInviteRequestSent);
+      socket.on("inviteRequestAccepted", handleInviteRequestSent);
+      socket.on("inviteRequestDeclined", handleInviteRequestSent);
 
       return () => {
         socket.off("friendRequestSent", handleFriendRequestSent);
         socket.off("friendRequestAccepted", handleFriendRequestSent);
         socket.off("friendRequestDeclined", handleFriendRequestSent);
+        socket.off("inviteRequestSent", handleInviteRequestSent);
+        socket.off("inviteRequestAccepted", handleInviteRequestSent);
+        socket.off("inviteRequestDeclined", handleInviteRequestSent);
       };
     }
   }, [userData]);
@@ -214,7 +264,11 @@ const ProfileScreen = () => {
       </View>
       <View style={styles.buttonsBox}>
         <ButtonSecondary
-          text="Invitations"
+          text={`Invitations  ${
+            (receivedInviteRequests ?? 0) > 0
+              ? ` (${receivedInviteRequests ?? 0})`
+              : ""
+          }`}
           onPress={() => router.push("/profile/ProfileInvitationsScreen")}
         />
         {user ? (
