@@ -12,13 +12,29 @@ import Loading from "../../Loading";
 import CustomAlert from "@/components/CustomAlert";
 import { useUser } from "@clerk/clerk-expo";
 import ClerkSettings from "@/app/(auth)/ClerkSettings";
-import { useFocusEffect } from "@react-navigation/native";
+import { io } from "socket.io-client";
 
 const StatisticsScreen = () => {
-  const { userData, loading, userRank, totalUsers, refetch, onChanges } =
-    useStatistics();
+  const { userData, loading, userRank, totalUsers, refetch } = useStatistics();
   const [showForm, setShowForm] = useState(false);
   const { user } = useUser();
+  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
+
+  useEffect(() => {
+    socket.on("pointsUpdated", () => {
+      console.log("🔁 pointsUpdated received - outside");
+      refetch &&
+        refetch.forEach((fn) => {
+          console.log("🔁 pointsUpdated received - inside");
+          fn();
+        });
+    });
+
+    return () => {
+      socket.off("pointsUpdated");
+      socket.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>;
@@ -29,12 +45,6 @@ const StatisticsScreen = () => {
     }
     return () => clearTimeout(timeout);
   }, [userData, loading]);
-
-  useFocusEffect(
-    useCallback(() => {
-      refetch && refetch.forEach((fn) => fn());
-    }, [onChanges])
-  );
 
   if (!user) {
     return (

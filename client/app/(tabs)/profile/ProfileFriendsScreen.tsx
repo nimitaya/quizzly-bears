@@ -30,9 +30,6 @@ import { FriendsState, User } from "@/utilities/friendInterfaces";
 import { UserContext } from "@/providers/UserProvider";
 import { io } from "socket.io-client";
 
-// const API_BASE_URL = "http://localhost:3000/api";
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
-
 const ProfilFriendsScreen = () => {
   const router = useRouter();
   const { userData, setReceivedRequestsCount } = useContext(UserContext);
@@ -205,7 +202,6 @@ const ProfilFriendsScreen = () => {
       // Update the received friend requests list in real time
       if (userData) {
         getReceivedFriendRequests(userData.clerkUserId).then((received) => {
-          setReceivedRequestsCount(received.friendRequests.length);
           setFriendsState((prev) => ({
             ...prev,
             receivedFriendRequests: received,
