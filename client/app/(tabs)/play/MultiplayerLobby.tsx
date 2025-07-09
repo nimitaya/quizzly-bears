@@ -25,6 +25,7 @@ import {
   removeAllInvites,
 } from "@/utilities/invitationApi";
 import { UserContext } from "@/providers/UserProvider";
+import { useLanguage } from "@/providers/LanguageContext";
 import IconPending from "@/assets/icons/IconPending";
 import IconAccept from "@/assets/icons/IconAccept";
 import IconDismiss from "@/assets/icons/IconDismiss";
@@ -35,6 +36,7 @@ import QuizLoader from "@/components/QuizLoader";
 interface RoomInfo {
   roomId: string;
   room: QuizRoom;
+  languages: string[]
   questions?: any[];
   isHost: boolean;
   isAdmin?: boolean;
@@ -45,11 +47,13 @@ interface RoomInfo {
 const MultiplayerLobby = () => {
   const router = useRouter();
   const { userData } = useContext(UserContext);
+  const { currentLanguage } = useLanguage();
 
   // ====================== State Variables =====================
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [currentRoom, setCurrentRoom] = useState<QuizRoom | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [allLanguages, setAllLanguages] = useState<string[]>([]);
 
   // CustomAlert states
   const [showNewHostAlert, setShowNewHostAlert] = useState(false);
@@ -71,6 +75,28 @@ const MultiplayerLobby = () => {
 
   // Test
   const [gefetchteInfo, setGefetchteInfo] = useState<any>(null);
+
+  // ====================== Language Functions =====================
+  // ----- Collect all unique languages from players -----
+  const collectAllLanguages = (room: QuizRoom) => {
+    const languages = room.players
+      .map(player => player.language)
+      .filter((lang): lang is string => lang !== undefined && lang !== null)
+      .filter((lang, index, arr) => arr.indexOf(lang) === index); // Remove duplicates
+    
+    setAllLanguages(languages);
+    
+    // Update roomInfo with the collected languages
+    if (roomInfo) {
+      const updatedRoomInfo = {
+        ...roomInfo,
+        languages: languages
+      };
+      setRoomInfo(updatedRoomInfo);
+      // Save to cache
+      saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
+    }
+  };
 
   // ====================== Invite Functions =====================
   // ----- Handler fetch Invites -----
@@ -148,6 +174,34 @@ const MultiplayerLobby = () => {
     };
   }, []);
 
+  // Monitor languages and update roomInfo
+  useEffect(() => {
+    if (roomInfo && allLanguages.length > 0) {
+      const updatedRoomInfo = {
+        ...roomInfo,
+        languages: allLanguages
+      };
+      setRoomInfo(updatedRoomInfo);
+      saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
+    }
+  }, [allLanguages]);
+
+  // Monitor current language changes and emit to server
+  useEffect(() => {
+    if (currentLanguage && roomInfo && currentRoom) {
+      // Find current player and emit language update if needed
+      const currentPlayer = currentRoom.players.find(
+        (p) => p.socketId === socketService.getSocketId()
+      );
+      
+      if (currentPlayer && currentPlayer.language !== currentLanguage.code) {
+        // Could add a socket event to update player language ? TODO
+        // socketService.updatePlayerLanguage(roomInfo.roomId, currentPlayer.id, currentLanguage.code);
+        console.log(`Player ${currentPlayer.name} language changed to ${currentLanguage.code}`);
+      }
+    }
+  }, [currentLanguage, roomInfo, currentRoom]);
+
   // ========================== Socket Functions ==========================
   // ----- Load Room Info -----
   const loadRoomInfo = async () => {
@@ -156,6 +210,10 @@ const MultiplayerLobby = () => {
       if (cachedRoomInfo) {
         setRoomInfo(cachedRoomInfo);
         setCurrentRoom(cachedRoomInfo.room);
+        // Collect languages from the room when it's loaded
+        if (cachedRoomInfo.room) {
+          collectAllLanguages(cachedRoomInfo.room);
+        }
       }
     } catch (error) {
       console.error("Error loading room info:", error);
@@ -167,6 +225,7 @@ const MultiplayerLobby = () => {
     socketService.onPlayerJoined((data) => {
       console.log("Player joined:", data.player.name);
       setCurrentRoom(data.room);
+      collectAllLanguages(data.room);
       // Refresh invites when a player joins to update the filtered list
       fetchInvites();
     });
@@ -174,6 +233,7 @@ const MultiplayerLobby = () => {
     socketService.onPlayerLeft((data) => {
       console.log("Player left:", data.playerName);
       setCurrentRoom(data.room);
+      collectAllLanguages(data.room);
       // Refresh invites when a player leaves
       fetchInvites();
     });
@@ -185,10 +245,9 @@ const MultiplayerLobby = () => {
 
     socketService.onGameStarted(async (data) => {
       console.log("Game started!");
-      
+
       // If we received questions from the server, cache them locally
       if (data.questions && data.questions.length > 0) {
-        
         // Transform questions from socket format to the format expected by useQuizLogic
         const transformedQuestions = {
           questionArray: data.questions.map((q: any) => ({
@@ -198,29 +257,29 @@ const MultiplayerLobby = () => {
               es: q.question,
               fr: q.question,
             },
-            optionA: { 
-              isCorrect: q.correctAnswer === q.options[0], 
+            optionA: {
+              isCorrect: q.correctAnswer === q.options[0],
               en: q.options[0],
               de: q.options[0],
               es: q.options[0],
               fr: q.options[0],
             },
-            optionB: { 
-              isCorrect: q.correctAnswer === q.options[1], 
+            optionB: {
+              isCorrect: q.correctAnswer === q.options[1],
               en: q.options[1],
               de: q.options[1],
               es: q.options[1],
               fr: q.options[1],
             },
-            optionC: { 
-              isCorrect: q.correctAnswer === q.options[2], 
+            optionC: {
+              isCorrect: q.correctAnswer === q.options[2],
               en: q.options[2],
               de: q.options[2],
               es: q.options[2],
               fr: q.options[2],
             },
-            optionD: { 
-              isCorrect: q.correctAnswer === q.options[3], 
+            optionD: {
+              isCorrect: q.correctAnswer === q.options[3],
               en: q.options[3],
               de: q.options[3],
               es: q.options[3],
@@ -228,13 +287,15 @@ const MultiplayerLobby = () => {
             },
           })),
         };
-        
+
         // Cache the transformed questions
-        const { saveDataToCache, CACHE_KEY } = await import("@/utilities/cacheUtils");
+        const { saveDataToCache, CACHE_KEY } = await import(
+          "@/utilities/cacheUtils"
+        );
         await saveDataToCache(CACHE_KEY.aiQuestions, transformedQuestions);
         console.log("Questions cached successfully");
       }
-      
+
       // Go to quiz screen
       router.push("/(tabs)/play/QuizScreen");
     });
@@ -276,7 +337,6 @@ const MultiplayerLobby = () => {
     if (
       roomInfo &&
       currentRoom &&
-      roomInfo.isHost &&
       roomInfo.selectedCategory
     ) {
       // Check that all players are ready
@@ -289,7 +349,7 @@ const MultiplayerLobby = () => {
       try {
         console.log("Starting quiz generation...");
         setIsGeneratingQuestions(true);
-      setShowLocalLoader(true);
+        setShowLocalLoader(true);
         // Load questions based on selected category
         // This should match the logic from StartQuizScreen
         const { loadCacheData } = await import("@/utilities/cacheUtils");
@@ -311,7 +371,7 @@ const MultiplayerLobby = () => {
         );
 
         setGefetchteInfo(fetchedQuestions);
-        saveDataToCache(CACHE_KEY.aiQuestions, fetchedQuestions);       
+        saveDataToCache(CACHE_KEY.aiQuestions, fetchedQuestions);
 
         if (
           !fetchedQuestions ||
@@ -327,10 +387,13 @@ const MultiplayerLobby = () => {
         const socketQuestions = fetchedQuestions.questionArray.map(
           (q: any, index: number) => {
             // Find the correct answer by checking which option has isCorrect: true
-            const correctOption = [q.optionA, q.optionB, q.optionC, q.optionD].find(
-              (option) => option.isCorrect
-            );
-            
+            const correctOption = [
+              q.optionA,
+              q.optionB,
+              q.optionC,
+              q.optionD,
+            ].find((option) => option.isCorrect);
+
             return {
               id: index.toString(),
               question: q.question.en || q.question,
@@ -348,8 +411,8 @@ const MultiplayerLobby = () => {
           }
         );
         setShowLocalLoader(false);
-      setIsGeneratingQuestions(false);
-      // setShowCountdown(true);
+        setIsGeneratingQuestions(false);
+        // setShowCountdown(true);
         socketService.startGame(roomInfo.roomId, socketQuestions);
       } catch (error) {
         console.error("Error starting game:", error);
@@ -368,7 +431,7 @@ const MultiplayerLobby = () => {
         const correctOption = [q.optionA, q.optionB, q.optionC, q.optionD].find(
           (option) => option.isCorrect
         );
-        
+
         return {
           id: index.toString(),
           question: q.question.en || q.question,
@@ -389,13 +452,12 @@ const MultiplayerLobby = () => {
     setIsGeneratingQuestions(false);
     if (roomInfo && roomInfo.roomId) {
       // Start the game with the questions{
-    socketService.startGame(roomInfo.roomId, socketQuestions);
+      socketService.startGame(roomInfo.roomId, socketQuestions);
     } else {
       console.error("Room info is not available to start the game");
       setErrorMessage("Failed to start the game - room info missing");
       setShowErrorAlert(true);
     }
-    
   };
 
   // ----- Admin goes to select category/topic -----
@@ -452,7 +514,7 @@ const MultiplayerLobby = () => {
         saveDataToCache(CACHE_KEY.currentRoom, null);
         // Remove all sent invitations
         handleRemoveAllInvites();
-        router.back();
+        router.push("/(tabs)/play");
       }
     }
   };
@@ -554,7 +616,7 @@ const MultiplayerLobby = () => {
   }
 
   // ==================== Render Component ====================
-// Show the local loader when AI is generating questions
+  // Show the local loader when AI is generating questions
   if (showLocalLoader && isGeneratingQuestions) {
     return (
       <QuizLoader
@@ -589,7 +651,7 @@ const MultiplayerLobby = () => {
         onPress={leaveRoom}
         accessibilityLabel="Leave room"
       >
-        <IconArrowBack/>
+        <IconArrowBack />
       </TouchableOpacity>
 
       <ScrollView
@@ -608,6 +670,13 @@ const MultiplayerLobby = () => {
           <Text style={styles.selectedCategory}>
             Selected Topic:{" "}
             {roomInfo.selectedTopic || roomInfo.selectedCategory}
+          </Text>
+        )}
+
+        {/* =========== TODO Display collected languages ============= */}
+        {allLanguages.length > 0 && (
+          <Text style={styles.languagesDisplay}>
+            Languages: {allLanguages.join(", ")}
           </Text>
         )}
 
@@ -729,6 +798,15 @@ const styles = StyleSheet.create({
     color: "#4caf50",
     fontWeight: "500",
   },
+  // ============== TODO
+  languagesDisplay: {
+    fontSize: FontSizes.TextMediumFs,
+    marginBottom: Gaps.g16,
+    color: "#2196f3",
+    fontWeight: "500",
+    textAlign: "center",
+  },
+  // ==============
   playersContainer: {
     width: "100%",
     marginBottom: Gaps.g32,

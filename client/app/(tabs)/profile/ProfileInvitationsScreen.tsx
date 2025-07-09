@@ -22,11 +22,13 @@ import IconAccept from "@/assets/icons/IconAccept";
 import IconDismiss from "@/assets/icons/IconDismiss";
 import IconPending from "@/assets/icons/IconPending";
 import { socketService } from "@/utilities/socketService";
-import { saveDataToCache, CACHE_KEY } from "@/utilities/cacheUtils";
+import { saveDataToCache, CACHE_KEY, loadCacheData } from "@/utilities/cacheUtils";
+import { useLanguage } from "@/providers/LanguageContext";
 
 const ProfilInvitationsScreen = () => {
   const router = useRouter();
   const { user } = useUser();
+  const { currentLanguage } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
   const [receivedInvites, setReceivedInvites] = useState<InviteRequest[]>([]);
 
@@ -54,7 +56,15 @@ const ProfilInvitationsScreen = () => {
 
       // Join the room via socket
       const playerName = user.firstName || user.emailAddresses[0]?.emailAddress || "Player";
-      socketService.joinRoom(roomcode, clerkUserId, playerName);
+      
+      // Get user's language from context or cache
+      let userLanguage = currentLanguage?.code;
+      if (!userLanguage) {
+        const cachedLanguage = await loadCacheData("selected_language");
+        userLanguage = cachedLanguage || "en"; // Default to English
+      }
+      
+      socketService.joinRoom(roomcode, clerkUserId, playerName, userLanguage);
 
       // Listen for successful room join
       socketService.onRoomJoined((data) => {

@@ -60,6 +60,7 @@ interface Player {
   socketId: string;
   score: number;
   isReady: boolean;
+  language?: string;
 }
 
 // Room storage (in production, better to use Redis)
@@ -76,6 +77,7 @@ io.on("connection", (socket) => {
       roomName: string;
       hostName: string;
       hostId: string;
+      hostLanguage?: string;
       settings: any;
     }) => {
       const roomId = generateRoomId();
@@ -91,6 +93,7 @@ io.on("connection", (socket) => {
             socketId: socket.id,
             score: 0,
             isReady: true,
+            language: data.hostLanguage,
           },
         ],
         maxPlayers: 6,
@@ -109,7 +112,7 @@ io.on("connection", (socket) => {
   // Join room
   socket.on(
     "join-room",
-    (data: { roomId: string; playerId: string; playerName: string }) => {
+    (data: { roomId: string; playerId: string; playerName: string; language?: string }) => {
       const room = quizRooms.get(data.roomId);
 
       if (!room) {
@@ -140,6 +143,7 @@ io.on("connection", (socket) => {
         socketId: socket.id,
         score: 0,
         isReady: false,
+        language: data.language,
       };
 
       room.players.push(newPlayer);

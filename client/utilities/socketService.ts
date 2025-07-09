@@ -22,6 +22,7 @@ export interface Player {
   socketId: string;
   score: number;
   isReady: boolean;
+  language?: string;
 }
 
 export interface QuizQuestion {
@@ -180,13 +181,14 @@ class SocketService {
     roomName: string,
     hostName: string,
     hostId: string,
-    settings: QuizSettings
+    settings: QuizSettings,
+    hostLanguage?: string
   ) {
-    this.emit("create-room", { roomName, hostName, hostId, settings });
+    this.emit("create-room", { roomName, hostName, hostId, hostLanguage, settings });
   }
 
-  joinRoom(roomId: string, playerId: string, playerName: string) {
-    this.emit("join-room", { roomId, playerId, playerName });
+  joinRoom(roomId: string, playerId: string, playerName: string, language?: string) {
+    this.emit("join-room", { roomId, playerId, playerName, language });
   }
 
   leaveRoom(roomId: string, playerId: string) {

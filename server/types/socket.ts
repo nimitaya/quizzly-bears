@@ -44,6 +44,7 @@ export interface Player {
   socketId: string;
   score: number;
   isReady: boolean;
+  language?: string;
   answers?: PlayerAnswer[];
 }
 
@@ -77,6 +78,7 @@ export interface CreateRoomData {
   roomName: string;
   hostName: string;
   hostId: string;
+  hostLanguage?: string;
   settings: QuizSettings;
 }
 
@@ -84,6 +86,7 @@ export interface JoinRoomData {
   roomId: string;
   playerId: string;
   playerName: string;
+  language?: string;
 }
 
 export interface LeaveRoomData {
