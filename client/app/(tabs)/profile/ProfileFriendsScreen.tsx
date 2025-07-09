@@ -233,16 +233,17 @@ const ProfilFriendsScreen = () => {
     console.log('🔍 DEBUG - Full friends state:', friendsState.friendList);
     console.log('🔍 DEBUG - Friends array:', friendsState.friendList.friends);
     
+    // Use MongoDB _id instead of clerkUserId since clerkUserId is not available
     const newFriendIds = friendsState.friendList.friends
       .map(friend => {
         console.log('🔍 DEBUG - Processing friend:', JSON.stringify(friend, null, 2));
-        console.log('🔍 DEBUG - Friend clerkUserId:', friend.clerkUserId);
+        console.log('🔍 DEBUG - Friend _id:', friend._id);
         console.log('🔍 DEBUG - Friend keys:', Object.keys(friend));
-        return friend.clerkUserId;
+        return friend._id; // Use _id instead of clerkUserId
       })
       .filter(Boolean) as string[];
     
-    console.log('🔄 Updating friendIds state:', newFriendIds);
+    console.log('🔄 Updating friendIds state (using _id):', newFriendIds);
     setFriendIds(newFriendIds);
   }, [friendsState.friendList.friends]);
 
@@ -356,7 +357,7 @@ const ProfilFriendsScreen = () => {
               <View 
                 style={[
                   styles.statusDot,
-                  { backgroundColor: isUserOnline(item.clerkUserId || '') ? '#4CAF50' : '#9E9E9E' }
+                  { backgroundColor: isUserOnline(item._id || '') ? '#4CAF50' : '#9E9E9E' }
                 ]}
               />
               <View style={styles.friendTextContainer}>
@@ -365,9 +366,9 @@ const ProfilFriendsScreen = () => {
                 </Text>
                 <Text style={[
                   styles.statusText,
-                  { color: isUserOnline(item.clerkUserId || '') ? '#4CAF50' : '#9E9E9E' }
+                  { color: isUserOnline(item._id || '') ? '#4CAF50' : '#9E9E9E' }
                 ]}>
-                  {isUserOnline(item.clerkUserId || '') ? 'Online' : 'Offline'}
+                  {isUserOnline(item._id || '') ? 'Online' : 'Offline'}
                 </Text>
               </View>
             </View>
