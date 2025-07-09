@@ -52,7 +52,7 @@ const ProfilFriendsScreen = () => {
     sentFriendRequests: { friendRequests: [] },
   });
 
-  const socket = io(process.env.EXPO_PUBLIC_SOCKET_BASE_URL);
+  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
 
   // =========== Functions ==========
   // Handler Search User
