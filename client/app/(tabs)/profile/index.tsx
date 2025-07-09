@@ -198,10 +198,7 @@ const ProfileScreen = () => {
         getReceivedInviteRequests(userData.clerkUserId)
           .then((response) => {
             if (!response?.inviteRequests) {
-              console.warn(
-                "⚠️ Немає поля inviteRequests у відповіді:",
-                response
-              );
+              console.warn("⚠️ No inviteRequests field in response:", response);
               return;
             }
 
@@ -209,19 +206,20 @@ const ProfileScreen = () => {
             const pendingInvites = allInvites.filter(
               (i) => i.status === "pending"
             );
-
-            console.log("📊 Усього запитів:", allInvites.length);
+            // Log all invite requests for debugging
+            console.log("All invite requests:", allInvites);
+            console.log("📊 Total requests:", allInvites.length);
             console.log("⏳ Pending:", pendingInvites.length);
 
             if (typeof setReceivedInviteRequests === "function") {
               setReceivedInviteRequests(pendingInvites.length);
-              console.log("✅ Оновлено стейт");
+              console.log("✅ State updated");
             } else {
-              console.warn("⚠️ setReceivedInviteRequests не є функцією");
+              console.warn("⚠️ setReceivedInviteRequests is not a function");
             }
           })
           .catch((error) => {
-            console.error("❌ getReceivedInviteRequests помилка:", error);
+            console.error("❌ getReceivedInviteRequests error:", error);
           });
       };
 
@@ -264,11 +262,8 @@ const ProfileScreen = () => {
       </View>
       <View style={styles.buttonsBox}>
         <ButtonSecondary
-          text={`Invitations  ${
-            (receivedInviteRequests ?? 0) > 0
-              ? ` (${receivedInviteRequests ?? 0})`
-              : ""
-          }`}
+          text="Invitations"
+          showBadge={(receivedInviteRequests ?? 0) > 0}
           onPress={() => router.push("/profile/ProfileInvitationsScreen")}
         />
         {user ? (
