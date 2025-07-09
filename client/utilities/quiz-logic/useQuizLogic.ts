@@ -40,9 +40,6 @@ export function useQuizLogic() {
   const currentPointsRef = useRef({ total: 0, chosenCorrect: 0 });
 
   // ========================================================== STATE MANAGEMENT ==========================================================
-  // TODO combine states
-  // Fix: change default language from "de" to "ru", as answers are selected in Russian
-  const [language, setLanguage] = useState("ru");
   const [currQuestionsArray, setCurrQuestionsArray] = useState<
     QuestionStructure[]
   >([]);
@@ -493,7 +490,6 @@ export function useQuizLogic() {
   }, [readTimer, answerState.isLocked]);
 
   return {
-    language,
     currentQuestionData,
     currQuestionIndex,
     answerState,

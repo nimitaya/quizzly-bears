@@ -29,7 +29,6 @@ import { getLocalizedText } from "@/utilities/languageUtils";
 
 const QuizLogic = () => {
   const {
-    language,
     currentQuestionData,
     currQuestionIndex,
     gameState,
