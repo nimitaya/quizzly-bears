@@ -60,8 +60,30 @@ const InviteFriendsScreen = () => {
   });
 
   const [sentInvites, setSentInvites] = useState<InviteRequest[]>([]);
-
+  const [onlineFriends, setOnlineFriends] = useState<Set<string>>(new Set());
   const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
+
+  useEffect(() => {
+    const socket = io(process.env.EXPO_PUBLIC_BASE_URL, {
+      auth: { clerkUserId: userData?.clerkUserId },
+    });
+
+    socket.on("user-online", ({ clerkUserId }) => {
+      setOnlineFriends((prev) => new Set(prev).add(clerkUserId));
+    });
+
+    socket.on("user-offline", ({ clerkUserId }) => {
+      setOnlineFriends((prev) => {
+        const updated = new Set(prev);
+        updated.delete(clerkUserId);
+        return updated;
+      });
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   // =========== Functions ==========
   // ----- Handler Fetch Friendlist -----
@@ -351,6 +373,9 @@ const InviteFriendsScreen = () => {
   // ----- Render Friend Item ----- TODO check online status
   const renderFriendItem = ({ item }: { item: User }) => {
     const isSelected = selectedFriends.includes(item._id);
+    const isOnline = item.clerkUserId
+      ? onlineFriends.has(item.clerkUserId)
+      : false;
     return (
       <TouchableOpacity
         style={[styles.friendItem, isSelected && styles.friendItemSelected]}
@@ -387,6 +412,9 @@ const InviteFriendsScreen = () => {
             <Text style={styles.friendStatus}>
               {" "}
               Online/ Offline TODO!
+              <Text style={styles.friendStatus}>
+                {isOnline ? "Online" : "Offline"}
+              </Text>
               {/* {item.isOnline ? "Online" : "Offline"} */}
             </Text>
           </View>
