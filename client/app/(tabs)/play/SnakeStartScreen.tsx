@@ -151,7 +151,7 @@ const SnakeStartScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: Colors.bgGray,
     alignItems: 'center',
     paddingTop: Gaps.g80,
   },

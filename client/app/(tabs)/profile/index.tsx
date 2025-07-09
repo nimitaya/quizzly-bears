@@ -10,7 +10,7 @@ import React, {
   useCallback,
   useContext,
 } from "react";
-import { Gaps } from "@/styles/theme";
+import { Gaps, Colors } from "@/styles/theme";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Loading from "@/app/Loading";
@@ -273,11 +273,8 @@ const ProfileScreen = () => {
         />
         {user ? (
           <ButtonSecondary
-            text={`Friends  ${
-              (receivedRequestsCount ?? 0) > 0
-                ? ` (${receivedRequestsCount ?? 0})`
-                : ""
-            }`}
+            text="Friends"
+            showBadge={(receivedRequestsCount ?? 0) > 0}
             onPress={() => router.push("/profile/ProfileFriendsScreen")}
           />
         ) : (
@@ -314,9 +311,15 @@ const styles = StyleSheet.create({
   contentContainer: {
     alignItems: "center",
     paddingBottom: Gaps.g24,
+    width: "100%",
+    maxWidth: "100%",
   },
   toggleBox: {
     gap: Gaps.g8,
+    width: "100%",
+    alignSelf: "stretch",
+    flexDirection: "column",
+    alignItems: "stretch",
   },
   buttonsBox: {
     marginTop: Gaps.g40,

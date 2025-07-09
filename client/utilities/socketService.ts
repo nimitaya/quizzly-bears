@@ -41,6 +41,43 @@ export interface QuizSettings {
   difficulty: "easy" | "medium" | "hard" | "mixed";
 }
 
+// Chat-related types
+export interface ChatMessage {
+  id: string;
+  roomId: string;
+  playerId: string;
+  playerName: string;
+  message: string;
+  timestamp: Date;
+  isOwnMessage?: boolean;
+}
+
+export interface SendChatMessageData {
+  roomId: string;
+  playerId: string;
+  message: string;
+}
+
+export interface PlayerTypingData {
+  roomId: string;
+  playerId: string;
+  isTyping: boolean;
+}
+
+export interface ChatMessageReceivedData {
+  id: string;
+  playerId: string;
+  playerName: string;
+  message: string;
+  timestamp: Date;
+}
+
+export interface PlayerTypingStatusData {
+  playerId: string;
+  playerName: string;
+  isTyping: boolean;
+}
+
 // Configuration
 // Platform-specific URLs for React Native development
 const getSocketUrls = () => {
@@ -218,6 +255,20 @@ class SocketService {
     this.emit("submit-answer", { roomId, playerId, answer, timeRemaining });
   }
 
+  // ========== CHAT FUNCTIONALITY ==========
+  
+  // Send chat message
+  sendChatMessage(roomId: string, playerId: string, message: string) {
+    this.emit("send-chat-message", { roomId, playerId, message });
+  }
+
+  // Send typing status
+  sendTypingStatus(roomId: string, playerId: string, isTyping: boolean) {
+    this.emit("player-typing", { roomId, playerId, isTyping });
+  }
+
+  // ========== END CHAT FUNCTIONALITY ==========
+
   // Universal methods for working with events
   emit(event: string, data?: any) {
     if (this.socket) {
@@ -326,6 +377,18 @@ class SocketService {
   onGameEnded(callback: (data: { finalScores: Player[] }) => void) {
     this.on("game-ended", callback);
   }
+
+  // ========== CHAT EVENT LISTENERS ==========
+  
+  onChatMessageReceived(callback: (data: ChatMessageReceivedData) => void) {
+    this.on("chat-message-received", callback);
+  }
+
+  onPlayerTypingStatus(callback: (data: PlayerTypingStatusData) => void) {
+    this.on("player-typing-status", callback);
+  }
+
+  // ========== END CHAT EVENT LISTENERS ==========
 
   onError(callback: (data: { message: string; code?: string }) => void) {
     this.on("error", callback);

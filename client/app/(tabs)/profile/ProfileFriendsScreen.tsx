@@ -216,7 +216,7 @@ const ProfilFriendsScreen = () => {
       if (userData) {
         const clerkUserId = userData.clerkUserId;
 
-        // 🔄 Оновити список друзів
+        // Update the friends list
         getFriends(clerkUserId).then((friends) => {
           setFriendsState((prev) => ({
             ...prev,
@@ -224,7 +224,7 @@ const ProfilFriendsScreen = () => {
           }));
         });
 
-        // 🧹 Оновити список запитів (прибрати прийнятий)
+        // Update the requests list (remove the accepted one)
         getSentFriendRequests(clerkUserId).then((sent) => {
           setFriendsState((prev) => ({
             ...prev,
@@ -426,10 +426,8 @@ const styles = StyleSheet.create({
   },
   pageTitle: {
     fontSize: FontSizes.H2Fs,
-    fontWeight: "600",
     textAlign: "center",
     marginBottom: Gaps.g24,
-    color: Colors.black,
   },
   searchContainer: {
     marginBottom: Gaps.g24,
@@ -455,7 +453,6 @@ const styles = StyleSheet.create({
   },
   friendName: {
     fontSize: FontSizes.TextLargeFs,
-    color: Colors.black,
     flex: 1,
   },
   actionButtons: {
@@ -463,7 +460,7 @@ const styles = StyleSheet.create({
     gap: Gaps.g16,
   },
   iconButton: {
-    padding: 4,
+    padding: Gaps.g4,
   },
   emptyContainer: {
     alignItems: "center",
@@ -471,7 +468,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FontSizes.TextLargeFs,
-    color: Colors.black,
     textAlign: "center",
   },
 });
