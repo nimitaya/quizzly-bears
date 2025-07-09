@@ -1,6 +1,6 @@
 import { Colors, FontSizes, Gaps, Radius } from "@/styles/theme";
 import React, { useState } from "react";
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Modal, View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 
 import { Logo } from "./Logos";
 
@@ -13,6 +13,9 @@ type CustomAlertProps = {
   confirmText?: string;
   onConfirm?: () => void;
   noInternet: boolean;
+  showMiniGamesButton?: boolean;
+  onMiniGamesPress?: () => void;
+  imageSource?: any;
 };
 
 const CustomAlert: React.FC<CustomAlertProps> = ({
@@ -24,21 +27,33 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
   confirmText = "OK",
   onConfirm = onClose,
   noInternet,
+  showMiniGamesButton = false,
+  onMiniGamesPress,
+  imageSource,
 }) => (
   <Modal transparent visible={visible} animationType="fade">
     <View style={styles.overlay}>
       <View style={styles.alertBox}>
+        {imageSource && (
+          <Image source={imageSource} style={styles.image} />
+        )}
         {noInternet ? <Logo size="small" /> : null}
         <Text style={styles.message}>{message}</Text>
         <View
           style={[
             styles.buttonRow,
             cancelText === null && styles.buttonRowSingle,
+            showMiniGamesButton && styles.buttonRowTriple,
           ]}
         >
           {cancelText !== null && (
             <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
               <Text style={styles.cancelText}>{cancelText}</Text>
+            </TouchableOpacity>
+          )}
+          {showMiniGamesButton && onMiniGamesPress && (
+            <TouchableOpacity style={styles.miniGamesBtn} onPress={onMiniGamesPress}>
+              <Text style={styles.miniGamesText}>Mini Games</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity style={styles.okBtn} onPress={onConfirm}>
@@ -79,6 +94,9 @@ const styles = StyleSheet.create({
   buttonRowSingle: {
     justifyContent: "flex-end",
   },
+  buttonRowTriple: {
+    justifyContent: "space-between",
+  },
   cancelBtn: {
     width: 120,
     height: 48,
@@ -101,6 +119,25 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.TextSmallFs,
   },
   okText: {
+    color: Colors.black,
+    textAlign: "center",
+    fontSize: FontSizes.TextSmallFs,
+  },
+  image: {
+    width: 120,
+    height: 120,
+    borderRadius: Radius.r50,
+    marginBottom: Gaps.g24,
+  },
+  miniGamesBtn: {
+    width: 120,
+    height: 48,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Colors.primaryLimo,
+    borderRadius: Radius.r50,
+  },
+  miniGamesText: {
     color: Colors.black,
     textAlign: "center",
     fontSize: FontSizes.TextSmallFs,
