@@ -36,6 +36,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     width: "100%",
     paddingHorizontal: Gaps.g32,
+    minWidth: 0,
+    flex: 1,
+    alignSelf: "stretch",
   },
   toggleTrack: {
     width: 56,

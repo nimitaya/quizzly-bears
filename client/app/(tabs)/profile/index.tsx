@@ -311,9 +311,15 @@ const styles = StyleSheet.create({
   contentContainer: {
     alignItems: "center",
     paddingBottom: Gaps.g24,
+    width: "100%",
+    maxWidth: "100%",
   },
   toggleBox: {
     gap: Gaps.g8,
+    width: "100%",
+    alignSelf: "stretch",
+    flexDirection: "column",
+    alignItems: "stretch",
   },
   buttonsBox: {
     marginTop: Gaps.g40,
