@@ -341,17 +341,15 @@ export const declineInvitationRequest = async (
       res.status(400).json({ error: "Invite request is not pending" });
       return;
     }
-
-    // Remove invite request from invite request collection
-    await InviteRequest.findByIdAndDelete(inviteRequestId);
-
     // Emit event to notify the requester about the declined friend request
     io.emit("inviteRequestDeclined", {
       inviteId: inviteRequest._id,
       from: inviteRequest.from,
       to: inviteRequest.to,
-      status: "declined",
     });
+
+    // Remove invite request from invite request collection
+    await InviteRequest.findByIdAndDelete(inviteRequestId);
 
     // ----- Response -----
     res.json({ message: "Invite request declined successfully" });
