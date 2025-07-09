@@ -11,11 +11,16 @@ import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
 import IconArrowBack from "@/assets/icons/IconArrowBack";
 import { Colors, FontSizes, Gaps } from "@/styles/theme";
-import { loadCacheData, CACHE_KEY } from "@/utilities/cacheUtils";
+import {
+  loadCacheData,
+  saveDataToCache,
+  CACHE_KEY,
+} from "@/utilities/cacheUtils";
 import CustomAlert from "@/components/CustomAlert";
 import {
   searchUserByEmail,
   sendInviteRequest,
+  removeAllInvites,
 } from "@/utilities/invitationApi";
 import { getFriends, sendFriendRequest } from "@/utilities/friendRequestApi";
 import { FriendsResponse, User } from "@/utilities/friendInterfaces";
@@ -24,6 +29,7 @@ import IconAddFriend from "@/assets/icons/IconAddFriend";
 import { UserContext } from "@/providers/UserProvider";
 import { Checkbox } from "@/components/Checkbox";
 import { RadioButton } from "@/components/RadioButton";
+import { socketService } from "@/utilities/socketService";
 
 interface RoomInfo {
   roomId: string;
@@ -198,6 +204,16 @@ const InviteFriendsScreen = () => {
     }
   };
 
+  // ----- Handler Remove ALL Invitations -----
+  const handleRemoveAllInvites = async () => {
+    try {
+      if (!userData) return;
+      await removeAllInvites(userData.clerkUserId);
+    } catch (error) {
+      console.error("Error removing all invitations:", error);
+    }
+  };
+
   // ----- Load Room Info -----
   const loadRoomInfo = async () => {
     try {
@@ -277,6 +293,26 @@ const InviteFriendsScreen = () => {
     } finally {
       setIsLoading(false);
     }
+  };  // ----- Leave Room -----
+  const leaveRoom = async () => {
+    try {
+      // If we have room info and user data, leave the socket room
+      if (roomInfo && userData) {
+        if (socketService.isConnected()) {
+          socketService.leaveRoom(roomInfo.roomId, userData.clerkUserId);
+        }
+      }
+      // Clear cache for current room
+      await saveDataToCache(CACHE_KEY.currentRoom, null);
+      // Delete sent invitations
+      await handleRemoveAllInvites();
+      // Navigate back
+      router.push("/(tabs)/play");
+    } catch (error) {
+      console.error("Error leaving room:", error);
+      // Still navigate back even if there's an error
+      router.push("/(tabs)/play");
+    }
   };
 
   // =========== UseEffect ==========
@@ -309,7 +345,7 @@ const InviteFriendsScreen = () => {
   }, [searchState.result]);
 
   // ========== Render Functions ==========
-  // ----- Render Friend Item ----- TODO check online status
+  // ----- Render Friend Item -----
   const renderFriendItem = ({ item }: { item: User }) => {
     const isSelected = selectedFriends.includes(item._id);
     return (
@@ -319,6 +355,7 @@ const InviteFriendsScreen = () => {
         // disabled={!item.isOnline}
       >
         <View style={styles.friendInfo}>
+          {/* TODO IMPORTANT */}
           {/* <View style={[styles.avatar, !item.isOnline && styles.avatarOffline]}> */}
           {/* <View style={styles.avatar}>
             <Text style={styles.avatarText}>
@@ -343,7 +380,7 @@ const InviteFriendsScreen = () => {
 
           <View style={styles.friendDetails}>
             <Text style={styles.friendName}>
-              {item.username || item.email.split('@')[0]}
+              {item.username || item.email.split("@")[0]}
             </Text>
             <Text style={styles.friendStatus}>
               {" "}
@@ -388,7 +425,7 @@ const InviteFriendsScreen = () => {
 
           <View style={styles.friendDetails}>
             <Text style={styles.friendName}>
-              {item.username || item.email.split('@')[0]}
+              {item.username || item.email.split("@")[0]}
             </Text>
           </View>
         </View>
@@ -417,7 +454,7 @@ const InviteFriendsScreen = () => {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.backButton}
-        onPress={() => router.back()}
+        onPress={leaveRoom}
         accessibilityLabel="Go back"
       >
         <IconArrowBack />

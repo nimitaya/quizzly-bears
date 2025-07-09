@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, use } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -241,6 +241,9 @@ const MultiplayerLobby = () => {
           return;
         }
 
+        console.log("STARTING GAME WITH SPECS:", cachedQuizSpecs.chosenTopic, "or", cachedQuizSpecs.quizCategory);
+        
+
         const fetchedQuestions = await generateMultipleQuizQuestions(
           cachedQuizSpecs.chosenTopic || cachedQuizSpecs.quizCategory,
           cachedQuizSpecs.quizLevel,
@@ -343,7 +346,7 @@ const MultiplayerLobby = () => {
     }
   };
 
-  // ========== Render Functions ==========
+  // ===================== Render Functions =====================
   // ----- Get Combined Players and Invites List -----
   const getCombinedPlayersList = () => {
     const invites = getFilteredSentInvites().map((invite) => ({
@@ -414,7 +417,7 @@ const MultiplayerLobby = () => {
     </View>
   );
 
-  // ===== CustomAlert handlers =====
+  // ================ CustomAlert handlers ================
   const handleNewHostAlertClose = () => {
     setShowNewHostAlert(false);
   };
