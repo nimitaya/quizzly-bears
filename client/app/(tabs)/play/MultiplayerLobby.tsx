@@ -62,6 +62,11 @@ const MultiplayerLobby = () => {
   const [sentInvites, setSentInvites] = useState<InviteRequest[]>([]);
   const [acceptedInvites, setAcceptedInvites] = useState<InviteRequest[]>([]);
 
+  // Loading
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [showLocalLoader, setShowLocalLoader] = useState(false);
+
   // ====================== Invite Functions =====================
   // ----- Handler fetch Invites -----
   const fetchInvites = async () => {
@@ -227,6 +232,9 @@ const MultiplayerLobby = () => {
       }
 
       try {
+        console.log("Starting quiz generation...");
+        setIsGeneratingQuestions(true);
+      setShowLocalLoader(true);
         // Load questions based on selected category
         // This should match the logic from StartQuizScreen
         const { loadCacheData } = await import("@/utilities/cacheUtils");
@@ -277,7 +285,9 @@ const MultiplayerLobby = () => {
             timeLimit: 30,
           })
         );
-
+        setShowLocalLoader(false);
+      setIsGeneratingQuestions(false);
+      setShowCountdown(true);
         socketService.startGame(roomInfo.roomId, socketQuestions);
       } catch (error) {
         console.error("Error starting game:", error);

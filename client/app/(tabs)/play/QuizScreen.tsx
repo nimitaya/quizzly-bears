@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {
   ScrollView,
   View,
@@ -23,9 +23,10 @@ import IconClose from "@/assets/icons/IconClose";
 import TimerBar from "@/components/TimerBar";
 import { clearCacheData, CACHE_KEY } from "@/utilities/cacheUtils";
 import CustomAlert from "@/components/CustomAlert";
-
 import { useLanguage } from "@/providers/LanguageContext";
 import { getLocalizedText } from "@/utilities/languageUtils";
+import {removeAllInvites} from "@/utilities/invitationApi";
+import { UserContext } from "@/providers/UserProvider";
 
 const QuizLogic = () => {
   const {
@@ -60,6 +61,7 @@ const QuizLogic = () => {
     settings: CACHE_KEY.quizSettings,
   };
 
+  const { userData } = useContext(UserContext);
   const [showAlert, setShowAlert] = useState(false);
 
   const handleRoundAgain = () => {
@@ -91,8 +93,19 @@ const QuizLogic = () => {
     clearCacheData(cacheKey.questions);
     clearCacheData(cacheKey.points);
     clearCacheData(cacheKey.settings);
+    handleRemoveAllInvites();
     router.push("./");
   };
+
+  // ----- Handler Remove ALL Invitations -----
+    const handleRemoveAllInvites = async () => {
+      try {
+        if (!userData) return;
+        await removeAllInvites(userData.clerkUserId);
+      } catch (error) {
+        console.error("Error removing all invitations:", error);
+      }
+    };
 
   // Languge utility functions
   const getQuestionText = () => {
