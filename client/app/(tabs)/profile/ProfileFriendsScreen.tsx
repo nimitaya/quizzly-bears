@@ -32,7 +32,7 @@ import { io } from "socket.io-client";
 
 const ProfilFriendsScreen = () => {
   const router = useRouter();
-  const { userData, setReceivedRequestsCount } = useContext(UserContext);
+  const { userData } = useContext(UserContext);
   const [isLoading, setIsLoading] = useState(false);
   const [searchState, setSearchState] = useState<{
     email: string;
