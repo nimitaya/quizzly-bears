@@ -9,8 +9,6 @@ type UserContextType = {
     music?: boolean;
     sounds?: boolean;
   }) => Promise<void>;
-  setOnChanges: React.Dispatch<React.SetStateAction<boolean>>;
-  onChanges: boolean;
   currentUsername: string | null;
   userRank: number | null;
   totalUsers: number | null;
@@ -21,12 +19,12 @@ type UserContextType = {
   refetch: Array<() => void>;
   receivedRequestsCount?: number;
   setReceivedRequestsCount: React.Dispatch<React.SetStateAction<number>>;
+  allRequests?: number;
+  setAllRequests?: React.Dispatch<React.SetStateAction<number>>;
 };
 
 export const UserContext = createContext<UserContextType>({
   updateUserSettings: async () => {},
-  setOnChanges: () => {},
-  onChanges: false,
   currentUsername: null,
   userRank: null,
   totalUsers: null,
@@ -37,6 +35,8 @@ export const UserContext = createContext<UserContextType>({
   refetch: [],
   receivedRequestsCount: 0,
   setReceivedRequestsCount: () => {},
+  allRequests: 0,
+  setAllRequests: () => {},
 });
 
 type TopPlayer = { username?: string; email: string; totalPoints: number };
@@ -46,7 +46,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const { user } = useUser();
   const userEmail = user?.primaryEmailAddress?.emailAddress ?? null;
-  const [onChanges, setOnChanges] = useState<boolean>(false);
   const [userData, setUserData] = useState<any>(null);
   const [topPlayers, setTopPlayers] = useState<TopPlayer[]>([]);
   const [totalUsers, setTotalUsers] = useState<number | null>(null);
@@ -56,6 +55,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loadingTopPlayers, setLoadingTopPlayers] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [receivedRequestsCount, setReceivedRequestsCount] = useState(0);
+  const [allRequests, setAllRequests] = useState(0);
 
   const fetchUserData = async () => {
     if (!user) {
@@ -68,13 +68,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       setLoadingUserData(true);
       const res = await axios.get(`${API_BASE_URL}/users/${user.id}`);
       setUserData(res.data);
+      setReceivedRequestsCount(res.data.friendRequests.length);
+      setAllRequests(res.data.friendRequests.length);
     } catch (err) {
       console.error("Failed to load user data", err);
       setUserData(null);
       setError("Failed to load user data");
     } finally {
       setLoadingUserData(false);
-      setOnChanges(false);
     }
   };
 
@@ -103,10 +104,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       setUserRank(null);
       setCurrentUsername(null);
       setError("Failed to load top players");
-      setOnChanges(false);
     } finally {
       setLoadingTopPlayers(false);
-      setOnChanges(false);
     }
   };
 
@@ -129,11 +128,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     fetchUserData();
-  }, [user, onChanges]);
+  }, [user]);
 
   useEffect(() => {
     fetchTopPlayers();
-  }, [userEmail, onChanges]);
+  }, [userEmail]);
 
   return (
     <UserContext.Provider
@@ -146,11 +145,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         loading: loadingUserData || loadingTopPlayers,
         error,
         refetch: [fetchUserData, fetchTopPlayers],
-        setOnChanges,
-        onChanges,
         updateUserSettings,
         receivedRequestsCount,
         setReceivedRequestsCount,
+        allRequests,
+        setAllRequests, // Fallback to empty function
       }}
     >
       {children}

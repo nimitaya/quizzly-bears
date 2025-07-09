@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import { Text, View, ScrollView } from "react-native";
 import { StyleSheet } from "react-native";
 import { useStatistics } from "@/providers/UserProvider";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import Loading from "../../Loading";
 import CustomAlert from "@/components/CustomAlert";
 import { useUser } from "@clerk/clerk-expo";
@@ -13,12 +13,12 @@ import { useUser } from "@clerk/clerk-expo";
 import { io } from "socket.io-client";
 
 const PlayScreen = () => {
-  const { topPlayers, loading, totalUsers, userRank, onChanges, refetch } =
+  const { topPlayers, loading, totalUsers, userRank, refetch } =
     useStatistics();
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const { user } = useUser();
-  const socket = io("https://quizzly-bears.onrender.com");
+  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
 
   useEffect(() => {
     socket.on("pointsUpdated", () => {
@@ -41,12 +41,6 @@ const PlayScreen = () => {
       setShowForm(true);
     }
   }, [topPlayers, loading]);
-
-  // useFocusEffect(
-  //   useCallback(() => {
-  //     refetch && refetch.forEach((fn) => fn());
-  //   }, [onChanges])
-  // );
 
   if (loading) return <Loading />;
   if (topPlayers.length === 0 && !loading) {
