@@ -188,7 +188,6 @@ const MultiplayerLobby = () => {
       
       // If we received questions from the server, cache them locally
       if (data.questions && data.questions.length > 0) {
-        console.log("Received questions from server:", data.questions.length);
         
         // Transform questions from socket format to the format expected by useQuizLogic
         const transformedQuestions = {
@@ -305,9 +304,6 @@ const MultiplayerLobby = () => {
           return;
         }
 
-        console.log("STARTING GAME WITH SPECS:", cachedQuizSpecs.chosenTopic, "or", cachedQuizSpecs.quizCategory);
-        
-
         const fetchedQuestions = await generateMultipleQuizQuestions(
           cachedQuizSpecs.chosenTopic || cachedQuizSpecs.quizCategory,
           cachedQuizSpecs.quizLevel,
@@ -315,9 +311,7 @@ const MultiplayerLobby = () => {
         );
 
         setGefetchteInfo(fetchedQuestions);
-        saveDataToCache(CACHE_KEY.aiQuestions, fetchedQuestions);
-        console.log("====DO WE GET HERE?====", fetchedQuestions);
-        
+        saveDataToCache(CACHE_KEY.aiQuestions, fetchedQuestions);       
 
         if (
           !fetchedQuestions ||
@@ -367,8 +361,6 @@ const MultiplayerLobby = () => {
 
   // IMPORTANT CHECK
   const handleCountdownComplete = () => {
-    console.log("=======Gefetchte Infos=======:", gefetchteInfo);
-    
     // Transform questions to socket format
     const socketQuestions = gefetchteInfo.questionArray.map(
       (q: any, index: number) => {
@@ -393,7 +385,6 @@ const MultiplayerLobby = () => {
         };
       }
     );
-    console.log("Countdown complete - navigating to QuizScreen");
     setShowCountdown(false);
     setIsGeneratingQuestions(false);
     if (roomInfo && roomInfo.roomId) {
