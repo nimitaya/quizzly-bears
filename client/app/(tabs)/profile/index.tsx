@@ -302,6 +302,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     marginTop: Gaps.g80,
+    maxWidth: 440,
   },
   contentContainer: {
     alignItems: "center",
