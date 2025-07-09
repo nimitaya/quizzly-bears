@@ -10,12 +10,12 @@ import quizRoomsRouter, { setRoomsReference } from "./routes/QuizRooms";
 import userRoutes from "./routes/UserStats";
 import pointsRouter from "./routes/PointsRoutes";
 import invitationsRouter from "./routes/InvitationsRoutes";
-import { 
-  ChatMessage, 
-  SendChatMessageData, 
+import {
+  ChatMessage,
+  SendChatMessageData,
   PlayerTypingData,
   ChatMessageReceivedData,
-  PlayerTypingStatusData
+  PlayerTypingStatusData,
 } from "./types/socket";
 
 const app = express();
@@ -39,6 +39,11 @@ app.use("/api/invite-request", invitationsRouter);
 app.use("/api/quiz", quizRoomsRouter);
 app.use("/api", userRoutes);
 app.use("/api/points", pointsRouter);
+app.get("/is-online/:clerkUserId", (req, res) => {
+  const { clerkUserId } = req.params;
+  const isOnline = onlineUsers.has(clerkUserId);
+  res.json({ isOnline });
+});
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
@@ -74,10 +79,19 @@ interface Player {
 
 // Room storage (in production, better to use Redis)
 const quizRooms = new Map<string, QuizRoom>();
+const onlineUsers = new Map<string, string>();
 
 // Socket.IO handlers
 io.on("connection", (socket) => {
   console.log(`User connected: ${socket.id}`);
+  const clerkUserId = socket.handshake.auth.clerkUserId;
+
+  if (clerkUserId) {
+    onlineUsers.set(clerkUserId, socket.id);
+
+    // 🔔 Сповісти інших
+    socket.broadcast.emit("user-online", { clerkUserId });
+  }
 
   // Room creation
   socket.on(
@@ -307,7 +321,7 @@ io.on("connection", (socket) => {
   });
 
   // ========== CHAT FUNCTIONALITY ==========
-  
+
   // Send chat message
   socket.on("send-chat-message", (data: SendChatMessageData) => {
     const room = quizRooms.get(data.roomId);
@@ -365,7 +379,9 @@ io.on("connection", (socket) => {
       timestamp: chatMessage.timestamp,
     });
 
-    console.log(`Chat message from ${player.name} in room ${data.roomId}: ${data.message}`);
+    console.log(
+      `Chat message from ${player.name} in room ${data.roomId}: ${data.message}`
+    );
   });
 
   // Player typing status
@@ -402,7 +418,11 @@ io.on("connection", (socket) => {
       isTyping: data.isTyping,
     });
 
-    console.log(`${player.name} is ${data.isTyping ? 'typing' : 'stopped typing'} in room ${data.roomId}`);
+    console.log(
+      `${player.name} is ${
+        data.isTyping ? "typing" : "stopped typing"
+      } in room ${data.roomId}`
+    );
   });
 
   // ========== END CHAT FUNCTIONALITY ==========
@@ -421,6 +441,14 @@ io.on("connection", (socket) => {
         leaveRoom(socket, roomId, player.id);
         break;
       }
+    }
+
+    // Remove user from online users
+    if (clerkUserId) {
+      onlineUsers.delete(clerkUserId);
+
+      // 🔕 Сповісти інших
+      socket.broadcast.emit("user-offline", { clerkUserId });
     }
   });
 });
@@ -442,12 +470,12 @@ function leaveRoom(socket: any, roomId: string, playerId: string) {
   if (playerIndex === -1) return;
 
   const player = room.players[playerIndex];
-  
+
   // Remove from typing players if they were typing (chat functionality)
   if (room.typingPlayers) {
     room.typingPlayers.delete(playerId);
   }
-  
+
   room.players.splice(playerIndex, 1);
   socket.leave(roomId);
 

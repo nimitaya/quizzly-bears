@@ -159,9 +159,7 @@ const _Layout = () => {
                 />
 
                 {(receivedRequestsCount ?? 0) + (receivedInviteRequests ?? 0) >
-                  0 && (
- <View style={styles.tabNotificationBadge} /></View>
-                )}
+                  0 && <View style={styles.tabNotificationBadge} />}
               </View>
             ),
           }}
