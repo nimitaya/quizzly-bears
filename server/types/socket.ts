@@ -8,6 +8,9 @@ export interface SocketEvents {
   "start-game": (data: StartGameData) => void;
   "next-question": (data: NextQuestionData) => void;
   "submit-answer": (data: SubmitAnswerData) => void;
+  // Chat events
+  "send-chat-message": (data: SendChatMessageData) => void;
+  "player-typing": (data: PlayerTypingData) => void;
 
   // Server -> Client
   "room-created": (data: RoomCreatedData) => void;
@@ -21,6 +24,9 @@ export interface SocketEvents {
   question: (data: QuestionData) => void;
   "game-ended": (data: GameEndedData) => void;
   error: (data: ErrorData) => void;
+  // Chat events
+  "chat-message-received": (data: ChatMessageReceivedData) => void;
+  "player-typing-status": (data: PlayerTypingStatusData) => void;
 }
 
 // Types for main data structures
@@ -36,6 +42,9 @@ export interface QuizRoom {
   questions?: QuizQuestion[];
   settings: QuizSettings;
   createdAt: Date;
+  // Chat functionality
+  chatMessages: ChatMessage[];
+  typingPlayers: Set<string>;
 }
 
 export interface Player {
@@ -199,4 +208,42 @@ export interface RoomDetailResponse {
 
 export interface RoomExistsResponse {
   exists: boolean;
+}
+
+// Chat-related types
+export interface ChatMessage {
+  id: string;
+  roomId: string;
+  playerId: string;
+  playerName: string;
+  message: string;
+  timestamp: Date;
+}
+
+export interface SendChatMessageData {
+  roomId: string;
+  playerId: string;
+  message: string;
+}
+
+export interface PlayerTypingData {
+  roomId: string;
+  playerId: string;
+  isTyping: boolean;
+}
+
+// Server -> Client chat events
+export interface ChatMessageReceivedData {
+  id: string;
+  playerId: string;
+  playerName: string;
+  message: string;
+  timestamp: Date;
+  isOwnMessage?: boolean;
+}
+
+export interface PlayerTypingStatusData {
+  playerId: string;
+  playerName: string;
+  isTyping: boolean;
 }
