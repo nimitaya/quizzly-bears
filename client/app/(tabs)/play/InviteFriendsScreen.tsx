@@ -60,7 +60,9 @@ const InviteFriendsScreen = () => {
   });
 
   const [sentInvites, setSentInvites] = useState<InviteRequest[]>([]);
-
+  const [onlineStatusMap, setOnlineStatusMap] = useState<{
+    [userId: string]: boolean;
+  }>({});
   const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
 
   // =========== Functions ==========
@@ -315,6 +317,32 @@ const InviteFriendsScreen = () => {
     fetchFriends();
   }, []);
 
+  //register user with socket.io
+  useEffect(() => {
+    if (userData) {
+      socket.emit("register-user", { userId: userData.clerkUserId });
+    }
+  }, [userData]);
+
+  //check if user is online
+  useEffect(() => {
+    if (!userData || friends.friends.length === 0) return;
+
+    const userIds = friends.friends.map((f) => f._id);
+
+    socket.emit(
+      "get-online-status",
+      { userIds },
+      (statuses: { userId: string; isOnline: boolean }[]) => {
+        const map: { [userId: string]: boolean } = {};
+        statuses.forEach((s) => {
+          map[s.userId] = s.isOnline;
+        });
+        setOnlineStatusMap(map);
+      }
+    );
+  }, [friends, userData]);
+
   useEffect(() => {
     // Register socket listener for declined invitations
     socket.on("inviteRequestDeclined", handleInviteDeclined);
@@ -386,7 +414,7 @@ const InviteFriendsScreen = () => {
             </Text>
             <Text style={styles.friendStatus}>
               {" "}
-              Online/ Offline TODO!
+              {onlineStatusMap[item._id] ? "🟢 Online" : "⚪ Offline"} TODO!
               {/* {item.isOnline ? "Online" : "Offline"} */}
             </Text>
           </View>

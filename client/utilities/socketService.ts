@@ -84,17 +84,18 @@ const getSocketUrls = () => {
   // ========== No hardcoded IP address anymore, needed to be added to be used on different IP addresses ==========
   // Common IP ranges to try - covers most home/office networks
   const commonIPs = [
+    "192.168.1.3",
     "192.168.178.21", // Sonja current IP
     "192.168.0.226", // Natallia IP
-    "192.168.1.100",  // Common router range (192.168.1.x)
-    "192.168.0.100",  // Common router range (192.168.0.x) 
-    "192.168.2.100",  // Another common range
-    "10.0.0.100",     // Some routers use 10.x.x.x
+    "192.168.1.100", // Common router range (192.168.1.x)
+    "192.168.0.100", // Common router range (192.168.0.x)
+    "192.168.2.100", // Another common range
+    "10.0.0.100", // Some routers use 10.x.x.x
   ];
-  
+
   if (Platform.OS === "android") {
     return [
-      ...commonIPs.map(ip => `http://${ip}:3000`), // Try common IPs for real device
+      ...commonIPs.map((ip) => `http://${ip}:3000`), // Try common IPs for real device
       "http://10.0.2.2:3000", // Android emulator
     ];
   } else if (Platform.OS === "ios") {
@@ -103,7 +104,7 @@ const getSocketUrls = () => {
       // Uncomment below for iOS simulator testing:
       // "http://localhost:3000", // iOS simulator
       // "http://127.0.0.1:3000", // iOS simulator fallback
-      ...commonIPs.map(ip => `http://${ip}:3000`), // Try common IPs for real device
+      ...commonIPs.map((ip) => `http://${ip}:3000`), // Try common IPs for real device
       "http://localhost:3000", // iOS simulator
       "http://127.0.0.1:3000", // iOS simulator fallback
     ];
@@ -111,7 +112,7 @@ const getSocketUrls = () => {
     return [
       "http://localhost:3000", // Web (primary)
       "http://127.0.0.1:3000", // Web fallback
-      ...commonIPs.map(ip => `http://${ip}:3000`), // Network fallbacks
+      ...commonIPs.map((ip) => `http://${ip}:3000`), // Network fallbacks
     ];
   }
 };
@@ -119,7 +120,8 @@ const getSocketUrls = () => {
 const SOCKET_URLS = getSocketUrls();
 
 // Best practice: Use environment variables for production URL
-const PRODUCTION_URL = process.env.EXPO_PUBLIC_SOCKET_URL || "https://quizzly-bears.onrender.com";
+const PRODUCTION_URL =
+  process.env.EXPO_PUBLIC_SOCKET_URL || "https://quizzly-bears.onrender.com";
 
 const SOCKET_URL = __DEV__ ? SOCKET_URLS[0] : PRODUCTION_URL;
 
@@ -256,7 +258,7 @@ class SocketService {
   }
 
   // ========== CHAT FUNCTIONALITY ==========
-  
+
   // Send chat message
   sendChatMessage(roomId: string, playerId: string, message: string) {
     this.emit("send-chat-message", { roomId, playerId, message });
@@ -379,7 +381,7 @@ class SocketService {
   }
 
   // ========== CHAT EVENT LISTENERS ==========
-  
+
   onChatMessageReceived(callback: (data: ChatMessageReceivedData) => void) {
     this.on("chat-message-received", callback);
   }

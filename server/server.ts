@@ -10,12 +10,12 @@ import quizRoomsRouter, { setRoomsReference } from "./routes/QuizRooms";
 import userRoutes from "./routes/UserStats";
 import pointsRouter from "./routes/PointsRoutes";
 import invitationsRouter from "./routes/InvitationsRoutes";
-import { 
-  ChatMessage, 
-  SendChatMessageData, 
+import {
+  ChatMessage,
+  SendChatMessageData,
   PlayerTypingData,
   ChatMessageReceivedData,
-  PlayerTypingStatusData
+  PlayerTypingStatusData,
 } from "./types/socket";
 
 const app = express();
@@ -74,10 +74,26 @@ interface Player {
 
 // Room storage (in production, better to use Redis)
 const quizRooms = new Map<string, QuizRoom>();
+const onlineUsers = new Map<string, string>();
 
 // Socket.IO handlers
 io.on("connection", (socket) => {
   console.log(`User connected: ${socket.id}`);
+
+  // Register user
+  socket.on("register-user", (data: { userId: string }) => {
+    onlineUsers.set(data.userId, socket.id);
+    console.log(`🟢 ${data.userId} is online`);
+  });
+
+  // online-status check
+  socket.on("get-online-status", (data: { userIds: string[] }, callback) => {
+    const statuses = data.userIds.map((userId) => ({
+      userId,
+      isOnline: onlineUsers.has(userId),
+    }));
+    callback(statuses);
+  });
 
   // Room creation
   socket.on(
@@ -307,7 +323,7 @@ io.on("connection", (socket) => {
   });
 
   // ========== CHAT FUNCTIONALITY ==========
-  
+
   // Send chat message
   socket.on("send-chat-message", (data: SendChatMessageData) => {
     const room = quizRooms.get(data.roomId);
@@ -365,7 +381,9 @@ io.on("connection", (socket) => {
       timestamp: chatMessage.timestamp,
     });
 
-    console.log(`Chat message from ${player.name} in room ${data.roomId}: ${data.message}`);
+    console.log(
+      `Chat message from ${player.name} in room ${data.roomId}: ${data.message}`
+    );
   });
 
   // Player typing status
@@ -402,7 +420,11 @@ io.on("connection", (socket) => {
       isTyping: data.isTyping,
     });
 
-    console.log(`${player.name} is ${data.isTyping ? 'typing' : 'stopped typing'} in room ${data.roomId}`);
+    console.log(
+      `${player.name} is ${
+        data.isTyping ? "typing" : "stopped typing"
+      } in room ${data.roomId}`
+    );
   });
 
   // ========== END CHAT FUNCTIONALITY ==========
@@ -410,6 +432,15 @@ io.on("connection", (socket) => {
   // Disconnect
   socket.on("disconnect", () => {
     console.log(`User disconnected: ${socket.id}`);
+
+    // Remove user from online users
+    for (const [userId, sId] of onlineUsers.entries()) {
+      if (sId === socket.id) {
+        onlineUsers.delete(userId);
+        console.log(`🔴 ${userId} went offline`);
+        break;
+      }
+    }
 
     // Find and remove player from all rooms
     for (const [roomId, room] of quizRooms.entries()) {
@@ -442,12 +473,12 @@ function leaveRoom(socket: any, roomId: string, playerId: string) {
   if (playerIndex === -1) return;
 
   const player = room.players[playerIndex];
-  
+
   // Remove from typing players if they were typing (chat functionality)
   if (room.typingPlayers) {
     room.typingPlayers.delete(playerId);
   }
-  
+
   room.players.splice(playerIndex, 1);
   socket.leave(roomId);
 
