@@ -79,23 +79,6 @@ const quizRooms = new Map<string, QuizRoom>();
 io.on("connection", (socket) => {
   console.log(`User connected: ${socket.id}`);
 
-  const onlineUsers = new Map<string, string>();
-  const clerkUserId = socket.handshake.auth.clerkUserId;
-
-  if (!clerkUserId) return;
-
-  console.log("✅ Connected:", clerkUserId);
-  onlineUsers.set(clerkUserId, socket.id);
-
-  // 🔔 Сповісти інших
-  socket.broadcast.emit("user-online", { clerkUserId });
-
-  // Emit online users to the newly connected user
-  socket.on("get-online-users", (_, callback) => {
-    const onlineIds = Array.from(onlineUsers.keys());
-    callback(onlineIds);
-  });
-
   // Room creation
   socket.on(
     "create-room",
@@ -432,9 +415,7 @@ io.on("connection", (socket) => {
 
   // Disconnect
   socket.on("disconnect", () => {
-    console.log("❌ Disconnected:", clerkUserId);
-    onlineUsers.delete(clerkUserId);
-    socket.broadcast.emit("user-offline", { clerkUserId });
+    console.log(`User disconnected: ${socket.id}`);
 
     // Find and remove player from all rooms
     for (const [roomId, room] of quizRooms.entries()) {
