@@ -74,26 +74,26 @@ interface Player {
 
 // Room storage (in production, better to use Redis)
 const quizRooms = new Map<string, QuizRoom>();
-const onlineUsers = new Map<string, string>();
 
 // Socket.IO handlers
 io.on("connection", (socket) => {
   console.log(`User connected: ${socket.id}`);
 
-  // Register user
-  socket.on("register-user", (data: { userId: string }) => {
-    onlineUsers.set(data.userId, socket.id);
-    console.log(`🟢 ${data.userId} is online`);
-  });
+  const onlineUsers = new Map<string, string>();
+  const clerkUserId = socket.handshake.auth.clerkUserId;
 
-  // online-status check
-  socket.on("get-online-status", (data: { userIds: string[] }, callback) => {
-    const statuses = data.userIds.map((userId) => ({
-      userId,
-      isOnline: onlineUsers.has(userId),
-    }));
-    callback(statuses);
+  if (!clerkUserId) return;
 
+  console.log("✅ Connected:", clerkUserId);
+  onlineUsers.set(clerkUserId, socket.id);
+
+  // 🔔 Сповісти інших
+  socket.broadcast.emit("user-online", { clerkUserId });
+
+  // Emit online users to the newly connected user
+  socket.on("get-online-users", (_, callback) => {
+    const onlineIds = Array.from(onlineUsers.keys());
+    callback(onlineIds);
   });
 
   // Room creation
@@ -435,15 +435,6 @@ io.on("connection", (socket) => {
     console.log("❌ Disconnected:", clerkUserId);
     onlineUsers.delete(clerkUserId);
     socket.broadcast.emit("user-offline", { clerkUserId });
-
-    // Remove user from online users
-    for (const [userId, sId] of onlineUsers.entries()) {
-      if (sId === socket.id) {
-        onlineUsers.delete(userId);
-        console.log(`🔴 ${userId} went offline`);
-        break;
-      }
-    }
 
     // Find and remove player from all rooms
     for (const [roomId, room] of quizRooms.entries()) {
