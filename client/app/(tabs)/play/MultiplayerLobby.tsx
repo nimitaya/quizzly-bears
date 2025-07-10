@@ -875,7 +875,7 @@ const MultiplayerLobby = () => {
         )}
 
         {/* Manual refresh button for testing */}
-        {!gameStarted && (
+        {/*{!gameStarted && (
           <TouchableOpacity
             onPress={() => {
               if (roomInfo?.roomId && socketService.isConnected()) {
@@ -888,6 +888,7 @@ const MultiplayerLobby = () => {
             <Text style={styles.refreshButtonText}>Refresh Players</Text>
           </TouchableOpacity>
         )}
+          */}
 
         {/* Show combined players and invitations */}
         <View style={styles.playersContainer}>
