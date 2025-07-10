@@ -93,6 +93,7 @@ io.on("connection", (socket) => {
       isOnline: onlineUsers.has(userId),
     }));
     callback(statuses);
+
   });
 
   // Room creation
@@ -431,7 +432,9 @@ io.on("connection", (socket) => {
 
   // Disconnect
   socket.on("disconnect", () => {
-    console.log(`User disconnected: ${socket.id}`);
+    console.log("❌ Disconnected:", clerkUserId);
+    onlineUsers.delete(clerkUserId);
+    socket.broadcast.emit("user-offline", { clerkUserId });
 
     // Remove user from online users
     for (const [userId, sId] of onlineUsers.entries()) {
