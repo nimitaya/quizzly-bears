@@ -35,33 +35,9 @@ app.use("/api/points", pointsRouter);
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
-// ==========NEW=======================Socket.IO Server Setup========
+// ======Socket.IO Server Setup======
 // Types for quiz rooms
-interface QuizRoom {
-  id: string;
-  name: string;
-  host: string;
-  hostSocketId: string;
-  players: Player[];
-  maxPlayers: number;
-  isStarted: boolean;
-  currentQuestion?: number;
-  questions?: any[];
-  settings: {
-    questionCount: number;
-    timePerQuestion: number;
-    categories: string[];
-  };
-}
-
-interface Player {
-  id: string;
-  name: string;
-  socketId: string;
-  score: number;
-  isReady: boolean;
-  language?: string;
-}
+import { QuizRoom, Player } from './types/socket';
 
 // Room storage (in production, better to use Redis)
 const quizRooms = new Map<string, QuizRoom>();
@@ -98,6 +74,7 @@ io.on("connection", (socket) => {
         ],
         maxPlayers: 6,
         isStarted: false,
+        createdAt: new Date(),
         settings: data.settings,
       };
 
@@ -351,20 +328,45 @@ io.on("connection", (socket) => {
   // Send next question
   socket.on("next-question", (data: { roomId: string }) => {
     const room = quizRooms.get(data.roomId);
-    if (!room || room.hostSocketId !== socket.id) return;
+    if (!room) {
+      console.log(`Room ${data.roomId} not found`);
+      return;
+    }
+    
+    // Allow any player to request next question (not just host)
+    console.log(`Next question request received for room ${data.roomId}`);
 
-    if (!room.questions || room.currentQuestion === undefined) return;
+    if (!room.questions || room.currentQuestion === undefined) {
+      console.log(`Room ${data.roomId} has no questions or currentQuestion is undefined`);
+      return;
+    }
 
-    if (room.currentQuestion < room.questions.length) {
-      const question = room.questions[room.currentQuestion];
+    // We always proceed to next question regardless of answers
+    // This ensures that even if there's any issue with tracking answers, the game will still progress when a player requests the next question
+    console.log(`Current question: ${room.currentQuestion}, Total questions: ${room.questions.length}`);
+      
+    if (room.currentQuestion < room.questions.length - 1) {
+      // Increment the question index
+      const nextQuestionIndex = room.currentQuestion + 1;
+      room.currentQuestion = nextQuestionIndex;
+      
+      const question = room.questions[nextQuestionIndex];
+      console.log(`Sending question ${nextQuestionIndex + 1} to room ${data.roomId}`);
+      
+      // First emit the next-question event to signal clients to prepare
+      io.to(data.roomId).emit("next-question");
+      
+      // Then emit the actual question content
       io.to(data.roomId).emit("question", {
         question,
-        questionNumber: room.currentQuestion + 1,
+        questionNumber: nextQuestionIndex + 1,
         totalQuestions: room.questions.length,
       });
-    } else {
-      // Game ended
-      io.to(data.roomId).emit("game-ended", {
+    } else if (room.currentQuestion === room.questions.length - 1) {
+      // This was the last question, game ended
+      console.log(`Game ended in room ${data.roomId}`);
+      // Send initial results that will be updated as players submit their final scores
+      io.to(data.roomId).emit("game-results", {
         finalScores: room.players.sort((a, b) => b.score - a.score),
       });
     }
@@ -389,11 +391,23 @@ io.on("connection", (socket) => {
       const currentQ = room.questions[room.currentQuestion];
       const isCorrect = data.answer === currentQ.correctAnswer;
 
-      if (isCorrect) {
-        // Award points (more for quick answer)
-        const timeBonus = Math.floor(data.timeRemaining / 1000);
-        player.score += 100 + timeBonus;
+      // Track that this player has answered the current question
+      if (!player.answers) {
+        player.answers = [];
       }
+      
+      player.answers.push({
+        questionId: currentQ.id || `q${room.currentQuestion}`,
+        answer: data.answer,
+        timeRemaining: data.timeRemaining,
+        isCorrect,
+        pointsEarned: 0, // We'll update this when final scores are submitted
+      });
+
+      // Check if all players have answered
+      const allPlayersAnswered = room.players.every(p => 
+        p.answers && p.answers.some(a => 
+          a.questionId === (currentQ.id || `q${room.currentQuestion}`)));
 
       // Notify everyone about the player's answer
       io.to(data.roomId).emit("player-answered", {
@@ -403,11 +417,67 @@ io.on("connection", (socket) => {
         currentScores: room.players.map((p) => ({
           id: p.id,
           name: p.name,
-          score: p.score,
+          // No score field here since we'll get the final scores at the end
         })),
       });
+      
+      // If all players have answered, automatically move to next question after delay
+      if (allPlayersAnswered && 
+          room.currentQuestion !== undefined && 
+          room.questions && 
+          room.currentQuestion < room.questions.length - 1) {
+        setTimeout(() => {
+          console.log(`All players answered in room ${data.roomId}, auto-advancing to next question`);
+          
+          // Reuse the next-question event handler logic to avoid duplication
+          // The server handles moving to the next question through this event
+          socket.emit("next-question", { roomId: data.roomId });
+        }, 3000); // 3 seconds delay before next question
+      }
     }
   );
+
+  // Submit game results
+  socket.on("submit-game-results", (data: { 
+    roomId: string; 
+    playerId: string; 
+    playerName: string;
+    gamePoints: {
+      score: number;
+      timePoints: number;
+      perfectGame: number;
+      total: number;
+      chosenCorrect: number;
+      totalAnswers: number;
+    }
+  }) => {
+    const room = quizRooms.get(data.roomId);
+    if (!room) return;
+
+    const player = room.players.find(p => p.id === data.playerId);
+    if (player) {
+      // Store the detailed game points
+      player.gamePoints = data.gamePoints;
+      // Update the player's score (used for sorting)
+      player.score = data.gamePoints.total;
+
+      // Broadcast updated results to all players in the room with sorted scores
+      io.to(data.roomId).emit("game-results", {
+        finalScores: [...room.players].sort((a, b) => (b.gamePoints?.total || 0) - (a.gamePoints?.total || 0))
+      });
+    }
+  });
+
+  // Get game results
+  socket.on("get-game-results", (data: { roomId: string }) => {
+    const room = quizRooms.get(data.roomId);
+    if (room) {
+      // Sort players by their total score in descending order for consistency with submit-game-results
+      socket.emit("game-results", {
+        finalScores: [...room.players].sort((a, b) => (b.gamePoints?.total || b.score || 0) - (a.gamePoints?.total || a.score || 0))
+      });
+    }
+  });
 
   // Leave room
   socket.on("leave-room", (data: { roomId: string; playerId: string }) => {

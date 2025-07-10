@@ -23,6 +23,16 @@ export interface Player {
   score: number;
   isReady: boolean;
   language?: string;
+  gamePoints?: GamePoints; // Add gamePoints to store detailed score information
+}
+
+export interface GamePoints {
+  score: number;
+  timePoints: number;
+  perfectGame: number;
+  total: number;
+  chosenCorrect: number;
+  totalAnswers: number;
 }
 
 export interface QuizQuestion {
@@ -90,6 +100,8 @@ const SOCKET_URL = __DEV__ ? SOCKET_URLS[0] : PRODUCTION_URL;
 class SocketService {
   private socket: Socket | null = null;
   private listeners: Map<string, Function[]> = new Map();
+  private connectionRetries = 0;
+  private maxRetries = 3;
 
   connect(): Promise<void> {
     return new Promise(async (resolve, reject) => {
@@ -127,7 +139,8 @@ class SocketService {
         timeout: 5000,
         reconnection: true,
         reconnectionDelay: 1000,
-        reconnectionAttempts: 3,
+        reconnectionAttempts: 5,
+        forceNew: true,
       });
 
       const timeout = setTimeout(() => {
@@ -141,6 +154,7 @@ class SocketService {
       this.socket.on("connect", () => {
         clearTimeout(timeout);
         console.log(`Connected to Socket.IO server at ${url}`);
+        this.connectionRetries = 0;
         resolve();
       });
 
@@ -158,6 +172,21 @@ class SocketService {
         console.log("Disconnected from Socket.IO server");
       });
     });
+  }
+
+  // Simple method to check connection and reconnect if needed
+  async ensureConnection(): Promise<boolean> {
+    if (!this.socket || !this.socket.connected) {
+      try {
+        console.log("Socket not connected, attempting to reconnect...");
+        await this.connect();
+        return true;
+      } catch (err) {
+        console.error("Reconnection failed:", err);
+        return false;
+      }
+    }
+    return true;
   }
 
   disconnect() {
@@ -229,6 +258,16 @@ class SocketService {
     timeRemaining: number
   ) {
     this.emit("submit-answer", { roomId, playerId, answer, timeRemaining });
+  }
+
+  // send game results of every player
+  submitGameResults(
+    roomId: string,
+    playerId: string,
+    playerName: string,
+    gamePoints: GamePoints
+  ) {
+    this.emit("submit-game-results", { roomId, playerId, playerName, gamePoints });
   }
 
   // Universal methods for working with events
@@ -344,8 +383,10 @@ class SocketService {
     this.on("question", callback);
   }
 
+  // Deprecated - use onGameResults instead
   onGameEnded(callback: (data: { finalScores: Player[] }) => void) {
-    this.on("game-ended", callback);
+    console.warn('onGameEnded is deprecated, use onGameResults instead');
+    this.on("game-results", callback);
   }
 
   onError(callback: (data: { message: string; code?: string }) => void) {
@@ -355,6 +396,11 @@ class SocketService {
   // Quiz settings synchronization
   onQuizSettingsSync(callback: (data: { quizSettings: any }) => void) {
     this.on("quiz-settings-sync", callback);
+  }
+
+  // Get game results of all players
+  onGameResults(callback: (data: { finalScores: Player[] }) => void) {
+    this.on("game-results", callback);
   }
 }
 

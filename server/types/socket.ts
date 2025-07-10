@@ -46,6 +46,14 @@ export interface Player {
   isReady: boolean;
   language?: string;
   answers?: PlayerAnswer[];
+  gamePoints?: {
+    score: number;
+    timePoints: number;
+    perfectGame: number;
+    total: number;
+    chosenCorrect: number;
+    totalAnswers: number;
+  };
 }
 
 export interface QuizQuestion {

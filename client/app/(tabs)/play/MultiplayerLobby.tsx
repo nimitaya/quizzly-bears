@@ -93,7 +93,7 @@ const MultiplayerLobby = () => {
     setAllLanguages(languages);
     
     // Update roomInfo with the collected languages
-    if (roomInfo) {
+    if (roomInfo && (!roomInfo.languages || !arraysEqual(roomInfo.languages, languages))) {
       const updatedRoomInfo = {
         ...roomInfo,
         languages: languages
@@ -101,8 +101,13 @@ const MultiplayerLobby = () => {
       setRoomInfo(updatedRoomInfo);
       // Save to cache
       saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
-      
     }
+  };
+  
+  // Helper function to compare arrays for equality
+  const arraysEqual = (a: string[], b: string[]) => {
+    if (a.length !== b.length) return false;
+    return a.every((val, index) => val === b[index]);
   };
 
   // ====================== Invite Functions =====================
@@ -224,8 +229,13 @@ const MultiplayerLobby = () => {
       );
       
       if (currentPlayer && currentPlayer.language !== currentLanguage.code) {
-        // Could add a socket event to update player language ? TODO
-        // socketService.updatePlayerLanguage(roomInfo.roomId, currentPlayer.id, currentLanguage.code);
+        // Emit language update to server through rejoin-room event
+        socketService.rejoinRoom(
+          roomInfo.roomId, 
+          userData?.clerkUserId || currentPlayer.id, 
+          userData?.username || currentPlayer.name, 
+          currentLanguage.code
+        );
         console.log(`Player ${currentPlayer.name} language changed to ${currentLanguage.code}`);
       }
     }

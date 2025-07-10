@@ -12,6 +12,7 @@ import {
   AnswerState,
   PointsState,
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
+import socketService from "@/utilities/socketService";
 // Dummy data: TODO
 import {
   AiQuestions,
@@ -168,11 +169,14 @@ export function useQuizLogic() {
     readTimeout.current = setTimeout(() => {
       // Set read timer to true after 2 seconds to show the answers
       setReadTimer(true);
-      // Start - you have 10 seconds to choose an answer
+      // Start - you have 30 seconds to choose an answer
       answerTimeout.current = setTimeout(() => {
         setAnswerState((prevState) => ({ ...prevState, isLocked: true }));
         handleAnswerCheck();
+        
+        // For multiplayer modes, automatically move to next question after a delay
         if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
+
           setTimeout(() => {
             handleNextQuestion();
           }, NEXT_QUESTION_DELAY);
@@ -216,12 +220,16 @@ export function useQuizLogic() {
   };
 
   // ----- Handle ANSWER SUBMISSION -----
-  const handleAnswerSubmit = (): void => {
+  const handleAnswerSubmit = () => {
+    // Store the chosen answer before updating state
+    const selectedAnswer = answerState.chosenAnswer;
+    
     setAnswerState((prevState) => ({
       ...prevState,
       isSubmitted: true,
       isLocked: true,
     }));
+    // Check the answer and update points
     handleAnswerCheck();
   };
 
@@ -266,7 +274,9 @@ export function useQuizLogic() {
     
     const selectedOption = options[optionIndex];
     return selectedOption.isCorrect;
-  };  // ----- Handle ANSWER CHECK -----
+  };  
+  
+  // ----- Handle ANSWER CHECK -----
   const handleAnswerCheck = (): void => {
     const isCorrect = getIsCorrect();
     
@@ -289,7 +299,7 @@ export function useQuizLogic() {
         allCorrect,
         totalQuestions,
         correctAnswers,
-      });
+      });      
       
       // Early exit if null
       if (!gainedPoints) {
@@ -405,12 +415,31 @@ export function useQuizLogic() {
     // Logic for Group Play
     else if (
       (currQuestionIndex < currQuestionsArray.length - 1 &&
-        gameState.playStyle === "group") ||
-      gameState.playStyle === "duel"
-    ) {
+        (gameState.playStyle === "group"||
+      gameState.playStyle === "duel")) 
+    ) {     
+      // Progress to the next question after a short delay
       setTimeout(() => {
-        setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
+        setCurrentQuestionIndex(prevIndex => prevIndex + 1);
         setReadTimer(false);
+        
+        // Optionally notify the server about the question change (for analytics)
+        // const notifyQuestionChange = async () => {
+        //   try {
+        //     const roomInfo = await loadCacheData(CACHE_KEY.currentRoom);
+        //     if (roomInfo && roomInfo.roomId) {
+        //       socketService.emit("question-progress", {
+        //         roomId: roomInfo.roomId,
+        //         questionIndex: currQuestionIndex + 1,
+        //         playerId: user?.id || "guest"
+        //       });
+        //     }
+        //   } catch (error) {
+        //     // Non-critical operation, just log the error
+        //     console.log("Error notifying question change:", error);
+        //   }
+        // };
+        // notifyQuestionChange();
       }, NEXT_QUESTION_DELAY);
     }
     // ---------------------------------
@@ -435,13 +464,6 @@ export function useQuizLogic() {
         setOnChanges(true);
       });
     }
-    
-    // OLD VERSION (COMMENTED):
-    // send to database
-    // if (user?.id) {
-    //   sendPointsToDatabase(user.id);  // PROBLEM: setOnChanges not available in pointsUtils
-    // }
-    
     // clear cached data
     clearCachePoints();
     // Clear all timers
@@ -478,6 +500,27 @@ export function useQuizLogic() {
       }
     };
   }, [currQuestionIndex]);
+  
+  // ----- Setup for multiplayer mode -----
+  // useEffect(() => {
+  //   if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
+  //     console.log("Setting up multiplayer game");
+      
+  //     // Listen for game results at the end
+  //     const handleGameResults = (data: any) => {
+  //       console.log("Received game results from server:", data);
+  //     };
+      
+  //     // Register the listener for game results only
+  //     socketService.on("game-results", handleGameResults);
+      
+  //     // Clean up the listeners when component unmounts or playStyle changes
+  //     return () => {
+  //       console.log("Cleaning up multiplayer listeners");
+  //       socketService.off("game-results", handleGameResults);
+  //     };
+  //   }
+  // }, [gameState.playStyle]);
 
   // ----- Show COUNTDOWN Timer -----
   useEffect(() => {

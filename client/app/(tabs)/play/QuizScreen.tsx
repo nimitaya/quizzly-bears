@@ -21,12 +21,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
 import IconClose from "@/assets/icons/IconClose";
 import TimerBar from "@/components/TimerBar";
-import { clearCacheData, CACHE_KEY } from "@/utilities/cacheUtils";
+import { clearCacheData, CACHE_KEY, loadCacheData } from "@/utilities/cacheUtils";
 import CustomAlert from "@/components/CustomAlert";
 import { useLanguage } from "@/providers/LanguageContext";
 import { getLocalizedText } from "@/utilities/languageUtils";
-import {removeAllInvites} from "@/utilities/invitationApi";
+import { removeAllInvites } from "@/utilities/invitationApi";
 import { UserContext } from "@/providers/UserProvider";
+import socketService from "@/utilities/socketService";
 
 const QuizLogic = () => {
   const {
@@ -65,18 +66,81 @@ const QuizLogic = () => {
 
   const { userData } = useContext(UserContext);
   const [showAlert, setShowAlert] = useState(false);
+  
+  // ~~~~~~~ Effect to ensure socket connection for final results ~~~~~~~
+  useEffect(() => {
+    if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
+      // Just make sure socket is connected for final results
+      console.log("Ensuring socket connection for multiplayer results...");
+      socketService.ensureConnection();
+    }
+    
+    return () => {
+      // Nothing to clean up
+    };
+  }, [gameState.playStyle]);
 
-  const handleRoundAgain = () => {
+  // ~~~~~~~~~~~~~ Effect to handle cleanup when component unmounts ~~~~~~~~~~~~~~~~~~~~~~~
+  // useEffect(() => {
+  //   return () => {
+  //     // Cleanup function that runs when component unmounts
+  //     const cleanupSocketRoom = async () => {
+  //       if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
+  //         await leaveSocketRoom();
+  //       }
+  //     };
+      
+  //     cleanupSocketRoom();
+  //   };
+  // }, [gameState.playStyle, userData]);
+
+  const handleRoundAgain = async () => {
     clearCacheData(cacheKey.questions);
     clearCacheData(cacheKey.points);
     clearCacheData(cacheKey.settings);
+
+    // in Multiplayer send gameState and pointsState to socket server
+    if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
+      try {
+        const roomInfo = await loadCacheData(cacheKey.currentRoom);
+        if (roomInfo && roomInfo.roomId && userData) {
+          // Send the player's score to the socket server
+          socketService.submitGameResults(
+            roomInfo.roomId,
+            userData.clerkUserId,
+            userData.username || userData.email,
+            {
+              score: pointsState.score,
+              timePoints: pointsState.timePoints,
+              perfectGame: pointsState.perfectGame,
+              total: pointsState.score + pointsState.timePoints,
+              chosenCorrect: pointsState.chosenCorrect,
+              totalAnswers: pointsState.totalAnswers
+            }
+          );
+          // Navigate to the multiplayer results screen
+          router.push("./MultiplayerResultScreen");
+        } else {
+          console.error("Missing room info or user data");
+        }
+      } catch (error) {
+        console.error("Error submitting game results:", error);
+      }
+      return;
+    }
     router.push("./CategoryScreen");
-  };
-
-  const handleHome = () => {
+  };  
+  
+  const handleHome = async () => {
     clearCacheData(cacheKey.questions);
     clearCacheData(cacheKey.points);
     clearCacheData(cacheKey.settings);
+    // Leave socket room if in multiplayer mode
+    if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
+      await leaveSocketRoom();
+      clearCacheData(cacheKey.currentRoom);
+      handleRemoveAllInvites();
+    }
     router.push("./");
   };
 
@@ -90,41 +154,65 @@ const QuizLogic = () => {
     setShowAlert(false);
   };
 
-  const handleConfirmAlert = () => {
+  const handleConfirmAlert = async () => {
     setShowAlert(false);
     clearCacheData(cacheKey.questions);
     clearCacheData(cacheKey.points);
     clearCacheData(cacheKey.settings);
-    clearCacheData(cacheKey.currentRoom);
-    handleRemoveAllInvites();
+    
+    // Leave socket room if in multiplayer mode
+    if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
+      await leaveSocketRoom();
+      clearCacheData(cacheKey.currentRoom);
+      handleRemoveAllInvites();
+    }
+    
     router.push("./");
   };
 
   // ----- Handler Remove ALL Invitations -----
-    const handleRemoveAllInvites = async () => {
+  const handleRemoveAllInvites = async () => {
+    try {
+      if (!userData) return;
+      await removeAllInvites(userData.clerkUserId);
+    } catch (error) {
+      console.error("Error removing all invitations:", error);
+    }
+  };
+  
+  // ----- Helper function to leave socket room -----
+  const leaveSocketRoom = async () => {
+    if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
       try {
-        if (!userData) return;
-        await removeAllInvites(userData.clerkUserId);
+        const roomInfo = await loadCacheData(cacheKey.currentRoom);
+        if (roomInfo && roomInfo.roomId && userData) {
+          console.log("Leaving socket room:", roomInfo.roomId);
+          socketService.leaveRoom(roomInfo.roomId, userData.clerkUserId);
+        }
       } catch (error) {
-        console.error("Error removing all invitations:", error);
+        console.error("Error leaving socket room:", error);
       }
-    };
+    }
+  };
 
   // Language utility functions
   const getQuestionText = () => {
-    if (!currentQuestionData?.question) return "";    
-    const result = getLocalizedText(currentQuestionData.question, currentLanguage.code);
+    if (!currentQuestionData?.question) return "";
+    const result = getLocalizedText(
+      currentQuestionData.question,
+      currentLanguage.code
+    );
     return result;
   };
 
   const getOptionText = (optionData: any) => {
     if (!optionData) return "";
-    
+
     // If optionData is already a string, return it
-    if (typeof optionData === 'string') {
+    if (typeof optionData === "string") {
       return optionData;
     }
-    
+
     // Create a localized string object by extracting the text part (without isCorrect)
     const { isCorrect, ...localizedText } = optionData;
     const result = getLocalizedText(localizedText, currentLanguage.code);
@@ -175,7 +263,7 @@ const QuizLogic = () => {
 
           <View style={styles.buttonsContainer}>
             <ButtonPrimary
-              text="Play again"
+              text={gameState.playStyle === "solo" ? "Play again" : "Next"}
               onPress={() => handleRoundAgain()}
             />
             <ButtonSecondary text="Home" onPress={() => handleHome()} />
@@ -259,7 +347,7 @@ const QuizLogic = () => {
                   {answerState.isLocked && gameState.playStyle === "solo" ? (
                     <ButtonPrimary text="Next" onPress={handleNextQuestion} />
                   ) : answerState.isLocked &&
-                    gameState.playStyle === "group" ? (
+                    (gameState.playStyle === "group" || gameState.playStyle === "duel") ? (
                     <ButtonPrimaryDisabled text="Waiting for other bears..." />
                   ) : answerState.isSelected ? (
                     <ButtonPrimary text="Answer" onPress={handleAnswerSubmit} />
@@ -304,7 +392,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     marginVertical: Gaps.g80,
   },
-
   closeButton: {
     position: "absolute",
     top: -8,
@@ -336,9 +423,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     minHeight: 135,
   },
-
-  questionScreenContainer: {},
-
+  questionScreenContainer: {
+    // NO STYLING?
+  },
   resultsContainer: {
     alignItems: "flex-start",
     gap: Gaps.g16,
