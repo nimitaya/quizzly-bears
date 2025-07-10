@@ -36,6 +36,32 @@ const getLanguageName = (code: string): string => {
   return language?.name || "English";
 };
 
+// ==================== DIFFICULTY LEVELS CONFIGURATION ================================
+const getDifficultyDescription = (difficulty: Difficulty): string => {
+  const difficultyLevels = {
+    easy: {
+      description: "Basic knowledge and common facts",
+      characteristics: "Simple recall, well-known information, straightforward concepts",
+      examples: "What is the capital of France? Which planet is closest to the Sun?",
+      complexity: "Elementary level understanding required"
+    },
+    medium: {
+      description: "Moderate complexity requiring some analysis",
+      characteristics: "Application of knowledge, moderate reasoning, connections between concepts",
+      examples: "Why does water boil at different temperatures at different altitudes? How do photosynthesis and respiration relate?",
+      complexity: "Intermediate level understanding and basic analysis required"
+    },
+    hard: {
+      description: "Advanced knowledge requiring deep understanding",
+      characteristics: "Complex analysis, synthesis of multiple concepts, expert-level knowledge",
+      examples: "What are the implications of quantum entanglement for computing? How do monetary policies affect international trade dynamics?",
+      complexity: "Advanced level critical thinking and specialized knowledge required"
+    }
+  };
+
+  return difficultyLevels[difficulty]?.description || difficultyLevels.medium.description;
+};
+
 // ==================== CONSISTENT PROMPT GENERATOR ========================================
 const generatePrompt = (
   topic: string,
@@ -50,63 +76,111 @@ const generatePrompt = (
   const sessionId = Math.random().toString(36).substring(2, 15);
   const topicHash = topic.toLowerCase().replace(/\s+/g, "-").substring(0, 10);
   const uniqueId = `${topicHash}-${difficulty}-${timestamp}-${randomSeed}-${sessionId}`;
+  const difficultySpec = getDifficultyDescription(difficulty);
 
-  return `Generate EXACTLY ${questionCount} unique, factual multiple-choice quiz questions about "${topic}" at the ${difficulty} level.
-JSON FORMAT (respond with this exact structure only):
-{
-  "category": "${topic}",
-  "questionArray": [
-    {
-      "question": {
-        "en": "English question text",
-        "${currentLanguageCode}": "Native ${currentLanguageName} question text"
-      },
-      "optionA": {
-        "isCorrect": true/false,
-        "en": "English answer",
-        "${currentLanguageCode}": "Native ${currentLanguageName} answer"
-      },
-      "optionB": {
-        "isCorrect": true/false,
-        "en": "English answer",
-        "${currentLanguageCode}": "Native ${currentLanguageName} answer"
-      },
-      "optionC": {
-        "isCorrect": true/false,
-        "en": "English answer",
-        "${currentLanguageCode}": "Native ${currentLanguageName} answer"
-      },
-      "optionD": {
-        "isCorrect": true/false,
-        "en": "English answer",
-        "${currentLanguageCode}": "Native ${currentLanguageName} answer"
+  
+  return `Generate EXACTLY ${questionCount} unique multiple-choice quiz questions about "${topic}" at ${difficulty.toUpperCase()} difficulty level.
+
+  DIFFICULTY SPECIFICATIONS FOR ${difficulty.toUpperCase()}:
+  - Level: ${difficultySpec}
+  - Characteristics: ${difficultySpec}
+  - Complexity: ${difficultySpec}
+  - Examples: ${difficultySpec}
+  
+  REQUIRED JSON FORMAT (respond with this structure only):
+  {
+    "category": "${topic}",
+    "questionArray": [
+      {
+        "question": {
+          "en": "English question text",
+          "${currentLanguageCode}": "Native ${currentLanguageName} question text"
+        },
+        "optionA": {
+          "isCorrect": true/false,
+          "en": "English answer",
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"
+        },
+        "optionB": {
+          "isCorrect": true/false,
+          "en": "English answer",
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"
+        },
+        "optionC": {
+          "isCorrect": true/false,
+          "en": "English answer",
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"
+        },
+        "optionD": {
+          "isCorrect": true/false,
+          "en": "English answer",
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"
+        }
       }
-    }
-  ]
-}
-- Each question must be completely original and test a different aspect of "${topic}"
-- Questions must be written in **both English** and **${currentLanguageName}** (${currentLanguageCode})
-- All text in ${currentLanguageCode} must be in authentic, natural native language — no other languages allowed
-- Use only verified facts, specific names, dates, and real-world data
-- Vary question styles: factual, analytical, comparative, and conceptual
-- Each question must be up to **120 characters long**
-- Each answer option must be up to **40 characters long**
-- Provide exactly four answer options per question, labeled A, B, C, and D
-- Only ONE correct answer per question: use \`"isCorrect": true\` for that option
-- Distribute correct answers **randomly and evenly** among A, B, C, and D — over the full question set, each option must appear as the correct answer in approximately 25% of cases
-- The same correct option (A, B, C, or D) **must NOT appear more than twice in a row**
-- Make incorrect options **plausible** but clearly wrong and not misleading
-- Use clear, unambiguous wording in all answer options
-- Ensure all characters are UTF-8 encoded for ${currentLanguageName}
-- Avoid duplicated questions, options, or phrasing
-- Escape all JSON special characters properly
-- Do NOT include any extra text — only the final JSON structure
-- Maintain the exact same structure, tone, and formatting across ALL requests
-- Do NOT introduce new output styles, patterns, or formats in future generations
-- Persist and respect all rules consistently in every session or follow-up request
-- All questions must have different answer options, if you generate some question with the same answer options, you must generate a new question
-- Session ID: ${uniqueId}`;
-};
+    ]
+  }
+  
+  CONTENT REQUIREMENTS:
+  - Create ${questionCount} completely unique questions about different aspects of "${topic}"
+  - Include questions in both English and ${currentLanguageName} (${currentLanguageCode})
+  - Use only factual, verifiable information with specific names, dates, and data
+  - Mix question types: factual recall, analysis, comparison, and application
+  - IMPORTANt: All questions must match ${difficulty.toUpperCase()} difficulty level: ${difficultySpec}
+  - Question complexity should require: ${difficultySpec}
+  
+  CHARACTER LIMITS:
+  - Question text: maximum 120 characters per language
+  - Answer options: maximum 40 characters per language
+  - Count includes spaces and punctuation
+  
+  ANSWER STRUCTURE:
+  - Provide exactly 4 options: A, B, C, D for each question
+  - Set "isCorrect": true for exactly ONE option per question
+  - Set "isCorrect": false for the other three options
+  - Make incorrect options believable but clearly wrong
+  - Use precise, unambiguous language in all options
+  - All answer must be different from each other, no same text.
+
+  CRITICAL ANTI-DUPLICATION REQUIREMENTS:
+- ALL 4 options must be completely different in meaning and wording
+- NO two options can be similar, even if slightly different
+- NO options like: "Paris", "Paris, France", "The city of Paris", "Capital Paris"
+- NO number sequences like: "1", "2", "3", "4" or "2020", "2021", "2022", "2023"
+- NO synonyms or near-synonyms: "Big", "Large", "Huge", "Enormous"
+- NO options that are subsets of others: "Spain" vs "Spain and Portugal"
+- Each option must represent a DISTINCT, UNIQUE concept or answer
+- Vary option types: mix names, numbers, concepts, places appropriately
+
+EXAMPLES OF FORBIDDEN DUPLICATES:
+❌ BAD: ["Red", "Blue", "Green", "Yellow"] - too similar category
+❌ BAD: ["1995", "1996", "1997", "1998"] - consecutive numbers
+❌ BAD: ["Madrid", "Madrid, Spain", "Capital Madrid", "City of Madrid"] - same concept
+❌ BAD: ["Cat", "Dog", "Bird", "Fish"] - all animals, too similar
+
+✅ GOOD: ["Paris", "Tokyo", "1889", "Iron"] - completely different concepts
+✅ GOOD: ["Shakespeare", "1969", "Pacific", "Democracy"] - diverse answer types
+  
+  ANSWER DISTRIBUTION:
+  - Distribute correct answers across all options (A, B, C, D)
+  - Target 25% of questions with each option as correct
+  - Never place correct answer in same position more than 2 consecutive times
+  - Example: if questions 1-2 have correct answer A, question 3 must be B, C, or D
+  
+  QUALITY STANDARDS:
+  - No duplicate questions or similar phrasings
+  - Each question must test different knowledge
+  - All answer options within each question must be unique
+  - Use proper UTF-8 encoding for ${currentLanguageName}
+  - Escape JSON special characters: quotes, backslashes, etc.
+  
+  OUTPUT FORMAT:
+  - Return ONLY the JSON structure above
+  - No additional text, explanations, or comments
+  - No markdown formatting or code blocks
+  - Maintain consistent structure across all generations
+  
+  Session ID: ${uniqueId}`;
+  };
 
 // ==================== API FUNCTIONS ==================================================
 const apiKeys = [
@@ -128,9 +202,9 @@ const callGroqAPI = async (prompt: string) => {
         {
           model: "llama-3.1-8b-instant",
           messages: [{ role: "user", content: prompt }],
-          temperature: 0.9,
+          temperature: 0.5,
           max_tokens: 4000,
-          top_p: 0.95,
+          top_p: 0.3,
           frequency_penalty: 0,
           presence_penalty: 0,
         },
@@ -213,6 +287,7 @@ const parseQuizResponse = (
   topic: string,
   currentLanguageCode: string
 ): AiQuestions => {
+
   // Clean JSON extraction
   let cleanContent = content.replace(/```json\n?/g, "");
   cleanContent = cleanContent.replace(/```\n?/g, "");
