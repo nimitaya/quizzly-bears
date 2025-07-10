@@ -9,6 +9,7 @@ export interface User {
     correctAnswers: number;
     totalAnswers: number;
   };
+  clerkUserId?: string | undefined;
 }
 
 export interface FriendRequest {
@@ -56,9 +57,9 @@ export interface FriendsResponse {
 }
 
 export interface FriendsState {
-  friendList: FriendsResponse,
-    receivedFriendRequests: FriendRequestsResponse,
-    sentFriendRequests: FriendRequestsResponse,
+  friendList: FriendsResponse;
+  receivedFriendRequests: FriendRequestsResponse;
+  sentFriendRequests: FriendRequestsResponse;
 }
 
 export interface FriendItemProps {

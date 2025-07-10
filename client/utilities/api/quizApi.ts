@@ -4,7 +4,7 @@ import { Category, Difficulty } from "../types";
 import { QuestionStructure, AiQuestions } from "@/utilities/quiz-logic/data";
 import { LANGUAGES } from "../languages";
 
-// ==================== KONFIGURATION DER APIs ====================
+// ==================== KONFIGURATION DER APIs =============================================
 const GROQ_API_URL =
   process.env.EXPO_PUBLIC_GROQ_API_URL ||
   "https://api.groq.com/openai/v1/chat/completions";
@@ -18,13 +18,13 @@ const OPENROUTER_API_KEY =
 //console.log("OpenRouter API URL:", OPENROUTER_API_URL);
 //console.log("OpenRouter API Key:", OPENROUTER_API_KEY);
 
-// ==================== KONSTANTEN ====================
+// ==================== KONSTANTEN ==========================================================
 const DELAY_MS = 5000;
 
-// ==================== HILFSFUNKTIONEN ====================
+// ==================== HILFSFUNKTIONEN =====================================================
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// ==================== SPRACHFUNKTIONEN ====================
+// ==================== SPRACHFUNKTIONEN ====================================================
 const getCurrentLanguage = async (): Promise<string> => {
   try {
     const savedLanguage = await AsyncStorage.getItem("selected_language");
@@ -40,7 +40,7 @@ const getLanguageName = (code: string): string => {
   return language?.name || "English";
 };
 
-// ==================== PROMPT-GENERATOR CONSISTENTE ====================
+// ==================== PROMPT-GENERATOR CONSISTENTE ========================================
 const generatePrompt = (
   topic: string,
   difficulty: Difficulty,
@@ -111,16 +111,15 @@ JSON FORMAT (respond with this exact structure only):
 - Session ID: ${uniqueId}`;
 };
 
-// ==================== API-FUNKTIONEN ====================
+// ==================== API-FUNKTIONEN ==================================================
 const apiKeys = [
-  process.env.EXPO_PUBLIC_GROQ_API_KEY,
+  GROQ_API_KEY,
   process.env.EXPO_PUBLIC_BEAR_KEY_1,
   process.env.EXPO_PUBLIC_BEAR_KEY_2,
   process.env.EXPO_PUBLIC_BEAR_KEY_3,
   process.env.EXPO_PUBLIC_BEAR_KEY_4,
   process.env.EXPO_PUBLIC_BEAR_KEY_5,
 ].filter(Boolean);
-
 
 const callGroqAPI = async (prompt: string) => {
   console.log("Calling GROQ API with fallback keys...");
@@ -130,14 +129,13 @@ const callGroqAPI = async (prompt: string) => {
       const response = await axios.post(
         GROQ_API_URL,
         {
-          model: "llama3-8b-8192",
+          model: "llama-3.1-8b-instant",
           messages: [{ role: "user", content: prompt }],
-          temperature: 0.9,      
-          max_tokens: 4000,    
-          top_p: 0.95,          
-          frequency_penalty: 0, 
-          presence_penalty: 0,  
-          
+          temperature: 0.9,
+          max_tokens: 4000,
+          top_p: 0.95,
+          frequency_penalty: 0,
+          presence_penalty: 0,
         },
         {
           headers: {
@@ -157,9 +155,10 @@ const callGroqAPI = async (prompt: string) => {
     }
   }
 
-  throw new Error("Alle keys for GROQ API failed. Could not generate questions.");
+  throw new Error(
+    "Alle keys for GROQ API failed. Could not generate questions."
+  );
 };
-
 
 const callOpenRouterAPI = async (prompt: string) => {
   console.log("Calling OpenRouter API");
@@ -190,8 +189,7 @@ const callOpenRouterAPI = async (prompt: string) => {
   return response.data.choices[0].message.content;
 };
 
-
-// ==================== FALLBACK-SYSTEM ====================================
+// ==================== FALLBACK-SYSTEM =================================================
 const requestWithFallback = async (prompt: string): Promise<string> => {
   try {
     return await callGroqAPI(prompt);
@@ -211,7 +209,7 @@ const requestWithFallback = async (prompt: string): Promise<string> => {
   }
 };
 
-// ==================== ANTWORTVERARBEITUNG CORREGIDA ====================
+// ==================== ANTWORTVERARBEITUNG CORREGIDA =================================
 const parseQuizResponse = (
   content: string,
   questionCount: number,
@@ -350,7 +348,7 @@ const parseQuizResponse = (
   };
 };
 
-// ==================== HAUPTFUNKTION ====================
+// ==================== HAUPTFUNKTION ============================================
 export const generateMultipleQuizQuestions = async (
   topic: string,
   difficulty: Difficulty,
