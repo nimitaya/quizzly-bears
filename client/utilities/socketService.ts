@@ -351,6 +351,11 @@ class SocketService {
   onError(callback: (data: { message: string; code?: string }) => void) {
     this.on("error", callback);
   }
+  
+  // Quiz settings synchronization
+  onQuizSettingsSync(callback: (data: { quizSettings: any }) => void) {
+    this.on("quiz-settings-sync", callback);
+  }
 }
 
 // Export singleton

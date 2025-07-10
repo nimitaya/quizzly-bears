@@ -335,6 +335,19 @@ io.on("connection", (socket) => {
     );
   });
 
+  // Sync quiz settings from host to all players
+  socket.on("sync-quiz-settings", (data: { roomId: string; quizSettings: any }) => {
+    const room = quizRooms.get(data.roomId);
+    if (!room || room.hostSocketId !== socket.id) {
+      console.log(`Unauthorized quiz settings sync attempt from non-host: ${socket.id}`);
+      return;
+    }
+    
+    console.log(`Quiz settings synced from host in room ${data.roomId}:`, data.quizSettings);
+    // Send quiz settings to all players in the room
+    io.to(data.roomId).emit("quiz-settings-sync", { quizSettings: data.quizSettings });
+  });
+
   // Send next question
   socket.on("next-question", (data: { roomId: string }) => {
     const room = quizRooms.get(data.roomId);
