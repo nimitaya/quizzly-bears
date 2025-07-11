@@ -37,8 +37,11 @@ export function useQuizLogic() {
   // To reset Timers
   const readTimeout = useRef<number | null>(null);
   const answerTimeout = useRef<number | null>(null);
+  const nextQuestionTimeout = useRef<number | null>(null);
   // Fix: ref to store current points data between state updates
   const currentPointsRef = useRef({ total: 0, chosenCorrect: 0 });
+  // Track if a question transition is already scheduled for multiplayer
+  const isTransitionScheduled = useRef<boolean>(false);
 
   // ========================================================== STATE MANAGEMENT ==========================================================
   const [currQuestionsArray, setCurrQuestionsArray] = useState<
@@ -166,6 +169,9 @@ export function useQuizLogic() {
 
   // ----- set TIMING for questions -----
   const timingQuestions = (): void => {
+    // Reset the transition flag for new question
+    isTransitionScheduled.current = false;
+    
     readTimeout.current = setTimeout(() => {
       // Set read timer to true after 2 seconds to show the answers
       setReadTimer(true);
@@ -175,9 +181,9 @@ export function useQuizLogic() {
         handleAnswerCheck();
         
         // For multiplayer modes, automatically move to next question after a delay
-        if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
-
-          setTimeout(() => {
+        if ((gameState.playStyle === "group" || gameState.playStyle === "duel") && !isTransitionScheduled.current) {
+          isTransitionScheduled.current = true;
+          nextQuestionTimeout.current = setTimeout(() => {
             handleNextQuestion();
           }, NEXT_QUESTION_DELAY);
         }
@@ -229,8 +235,26 @@ export function useQuizLogic() {
       isSubmitted: true,
       isLocked: true,
     }));
+    
     // Check the answer and update points
     handleAnswerCheck();
+    
+    // For multiplayer modes, we need to maintain consistent timing
+    // Clear the answer timeout since we've manually submitted
+    if ((gameState.playStyle === "group" || gameState.playStyle === "duel") && !isTransitionScheduled.current) {
+      // Clear any existing timers
+      if (answerTimeout.current) {
+        clearTimeout(answerTimeout.current);
+        answerTimeout.current = null;
+      }
+      
+      // Schedule the next question after the fixed delay
+      // This ensures consistent timing between questions in multiplayer modes
+      isTransitionScheduled.current = true;
+      nextQuestionTimeout.current = setTimeout(() => {
+        handleNextQuestion();
+      }, NEXT_QUESTION_DELAY);
+    }
   };
 
   // ----- HELPER for finding correct answer -----
@@ -415,32 +439,31 @@ export function useQuizLogic() {
     // Logic for Group Play
     else if (
       (currQuestionIndex < currQuestionsArray.length - 1 &&
-        (gameState.playStyle === "group"||
+        (gameState.playStyle === "group" ||
       gameState.playStyle === "duel")) 
     ) {     
-      // Progress to the next question after a short delay
-      setTimeout(() => {
-        setCurrentQuestionIndex(prevIndex => prevIndex + 1);
-        setReadTimer(false);
+      // For multiplayer, we simply advance to the next question without additional delay
+      // since the delay was already applied either in handleAnswerSubmit or timingQuestions
+      setCurrentQuestionIndex(prevIndex => prevIndex + 1);
+      setReadTimer(false);
         
-        // Optionally notify the server about the question change (for analytics)
-        // const notifyQuestionChange = async () => {
-        //   try {
-        //     const roomInfo = await loadCacheData(CACHE_KEY.currentRoom);
-        //     if (roomInfo && roomInfo.roomId) {
-        //       socketService.emit("question-progress", {
-        //         roomId: roomInfo.roomId,
-        //         questionIndex: currQuestionIndex + 1,
-        //         playerId: user?.id || "guest"
-        //       });
-        //     }
-        //   } catch (error) {
-        //     // Non-critical operation, just log the error
-        //     console.log("Error notifying question change:", error);
-        //   }
-        // };
-        // notifyQuestionChange();
-      }, NEXT_QUESTION_DELAY);
+      // Optionally notify the server about the question change (for analytics)
+      // const notifyQuestionChange = async () => {
+      //   try {
+      //     const roomInfo = await loadCacheData(CACHE_KEY.currentRoom);
+      //     if (roomInfo && roomInfo.roomId) {
+      //       socketService.emit("question-progress", {
+      //         roomId: roomInfo.roomId,
+      //         questionIndex: currQuestionIndex + 1,
+      //         playerId: user?.id || "guest"
+      //       });
+      //     }
+      //   } catch (error) {
+      //     // Non-critical operation, just log the error
+      //     console.log("Error notifying question change:", error);
+      //   }
+      // };
+      // notifyQuestionChange();
     }
     // ---------------------------------
     // if last question done
@@ -475,6 +498,12 @@ export function useQuizLogic() {
       clearTimeout(readTimeout.current);
       readTimeout.current = null;
     }
+    if (nextQuestionTimeout.current) {
+      clearTimeout(nextQuestionTimeout.current);
+      nextQuestionTimeout.current = null;
+    }
+    // Reset transition flag
+    isTransitionScheduled.current = false;
   };
 
   // ========================================================== USE EFFECTS ==========================================================
@@ -498,6 +527,16 @@ export function useQuizLogic() {
         clearTimeout(answerTimeout.current);
         answerTimeout.current = null;
       }
+      if (readTimeout.current) {
+        clearTimeout(readTimeout.current);
+        readTimeout.current = null;
+      }
+      if (nextQuestionTimeout.current) {
+        clearTimeout(nextQuestionTimeout.current);
+        nextQuestionTimeout.current = null;
+      }
+      // Reset the transition flag
+      isTransitionScheduled.current = false;
     };
   }, [currQuestionIndex]);
   
