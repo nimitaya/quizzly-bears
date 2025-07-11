@@ -394,7 +394,7 @@ const ConnectFourScreen = () => {
             onPress={() => handlePlayerMove(col)}
             disabled={gameOver || currentPlayer !== 'red'}
           >
-            <Text style={styles.columnButtonText}>↓</Text>
+            <Text style={styles.columnButtonText}>▼</Text>
           </TouchableOpacity>
           {col < COLS - 1 && <View style={styles.columnDivider} />}
         </View>

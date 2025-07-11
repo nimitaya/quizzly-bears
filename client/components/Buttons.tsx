@@ -9,12 +9,28 @@ import {
 import { Colors, Radius, FontSizes, Gaps } from "../styles/theme";
 import IconSearchFriend from "@/assets/icons/IconSearchFriend";
 
+// Constants for button sizing
+const BUTTON_CONSTANTS = {
+  LARGE_MAX_WIDTH: 348,
+  LARGE_MARGIN: 32,
+  SMALL_MAX_WIDTH: 120,
+  SMALL_MARGIN: 16,
+} as const;
+
+// Custom hook for button width calculation
+const useButtonWidth = (maxWidth: number, margin: number) => {
+  const { width } = useWindowDimensions();
+  return Math.min(maxWidth, width - margin);
+};
+
 export function ButtonPrimary({
   text,
   ...props
 }: PressableProps & { text: string }) {
-  const { width } = useWindowDimensions();
-  const buttonWidth = Math.min(348, width - 32);
+  const buttonWidth = useButtonWidth(
+    BUTTON_CONSTANTS.LARGE_MAX_WIDTH,
+    BUTTON_CONSTANTS.LARGE_MARGIN
+  );
 
   return (
     <Pressable {...props}>
@@ -28,8 +44,10 @@ export function ButtonPrimaryDisabled({
   text,
   ...props
 }: PressableProps & { text: string }) {
-  const { width } = useWindowDimensions();
-  const buttonWidth = Math.min(348, width - 32);
+  const buttonWidth = useButtonWidth(
+    BUTTON_CONSTANTS.LARGE_MAX_WIDTH,
+    BUTTON_CONSTANTS.LARGE_MARGIN
+  );
 
   return (
     <Pressable {...props}>
@@ -42,16 +60,26 @@ export function ButtonPrimaryDisabled({
 export function ButtonSecondary({
   text,
   icon,
+  showBadge = false,
   ...props
-}: PressableProps & { text: string; icon?: React.ReactNode }) {
-  const { width } = useWindowDimensions();
-  const buttonWidth = Math.min(348, width - 32);
+}: PressableProps & {
+  text: string;
+  icon?: React.ReactNode;
+  showBadge?: boolean;
+}) {
+  const buttonWidth = useButtonWidth(
+    BUTTON_CONSTANTS.LARGE_MAX_WIDTH,
+    BUTTON_CONSTANTS.LARGE_MARGIN
+  );
 
   return (
     <Pressable {...props}>
       <View style={[styles.buttonSecondary, { width: buttonWidth }]}>
         {icon && <View style={{ marginRight: 8 }}>{icon}</View>}
-        <Text style={styles.textSecondaryButton}>{text}</Text>
+        <View style={styles.textWithBadgeContainer}>
+          <Text style={styles.textSecondaryButton}>{text}</Text>
+          {showBadge && <View style={styles.notificationBadge} />}
+        </View>
       </View>
     </Pressable>
   );
@@ -62,8 +90,10 @@ export function ButtonSecondaryDisabled({
   icon,
   ...props
 }: PressableProps & { text: string; icon?: React.ReactNode }) {
-  const { width } = useWindowDimensions();
-  const buttonWidth = Math.min(348, width - 32);
+  const buttonWidth = useButtonWidth(
+    BUTTON_CONSTANTS.LARGE_MAX_WIDTH,
+    BUTTON_CONSTANTS.LARGE_MARGIN
+  );
 
   return (
     <Pressable disabled={true} {...props}>
@@ -79,8 +109,10 @@ export function ButtonSkip({
   text,
   ...props
 }: PressableProps & { text: string }) {
-  const { width } = useWindowDimensions();
-  const buttonWidth = Math.min(348, width - 32);
+  const buttonWidth = useButtonWidth(
+    BUTTON_CONSTANTS.LARGE_MAX_WIDTH,
+    BUTTON_CONSTANTS.LARGE_MARGIN
+  );
 
   return (
     <Pressable {...props}>
@@ -94,8 +126,10 @@ export function ButtonSmallPrimary({
   text,
   ...props
 }: PressableProps & { text: string }) {
-  const { width } = useWindowDimensions();
-  const buttonWidth = Math.min(120, width - 16);
+  const buttonWidth = useButtonWidth(
+    BUTTON_CONSTANTS.SMALL_MAX_WIDTH,
+    BUTTON_CONSTANTS.SMALL_MARGIN
+  );
 
   return (
     <Pressable {...props}>
@@ -109,8 +143,10 @@ export function ButtonSmallSecondary({
   text,
   ...props
 }: PressableProps & { text: string }) {
-  const { width } = useWindowDimensions();
-  const buttonWidth = Math.min(120, width - 16);
+  const buttonWidth = useButtonWidth(
+    BUTTON_CONSTANTS.SMALL_MAX_WIDTH,
+    BUTTON_CONSTANTS.SMALL_MARGIN
+  );
 
   return (
     <Pressable {...props}>
@@ -219,5 +255,17 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 0,
     borderTopRightRadius: 50,
     borderBottomRightRadius: 50,
+  },
+  notificationBadge: {
+    width: 8,
+    height: 8,
+    borderRadius: Gaps.g8,
+    backgroundColor: Colors.systemRed,
+    marginLeft: Gaps.g8,
+    alignSelf: "flex-start",
+  },
+  textWithBadgeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
 });

@@ -38,7 +38,7 @@ const GreetingsScreen = forwardRef<
   const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const maxChecksRef = useRef(0);
   const forceSignedInRef = useRef(false);
-  const { currentUsername, setOnChanges, refetch } = useStatistics();
+  const { currentUsername, refetch } = useStatistics();
   const [isEditing, setIsEditing] = useState(false);
   const [editedUsername, setEditedUsername] = useState(currentUsername || "");
 
@@ -363,7 +363,6 @@ const GreetingsScreen = forwardRef<
       await axios.put(`${API_BASE_URL}/users/${user?.id}`, {
         username: editedUsername,
       });
-      setOnChanges(true);
       setIsEditing(false);
       refetch[0]();
     } catch (error) {

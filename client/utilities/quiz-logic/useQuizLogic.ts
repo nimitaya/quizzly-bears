@@ -33,7 +33,6 @@ export function useQuizLogic() {
   // get current user from Clerk:
   const { user } = useUser();
   // Fix: use useStatistics inside React component
-  const { setOnChanges } = useStatistics();
   // To reset Timers
   const readTimeout = useRef<number | null>(null);
   const answerTimeout = useRef<number | null>(null);
@@ -196,7 +195,7 @@ export function useQuizLogic() {
     if (answerState.isLocked) {
       return;
     }
-    
+
     setAnswerState((prevState) => ({
       ...prevState,
       chosenAnswer: selectedOption,
@@ -262,14 +261,14 @@ export function useQuizLogic() {
     if (!currentQuestionData || !answerState.chosenAnswer) {
       return false;
     }
-    
+
     const { optionA, optionB, optionC, optionD } = currentQuestionData;
     const options = [optionA, optionB, optionC, optionD];
     const chosenOption = answerState.chosenAnswer; // This is now "A", "B", "C" or "D" (option key)
-    
+
     // Compare by option index (A, B, C, D), not by text
     let optionIndex = -1;
-    
+
     // Determine the index of the selected option
     switch (chosenOption.toUpperCase()) {
       case "A":
@@ -291,11 +290,11 @@ export function useQuizLogic() {
       default:
         return false;
     }
-    
+
     if (optionIndex === -1 || optionIndex >= options.length) {
       return false;
     }
-    
+
     const selectedOption = options[optionIndex];
     return selectedOption.isCorrect;
   };  
@@ -303,7 +302,7 @@ export function useQuizLogic() {
   // ----- Handle ANSWER CHECK -----
   const handleAnswerCheck = (): void => {
     const isCorrect = getIsCorrect();
-    
+
     if (isCorrect) {
       const newChosenCorrect = pointsState.chosenCorrect + 1;
 
@@ -329,7 +328,7 @@ export function useQuizLogic() {
       if (!gainedPoints) {
         return;
       }
-      
+
       // Update state and save current data for caching
       const newTotal = pointsState.total + gainedPoints.totalPoints;
 
@@ -343,17 +342,17 @@ export function useQuizLogic() {
           total: newTotal,
           chosenCorrect: newChosenCorrect,
         };
-        
+
         // Update ref with current data
         currentPointsRef.current = {
           total: updatedState.total,
-          chosenCorrect: updatedState.chosenCorrect
+          chosenCorrect: updatedState.chosenCorrect,
         };
-        
+
         return updatedState;
       });
     }
-    
+
     // OLD CODE (COMMENTED):
     // // Add correct points to state
     // setPointsState((prevPoints) => ({
@@ -364,7 +363,7 @@ export function useQuizLogic() {
     //   total: prevPoints.total + gainedPoints?.totalPoints,
     //   chosenCorrect: newChosenCorrect,
     // }));
-    
+
     // Logic for SOLO Play
     if (
       currQuestionIndex < currQuestionsArray.length - 1 &&
@@ -385,29 +384,30 @@ export function useQuizLogic() {
   // ----- Handle NEXT QUESTION -----
   const handleNextQuestion = (): void => {
     const newTotalAnswers = pointsState.totalAnswers + 1;
-    
+
     // Fix Race Condition: use current data from ref
     setPointsState((prevPoints) => {
       const updatedPoints = {
         ...prevPoints,
         totalAnswers: newTotalAnswers,
       };
-      
+
       // Use current data from ref instead of outdated state
       const actualTotal = currentPointsRef.current.total || updatedPoints.total;
-      const actualCorrect = currentPointsRef.current.chosenCorrect || updatedPoints.chosenCorrect;
-      
+      const actualCorrect =
+        currentPointsRef.current.chosenCorrect || updatedPoints.chosenCorrect;
+
       // Cache current points & information with up-to-date values
       cachePoints({
         gameCategory: gameState.category,
-        score: actualTotal,        // Use current data from ref
-        correctAnswers: actualCorrect,  // Use current data from ref
+        score: actualTotal, // Use current data from ref
+        correctAnswers: actualCorrect, // Use current data from ref
         totalAnswers: updatedPoints.totalAnswers,
       });
-      
+
       return updatedPoints;
     });
-    
+
     // OLD CODE (COMMENTED - RACE CONDITION):
     // // update totalAnswers
     // setPointsState((prevPoints) => ({
@@ -421,7 +421,7 @@ export function useQuizLogic() {
     //   correctAnswers: pointsState.chosenCorrect,  // PROBLEM: old data
     //   totalAnswers: newTotalAnswers,
     // });
-    
+
     // Clear timer
     if (answerTimeout.current) {
       clearTimeout(answerTimeout.current);
@@ -483,9 +483,7 @@ export function useQuizLogic() {
   const endGame = async () => {
     // Fixed version - pass callback for setOnChanges:
     if (user?.id) {
-      await sendPointsToDatabase(user.id, () => {
-        setOnChanges(true);
-      });
+      await sendPointsToDatabase(user.id, () => {});
     }
     // clear cached data
     clearCachePoints();

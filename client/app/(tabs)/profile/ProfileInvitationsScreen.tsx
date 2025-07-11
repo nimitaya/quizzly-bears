@@ -11,7 +11,7 @@ import { FontSizes, Gaps, Colors } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import { ButtonPrimary, ButtonPrimaryDisabled } from "@/components/Buttons";
 import { useUser } from "@clerk/clerk-expo";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import {
   acceptInviteRequest,
   declineInviteRequest,
@@ -24,6 +24,8 @@ import IconPending from "@/assets/icons/IconPending";
 import { socketService } from "@/utilities/socketService";
 import { saveDataToCache, CACHE_KEY, loadCacheData } from "@/utilities/cacheUtils";
 import { useLanguage } from "@/providers/LanguageContext";
+import { UserContext } from "@/providers/UserProvider";
+import { io } from "socket.io-client";
 
 const ProfilInvitationsScreen = () => {
   const router = useRouter();
@@ -31,6 +33,9 @@ const ProfilInvitationsScreen = () => {
   const { currentLanguage } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
   const [receivedInvites, setReceivedInvites] = useState<InviteRequest[]>([]);
+  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
+  const { userData, receivedInviteRequests, setReceivedInviteRequests } =
+    useContext(UserContext);
 
   // =========== Functions ===========
   // ----- Handler Accept -----
@@ -45,7 +50,7 @@ const ProfilInvitationsScreen = () => {
 
       setIsLoading(true);
       const clerkUserId = user.id;
-      
+
       // Accept the invitation on the backend
       await acceptInviteRequest(clerkUserId, inviteId);
 
@@ -56,29 +61,27 @@ const ProfilInvitationsScreen = () => {
 
       // Join the room via socket
       const playerName = user.firstName || user.emailAddresses[0]?.emailAddress || "Player";
-      
       // Get user's language from context or cache
       let userLanguage = currentLanguage?.code;
       if (!userLanguage) {
         const cachedLanguage = await loadCacheData("selected_language");
         userLanguage = cachedLanguage || "en"; // Default to English
       }
-      
       socketService.joinRoom(roomcode, clerkUserId, playerName, userLanguage);
 
       // Listen for successful room join
       socketService.onRoomJoined((data) => {
         console.log("Successfully joined room:", data.room);
-        
+
         // Save room info to cache for MultiplayerLobby to use
         const roomInfo = {
           roomId: roomcode,
           room: data.room,
           isHost: false, // Since we're joining, we're not the host
         };
-        
+
         saveDataToCache(CACHE_KEY.currentRoom, roomInfo);
-        
+
         // Navigate to MultiplayerLobby
         router.push("../play/MultiplayerLobby");
       });
@@ -89,7 +92,6 @@ const ProfilInvitationsScreen = () => {
         setIsLoading(false);
         // TODO: Add user-facing error handling (toast/alert)
       });
-
     } catch (error) {
       console.error("Error accepting invitation:", error);
       setIsLoading(false);
@@ -152,6 +154,60 @@ const ProfilInvitationsScreen = () => {
   }, [user]);
 
   // =========== TODO add global loading, while loading invitations ===========
+
+  useEffect(() => {
+    if (!user || !userData) return;
+
+    const clerkUserId = user.id;
+
+    const fetchAndSetInvites = async () => {
+      await fetchInvitations(clerkUserId);
+    };
+
+    const socketEventHandlers = {
+      inviteRequestSent: (data: any) => {
+        console.log("📩 Invite request sent:", data);
+        fetchAndSetInvites();
+      },
+      inviteRequestAccepted: (data: any) => {
+        console.log("✅ Invite request accepted:", data);
+        fetchAndSetInvites();
+      },
+      inviteRequestDeclined: (data: any) => {
+        console.log("❌ Invite request declined:", data);
+        fetchAndSetInvites();
+      },
+    };
+
+    // Register socket event listeners
+    Object.entries(socketEventHandlers).forEach(([event, handler]) => {
+      socket.on(event, handler);
+    });
+
+    // Cleanup socket event listeners on unmount
+    return () => {
+      Object.entries(socketEventHandlers).forEach(([event, handler]) => {
+        socket.off(event, handler);
+      });
+    };
+  }, [user, userData]);
+
+  // Fetch both received and sent invitations
+  const fetchInvitations = async (clerkUserId: string) => {
+    try {
+      console.log("Fetching received and sent invites...");
+      const [received] = await Promise.all([
+        getReceivedInviteRequests(clerkUserId),
+      ]);
+
+      setReceivedInvites(received.inviteRequests || []);
+
+      console.log("Updated received invites:", received.inviteRequests || []);
+    } catch (error) {
+      console.error("Error fetching invitations:", error);
+      setReceivedInvites([]);
+    }
+  };
 
   return (
     <View style={styles.container}>
