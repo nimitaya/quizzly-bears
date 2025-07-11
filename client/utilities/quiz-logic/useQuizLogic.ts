@@ -176,12 +176,38 @@ export function useQuizLogic() {
       // Set read timer to true after 2 seconds to show the answers
       setReadTimer(true);
       // Start - you have 30 seconds to choose an answer
-      answerTimeout.current = setTimeout(() => {
+      answerTimeout.current = setTimeout(async () => {
+        // Lock the answers when time is up
         setAnswerState((prevState) => ({ ...prevState, isLocked: true }));
         handleAnswerCheck();
         
-        // For multiplayer modes, automatically move to next question after a delay
+        // For multiplayer modes, notify server about timeout
         if ((gameState.playStyle === "group" || gameState.playStyle === "duel") && !isTransitionScheduled.current) {
+          try {
+            // Get current room info
+            const roomInfo = await loadCacheData(CACHE_KEY.currentRoom);
+            
+            if (roomInfo && roomInfo.roomId && user?.id) {
+              // Notify the server that this player has timed out
+              socketService.playerAnswerSubmitted(
+                roomInfo.roomId,
+                user.id,
+                currQuestionIndex
+              );
+            }
+          } catch (error) {
+            console.error("Error notifying timeout:", error);
+            
+            // Fallback: If we can't communicate with server, proceed locally
+            if (!isTransitionScheduled.current) {
+              isTransitionScheduled.current = true;
+              nextQuestionTimeout.current = setTimeout(() => {
+                handleNextQuestion();
+              }, NEXT_QUESTION_DELAY);
+            }
+          }
+        } else if (gameState.playStyle === "solo" && !isTransitionScheduled.current) {
+          // Solo mode: move to next question after delay
           isTransitionScheduled.current = true;
           nextQuestionTimeout.current = setTimeout(() => {
             handleNextQuestion();
@@ -226,7 +252,7 @@ export function useQuizLogic() {
   };
 
   // ----- Handle ANSWER SUBMISSION -----
-  const handleAnswerSubmit = () => {
+  const handleAnswerSubmit = async () => {
     // Store the chosen answer before updating state
     const selectedAnswer = answerState.chosenAnswer;
     
@@ -239,21 +265,43 @@ export function useQuizLogic() {
     // Check the answer and update points
     handleAnswerCheck();
     
-    // For multiplayer modes, we need to maintain consistent timing
-    // Clear the answer timeout since we've manually submitted
-    if ((gameState.playStyle === "group" || gameState.playStyle === "duel") && !isTransitionScheduled.current) {
-      // Clear any existing timers
-      if (answerTimeout.current) {
-        clearTimeout(answerTimeout.current);
-        answerTimeout.current = null;
+    // For multiplayer modes, notify other players about answer submission
+    if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
+      try {
+        // Clear the answer timeout since we've manually submitted
+        if (answerTimeout.current) {
+          clearTimeout(answerTimeout.current);
+          answerTimeout.current = null;
+        }
+        
+        // Get the current room info from cache
+        const roomInfo = await loadCacheData(CACHE_KEY.currentRoom);
+        
+        if (roomInfo && roomInfo.roomId && user?.id) {
+          // Notify the server that this player has submitted their answer
+          socketService.playerAnswerSubmitted(
+            roomInfo.roomId,
+            user.id,
+            currQuestionIndex
+          );
+        }
+      } catch (error) {
+        console.error("Error notifying answer submission:", error);
       }
-      
-      // Schedule the next question after the fixed delay
-      // This ensures consistent timing between questions in multiplayer modes
-      isTransitionScheduled.current = true;
-      nextQuestionTimeout.current = setTimeout(() => {
-        handleNextQuestion();
-      }, NEXT_QUESTION_DELAY);
+    } else if (gameState.playStyle === "solo") {
+      // For solo mode, we can proceed immediately (no need to wait for others)
+      // This existing code was moved here from handleAnswerCheck function
+      if (currQuestionIndex < currQuestionsArray.length - 1) {
+        // Clear timers as we're manually advancing
+        if (answerTimeout.current) {
+          clearTimeout(answerTimeout.current);
+          answerTimeout.current = null;
+        }
+        if (readTimeout.current) {
+          clearTimeout(readTimeout.current);
+          readTimeout.current = null;
+        }
+      }
     }
   };
 
@@ -365,21 +413,7 @@ export function useQuizLogic() {
     //   chosenCorrect: newChosenCorrect,
     // }));
     
-    // Logic for SOLO Play
-    if (
-      currQuestionIndex < currQuestionsArray.length - 1 &&
-      gameState.playStyle === "solo"
-    ) {
-      // Clear the timeout if answer is submitted early
-      if (answerTimeout.current) {
-        clearTimeout(answerTimeout.current);
-        answerTimeout.current = null;
-      }
-      if (readTimeout.current) {
-        clearTimeout(readTimeout.current);
-        readTimeout.current = null;
-      }
-    }
+    // No longer need the solo play logic here as it was moved to handleAnswerSubmit
   };
 
   // ----- Handle NEXT QUESTION -----
@@ -541,25 +575,44 @@ export function useQuizLogic() {
   }, [currQuestionIndex]);
   
   // ----- Setup for multiplayer mode -----
-  // useEffect(() => {
-  //   if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
-  //     console.log("Setting up multiplayer game");
+  useEffect(() => {
+    if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
+      console.log("Setting up multiplayer game");
       
-  //     // Listen for game results at the end
-  //     const handleGameResults = (data: any) => {
-  //       console.log("Received game results from server:", data);
-  //     };
+      // Handle when all players in a room have answered
+      const handleAllPlayersAnswered = (data: any) => {
+        console.log("All players have answered:", data);
+        
+        // Proceed to next question only if we're on the same question index
+        // This prevents issues if messages arrive out of order
+        if (data.questionIndex === currQuestionIndex && !isTransitionScheduled.current) {
+          console.log("Moving to next question after all players answered");
+          
+          // Schedule transition to next question
+          isTransitionScheduled.current = true;
+          nextQuestionTimeout.current = setTimeout(() => {
+            handleNextQuestion();
+          }, NEXT_QUESTION_DELAY);
+        }
+      };
       
-  //     // Register the listener for game results only
-  //     socketService.on("game-results", handleGameResults);
+      // Listen for game results at the end
+      const handleGameResults = (data: any) => {
+        console.log("Received game results from server:", data);
+      };
       
-  //     // Clean up the listeners when component unmounts or playStyle changes
-  //     return () => {
-  //       console.log("Cleaning up multiplayer listeners");
-  //       socketService.off("game-results", handleGameResults);
-  //     };
-  //   }
-  // }, [gameState.playStyle]);
+      // Register the listeners
+      socketService.on("all-players-answered", handleAllPlayersAnswered);
+      socketService.on("game-results", handleGameResults);
+      
+      // Clean up the listeners when component unmounts or playStyle changes
+      return () => {
+        console.log("Cleaning up multiplayer listeners");
+        socketService.off("all-players-answered", handleAllPlayersAnswered);
+        socketService.off("game-results", handleGameResults);
+      };
+    }
+  }, [gameState.playStyle]);
 
   // ----- Show COUNTDOWN Timer -----
   useEffect(() => {
