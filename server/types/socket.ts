@@ -53,7 +53,16 @@ export interface Player {
   socketId: string;
   score: number;
   isReady: boolean;
+  language?: string;
   answers?: PlayerAnswer[];
+  gamePoints?: {
+    score: number;
+    timePoints: number;
+    perfectGame: number;
+    total: number;
+    chosenCorrect: number;
+    totalAnswers: number;
+  };
 }
 
 export interface QuizQuestion {
@@ -86,6 +95,7 @@ export interface CreateRoomData {
   roomName: string;
   hostName: string;
   hostId: string;
+  hostLanguage?: string;
   settings: QuizSettings;
 }
 
@@ -93,6 +103,7 @@ export interface JoinRoomData {
   roomId: string;
   playerId: string;
   playerName: string;
+  language?: string;
 }
 
 export interface LeaveRoomData {

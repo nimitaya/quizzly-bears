@@ -15,8 +15,7 @@ import {
   Difficulty,
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { CACHE_KEY } from "@/utilities/cacheUtils";
-
-//vadim der Funktion
+//vadim Funktion
 import { categorizeTopic } from "@/utilities/api/quizApi";
 
 const LEVELS = [

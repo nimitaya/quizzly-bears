@@ -22,6 +22,17 @@ export interface Player {
   socketId: string;
   score: number;
   isReady: boolean;
+  language?: string;
+  gamePoints?: GamePoints; // Add gamePoints to store detailed score information
+}
+
+export interface GamePoints {
+  score: number;
+  timePoints: number;
+  perfectGame: number;
+  total: number;
+  chosenCorrect: number;
+  totalAnswers: number;
 }
 
 export interface QuizQuestion {
@@ -126,6 +137,8 @@ const SOCKET_URL = __DEV__ ? SOCKET_URLS[0] : PRODUCTION_URL;
 class SocketService {
   private socket: Socket | null = null;
   private listeners: Map<string, Function[]> = new Map();
+  private connectionRetries = 0;
+  private maxRetries = 3;
 
   connect(): Promise<void> {
     return new Promise(async (resolve, reject) => {
@@ -163,7 +176,8 @@ class SocketService {
         timeout: 5000,
         reconnection: true,
         reconnectionDelay: 1000,
-        reconnectionAttempts: 3,
+        reconnectionAttempts: 5,
+        forceNew: true,
       });
 
       const timeout = setTimeout(() => {
@@ -177,6 +191,7 @@ class SocketService {
       this.socket.on("connect", () => {
         clearTimeout(timeout);
         console.log(`Connected to Socket.IO server at ${url}`);
+        this.connectionRetries = 0;
         resolve();
       });
 
@@ -194,6 +209,21 @@ class SocketService {
         console.log("Disconnected from Socket.IO server");
       });
     });
+  }
+
+  // Simple method to check connection and reconnect if needed
+  async ensureConnection(): Promise<boolean> {
+    if (!this.socket || !this.socket.connected) {
+      try {
+        console.log("Socket not connected, attempting to reconnect...");
+        await this.connect();
+        return true;
+      } catch (err) {
+        console.error("Reconnection failed:", err);
+        return false;
+      }
+    }
+    return true;
   }
 
   disconnect() {
@@ -217,13 +247,25 @@ class SocketService {
     roomName: string,
     hostName: string,
     hostId: string,
-    settings: QuizSettings
+    settings: QuizSettings,
+    hostLanguage?: string
   ) {
-    this.emit("create-room", { roomName, hostName, hostId, settings });
+    this.emit("create-room", { roomName, hostName, hostId, hostLanguage, settings });
   }
 
-  joinRoom(roomId: string, playerId: string, playerName: string) {
-    this.emit("join-room", { roomId, playerId, playerName });
+  joinRoom(roomId: string, playerId: string, playerName: string, language?: string) {
+    this.emit("join-room", { roomId, playerId, playerName, language });
+  }
+
+  // Add method to rejoin a room (for when user returns from another screen)
+  rejoinRoom(roomId: string, playerId: string, playerName: string, language?: string) {
+    // Emit rejoin event to update server state and socket room
+    this.emit("rejoin-room", { roomId, playerId, playerName, language });
+  }
+
+  // Add method to request current room state
+  requestRoomState(roomId: string) {
+    this.emit("get-room-state", { roomId });
   }
 
   leaveRoom(roomId: string, playerId: string) {
@@ -255,8 +297,17 @@ class SocketService {
     this.emit("submit-answer", { roomId, playerId, answer, timeRemaining });
   }
 
+  // send game results of every player
+  submitGameResults(
+    roomId: string,
+    playerId: string,
+    playerName: string,
+    gamePoints: GamePoints
+  ) {
+    this.emit("submit-game-results", { roomId, playerId, playerName, gamePoints });
+  }
+
   // ========== CHAT FUNCTIONALITY ==========
-  
   // Send chat message
   sendChatMessage(roomId: string, playerId: string, message: string) {
     this.emit("send-chat-message", { roomId, playerId, message });
@@ -266,7 +317,6 @@ class SocketService {
   sendTypingStatus(roomId: string, playerId: string, isTyping: boolean) {
     this.emit("player-typing", { roomId, playerId, isTyping });
   }
-
   // ========== END CHAT FUNCTIONALITY ==========
 
   // Universal methods for working with events
@@ -321,6 +371,14 @@ class SocketService {
     this.on("player-joined", callback);
   }
 
+  onPlayerRejoined(callback: (data: { player: Player; room: QuizRoom }) => void) {
+    this.on("player-rejoined", callback);
+  }
+
+  onRoomStateUpdated(callback: (data: { room: QuizRoom }) => void) {
+    this.on("room-state-updated", callback);
+  }
+
   onPlayerLeft(
     callback: (data: {
       playerId: string;
@@ -356,7 +414,7 @@ class SocketService {
     this.on("host-changed", callback);
   }
 
-  onGameStarted(callback: (data: { room: QuizRoom }) => void) {
+  onGameStarted(callback: (data: { room: QuizRoom; questions?: QuizQuestion[] }) => void) {
     this.on("game-started", callback);
   }
 
@@ -374,8 +432,10 @@ class SocketService {
     this.on("question", callback);
   }
 
+  // Deprecated - use onGameResults instead
   onGameEnded(callback: (data: { finalScores: Player[] }) => void) {
-    this.on("game-ended", callback);
+    console.warn('onGameEnded is deprecated, use onGameResults instead');
+    this.on("game-results", callback);
   }
 
   // ========== CHAT EVENT LISTENERS ==========
@@ -392,6 +452,16 @@ class SocketService {
 
   onError(callback: (data: { message: string; code?: string }) => void) {
     this.on("error", callback);
+  }
+  
+  // Quiz settings synchronization
+  onQuizSettingsSync(callback: (data: { quizSettings: any }) => void) {
+    this.on("quiz-settings-sync", callback);
+  }
+
+  // Get game results of all players
+  onGameResults(callback: (data: { finalScores: Player[] }) => void) {
+    this.on("game-results", callback);
   }
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, use } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -25,13 +25,18 @@ import {
   removeAllInvites,
 } from "@/utilities/invitationApi";
 import { UserContext } from "@/providers/UserProvider";
+import { useLanguage } from "@/providers/LanguageContext";
 import IconPending from "@/assets/icons/IconPending";
 import IconAccept from "@/assets/icons/IconAccept";
 import IconDismiss from "@/assets/icons/IconDismiss";
+import IconArrowBack from "@/assets/icons/IconArrowBack";
+import Countdown from "@/components/Countdown";
+import QuizLoader from "@/components/QuizLoader";
 
 interface RoomInfo {
   roomId: string;
   room: QuizRoom;
+  languages: string[]
   questions?: any[];
   isHost: boolean;
   isAdmin?: boolean;
@@ -42,10 +47,13 @@ interface RoomInfo {
 const MultiplayerLobby = () => {
   const router = useRouter();
   const { userData } = useContext(UserContext);
+  const { currentLanguage } = useLanguage();
 
+  // ====================== State Variables =====================
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [currentRoom, setCurrentRoom] = useState<QuizRoom | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [allLanguages, setAllLanguages] = useState<string[]>([]);
 
   // CustomAlert states
   const [showNewHostAlert, setShowNewHostAlert] = useState(false);
@@ -60,7 +68,49 @@ const MultiplayerLobby = () => {
   const [sentInvites, setSentInvites] = useState<InviteRequest[]>([]);
   const [acceptedInvites, setAcceptedInvites] = useState<InviteRequest[]>([]);
 
-  // =========== Functions ==========
+  // Loading
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [showLocalLoader, setShowLocalLoader] = useState(false);
+
+  // Questions data
+  const [questionsData, setQuestionsData] = useState<any>(null);
+  
+  // Rejoin state to prevent loops
+  const [isRejoining, setIsRejoining] = useState(false);
+  
+  // Game state to control refresh
+  const [gameStarted, setGameStarted] = useState(false);
+
+  // ====================== Language Functions =====================
+  // ----- Collect all unique languages from players -----
+  const collectAllLanguages = (room: QuizRoom) => {
+    const languages = room.players
+      .map(player => player.language)
+      .filter((lang): lang is string => lang !== undefined && lang !== null)
+      .filter((lang, index, arr) => arr.indexOf(lang) === index); // Remove duplicates
+    
+    setAllLanguages(languages);
+    
+    // Update roomInfo with the collected languages
+    if (roomInfo && (!roomInfo.languages || !arraysEqual(roomInfo.languages, languages))) {
+      const updatedRoomInfo = {
+        ...roomInfo,
+        languages: languages
+      };
+      setRoomInfo(updatedRoomInfo);
+      // Save to cache
+      saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
+    }
+  };
+  
+  // Helper function to compare arrays for equality
+  const arraysEqual = (a: string[], b: string[]) => {
+    if (a.length !== b.length) return false;
+    return a.every((val, index) => val === b[index]);
+  };
+
+  // ====================== Invite Functions =====================
   // ----- Handler fetch Invites -----
   const fetchInvites = async () => {
     try {
@@ -97,7 +147,6 @@ const MultiplayerLobby = () => {
   };
 
   // ----- Handler Remove ALL Invitations -----
-  // IMPORTANT: This should also be done after the quiz is over
   const handleRemoveAllInvites = async () => {
     try {
       if (!userData) return;
@@ -107,11 +156,14 @@ const MultiplayerLobby = () => {
     }
   };
 
-  // =========== UseEffect ==========
+  // ====================== UseEffect =====================
   useEffect(() => {
-    loadRoomInfo();
-    setupSocketListeners();
-    fetchInvites();
+    // Only initialize once
+    if (!isRejoining) {
+      loadRoomInfo();
+      setupSocketListeners();
+      fetchInvites();
+    }
 
     // Also listen for cache updates (when admin selects category)
     const interval = setInterval(async () => {
@@ -124,55 +176,271 @@ const MultiplayerLobby = () => {
       }
     }, 1000);
 
+    // Add periodic room state refresh
+    const roomRefreshInterval = setInterval(() => {
+      if (roomInfo?.roomId && socketService.isConnected() && !isRejoining && !gameStarted) {
+        socketService.requestRoomState(roomInfo.roomId);
+      }
+    }, 3000);
+
     return () => {
       clearInterval(interval);
+      clearInterval(roomRefreshInterval);
       // Clean up listeners when component unmounts
+      socketService.off("room-joined");
+      socketService.off("room-state-updated");
       socketService.off("player-joined");
+      socketService.off("player-rejoined");
       socketService.off("player-left");
       socketService.off("player-ready-updated");
       socketService.off("game-started");
       socketService.off("show-start-quiz");
       socketService.off("host-changed");
     };
-  }, []);
+  }, [roomInfo?.roomId, isRejoining, gameStarted]);
 
-  // ==============================
+  // Watch for userData changes and attempt to rejoin if needed
+  useEffect(() => {
+    if (userData && roomInfo && !currentRoom && !socketService.isConnected() && !isRejoining) {
+      // Only rejoin if socket is not connected, we don't have current room data, and we're not already rejoining
+      console.log("UserData available, socket disconnected, attempting to rejoin room");
+      loadRoomInfo();
+    }
+  }, [userData, isRejoining]);
+
+  // Monitor languages and update roomInfo
+  useEffect(() => {
+    if (roomInfo && allLanguages.length > 0) {
+      const updatedRoomInfo = {
+        ...roomInfo,
+        languages: allLanguages
+      };
+      setRoomInfo(updatedRoomInfo);
+      saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
+    }
+  }, [allLanguages]);
+
+  // Monitor current language changes and emit to server
+  useEffect(() => {
+    if (currentLanguage && roomInfo && currentRoom) {
+      // Find current player and emit language update if needed
+      const currentPlayer = currentRoom.players.find(
+        (p) => p.socketId === socketService.getSocketId()
+      );
+      
+      if (currentPlayer && currentPlayer.language !== currentLanguage.code) {
+        // Emit language update to server through rejoin-room event
+        socketService.rejoinRoom(
+          roomInfo.roomId, 
+          userData?.clerkUserId || currentPlayer.id, 
+          userData?.username || currentPlayer.name, 
+          currentLanguage.code
+        );
+        console.log(`Player ${currentPlayer.name} language changed to ${currentLanguage.code}`);
+      }
+    }
+  }, [currentLanguage, roomInfo, currentRoom]);
+
+  // ========================== Socket Functions ==========================
   // ----- Load Room Info -----
   const loadRoomInfo = async () => {
     try {
       const cachedRoomInfo = await loadCacheData(CACHE_KEY.currentRoom);
       if (cachedRoomInfo) {
         setRoomInfo(cachedRoomInfo);
-        setCurrentRoom(cachedRoomInfo.room);
+        
+        // Check if we need to rejoin or if we can use cached data
+        const shouldRejoin = userData && cachedRoomInfo.roomId && !isRejoining;
+        
+        if (shouldRejoin) {
+          const playerId = userData.clerkUserId;
+          const playerName = userData.username || userData.email.split("@")[0];
+          const language = currentLanguage?.code;
+          
+          // Check if we're already connected and have current room data
+          if (socketService.isConnected() && cachedRoomInfo.room && cachedRoomInfo.room.players) {
+            const currentPlayer = cachedRoomInfo.room.players.find(
+              (p: Player) => p.id === playerId
+            );
+            if (currentPlayer && currentPlayer.socketId === socketService.getSocketId()) {
+              setCurrentRoom(cachedRoomInfo.room);
+              collectAllLanguages(cachedRoomInfo.room);
+              return;
+            }
+          }
+          
+          setIsRejoining(true);
+          
+          // Set a timeout to reset rejoin state if no response
+          const rejoinTimeout = setTimeout(() => {
+            setIsRejoining(false);
+            setCurrentRoom(cachedRoomInfo.room);
+            if (cachedRoomInfo.room) {
+              collectAllLanguages(cachedRoomInfo.room);
+            }
+          }, 5000); // 5 second timeout
+          
+          // Store timeout ID so we can clear it if rejoin succeeds
+          (window as any).rejoinTimeout = rejoinTimeout;
+          
+          // Ensure socket is connected before rejoining
+          if (!socketService.isConnected()) {
+            try {
+              await socketService.connect();
+            } catch (error) {
+              console.error("Failed to connect socket:", error);
+              setErrorMessage("Failed to connect to server");
+              setShowErrorAlert(true);
+              setIsRejoining(false);
+              return;
+            }
+          }
+          
+          socketService.rejoinRoom(cachedRoomInfo.roomId, playerId, playerName, language);
+        } else {
+          // No need to rejoin, use cached data
+          setCurrentRoom(cachedRoomInfo.room);
+          if (cachedRoomInfo.room) {
+            collectAllLanguages(cachedRoomInfo.room);
+          }
+        }
       }
     } catch (error) {
       console.error("Error loading room info:", error);
+      setIsRejoining(false);
     }
   };
 
   // ----- Setup Socket Listeners -----
   const setupSocketListeners = () => {
+    socketService.onRoomJoined((data) => {
+      console.log("Room joined/rejoined successfully");
+      
+      // Clear rejoin timeout if it exists
+      if ((window as any).rejoinTimeout) {
+        clearTimeout((window as any).rejoinTimeout);
+        (window as any).rejoinTimeout = null;
+      }
+      
+      setCurrentRoom(data.room);
+      collectAllLanguages(data.room);
+      setIsRejoining(false); // Reset rejoin flag
+      
+      // Update room info with latest room data
+      if (roomInfo) {
+        const updatedRoomInfo = {
+          ...roomInfo,
+          room: data.room
+        };
+        setRoomInfo(updatedRoomInfo);
+        saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
+      }
+    });
+
+    socketService.onRoomStateUpdated((data) => {
+      // Check if there are actual changes before updating state
+      const hasChanges = !currentRoom || 
+        currentRoom.players.length !== data.room.players.length ||
+        JSON.stringify(currentRoom.players) !== JSON.stringify(data.room.players);
+      
+      if (hasChanges) {
+        setCurrentRoom(data.room);
+        collectAllLanguages(data.room);
+        
+        // Update room info with latest room data
+        if (roomInfo) {
+          const updatedRoomInfo = {
+            ...roomInfo,
+            room: data.room
+          };
+          setRoomInfo(updatedRoomInfo);
+          saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
+        }
+      }
+    });
+
     socketService.onPlayerJoined((data) => {
       console.log("Player joined:", data.player.name);
       setCurrentRoom(data.room);
+      collectAllLanguages(data.room);
       // Refresh invites when a player joins to update the filtered list
+      fetchInvites();
+    });
+
+    socketService.onPlayerRejoined((data) => {
+      console.log("Player rejoined:", data.player.name);
+      setCurrentRoom(data.room);
+      collectAllLanguages(data.room);
+      // Refresh invites when a player rejoins
       fetchInvites();
     });
 
     socketService.onPlayerLeft((data) => {
       console.log("Player left:", data.playerName);
       setCurrentRoom(data.room);
+      collectAllLanguages(data.room);
       // Refresh invites when a player leaves
       fetchInvites();
     });
 
     socketService.onPlayerReadyUpdated((data) => {
-      console.log("Player ready updated:", data.playerId, data.isReady);
       setCurrentRoom(data.room);
     });
 
-    socketService.onGameStarted((data) => {
+    socketService.onGameStarted(async (data) => {
       console.log("Game started!");
+      setGameStarted(true); // Stop room refresh when game starts
+
+      // If we received questions from the server, cache them locally
+      if (data.questions && data.questions.length > 0) {
+        // Transform questions from socket format to the format expected by useQuizLogic
+        const transformedQuestions = {
+          questionArray: data.questions.map((q: any) => ({
+            question: {
+              en: q.question,
+              de: q.question, // For now, use English as fallback for other languages
+              es: q.question,
+              fr: q.question,
+            },
+            optionA: {
+              isCorrect: q.correctAnswer === q.options[0],
+              en: q.options[0],
+              de: q.options[0],
+              es: q.options[0],
+              fr: q.options[0],
+            },
+            optionB: {
+              isCorrect: q.correctAnswer === q.options[1],
+              en: q.options[1],
+              de: q.options[1],
+              es: q.options[1],
+              fr: q.options[1],
+            },
+            optionC: {
+              isCorrect: q.correctAnswer === q.options[2],
+              en: q.options[2],
+              de: q.options[2],
+              es: q.options[2],
+              fr: q.options[2],
+            },
+            optionD: {
+              isCorrect: q.correctAnswer === q.options[3],
+              en: q.options[3],
+              de: q.options[3],
+              es: q.options[3],
+              fr: q.options[3],
+            },
+          })),
+        };
+
+        // Cache the transformed questions
+        const { saveDataToCache, CACHE_KEY } = await import(
+          "@/utilities/cacheUtils"
+        );
+        await saveDataToCache(CACHE_KEY.aiQuestions, transformedQuestions);
+        console.log("Questions cached successfully");
+      }
+
       // Go to quiz screen
       router.push("/(tabs)/play/QuizScreen");
     });
@@ -193,6 +461,23 @@ const MultiplayerLobby = () => {
       console.error("Socket error:", error);
       setErrorMessage(error.message);
       setShowErrorAlert(true);
+      
+      // Clear rejoin timeout if it exists
+      if ((window as any).rejoinTimeout) {
+        clearTimeout((window as any).rejoinTimeout);
+        (window as any).rejoinTimeout = null;
+      }
+      
+      setIsRejoining(false); // Reset rejoin flag on error
+    });
+
+    // Listen for quiz settings from host
+    socketService.onQuizSettingsSync(async (data) => {
+      if (data.quizSettings && !roomInfo?.isHost) {
+        console.log("Received quiz settings from host:", data.quizSettings);
+        await saveDataToCache(CACHE_KEY.quizSettings, data.quizSettings);
+        console.log("Quiz settings saved to cache");
+      }
     });
   };
 
@@ -214,7 +499,6 @@ const MultiplayerLobby = () => {
     if (
       roomInfo &&
       currentRoom &&
-      roomInfo.isHost &&
       roomInfo.selectedCategory
     ) {
       // Check that all players are ready
@@ -225,8 +509,16 @@ const MultiplayerLobby = () => {
       }
 
       try {
+        console.log("Starting quiz generation...");
+        setIsGeneratingQuestions(true);
+        setShowLocalLoader(true);
+        
+        // If user is host, sync quiz settings with all players
+        if (roomInfo.isHost && roomInfo.roomId) {
+          await syncQuizSettings(roomInfo.roomId);
+        }
+        
         // Load questions based on selected category
-        // This should match the logic from StartQuizScreen
         const { loadCacheData } = await import("@/utilities/cacheUtils");
         const { generateMultipleQuizQuestions } = await import(
           "@/utilities/api/quizApi"
@@ -236,6 +528,8 @@ const MultiplayerLobby = () => {
         if (!cachedQuizSpecs) {
           setErrorMessage("Quiz settings not found");
           setShowErrorAlert(true);
+          setShowLocalLoader(false);
+          setIsGeneratingQuestions(false);
           return;
         }
 
@@ -245,41 +539,80 @@ const MultiplayerLobby = () => {
           10 // question count
         );
 
-        if (
-          !fetchedQuestions ||
+        setQuestionsData(fetchedQuestions);
+        saveDataToCache(CACHE_KEY.aiQuestions, fetchedQuestions);
+
+        if (!fetchedQuestions ||
           !fetchedQuestions.questionArray ||
           fetchedQuestions.questionArray.length === 0
         ) {
           setErrorMessage("Failed to load quiz questions");
           setShowErrorAlert(true);
+          setShowLocalLoader(false);
+          setIsGeneratingQuestions(false);
           return;
         }
 
         // Transform questions to socket format
-        const socketQuestions = fetchedQuestions.questionArray.map(
-          (q: any, index: number) => ({
-            id: index.toString(),
-            question: q.question.en || q.question,
-            options: [
-              q.optionA.text?.en || q.optionA.en,
-              q.optionB.text?.en || q.optionB.en,
-              q.optionC.text?.en || q.optionC.en,
-              q.optionD.text?.en || q.optionD.en,
-            ],
-            correctAnswer: q.correctAnswer?.en || q.correctAnswer,
-            category: q.category || "general",
-            difficulty: "medium" as const,
-            timeLimit: 30,
-          })
-        );
-
+        const socketQuestions = transformQuestionsForSocket(fetchedQuestions);
+        setShowLocalLoader(false);
+        setIsGeneratingQuestions(false);
+        setGameStarted(true); // Stop room refresh when game starts
+        // setShowCountdown(true);
         socketService.startGame(roomInfo.roomId, socketQuestions);
       } catch (error) {
         console.error("Error starting game:", error);
         setErrorMessage("Failed to start the game");
         setShowErrorAlert(true);
+        setShowLocalLoader(false);
+        setIsGeneratingQuestions(false);
       }
     }
+  };
+
+  // ----- Handle Countdown Complete -----
+  const handleCountdownComplete = () => {
+    setShowCountdown(false);
+    setIsGeneratingQuestions(false);
+    if (roomInfo && roomInfo.roomId && questionsData) {
+      // Start the game with the questions
+      const socketQuestions = transformQuestionsForSocket(questionsData);
+      socketService.startGame(roomInfo.roomId, socketQuestions);
+    } else {
+      console.error("Room info is not available to start the game");
+      setErrorMessage("Failed to start the game - room info missing");
+      setShowErrorAlert(true);
+    }
+  };
+
+  // ----- Transform questions to socket format -----
+  const transformQuestionsForSocket = (questionsData: any) => {
+    return questionsData.questionArray.map(
+      (q: any, index: number) => {
+        // Find the correct answer by checking which option has isCorrect: true
+        const correctOption = [
+          q.optionA,
+          q.optionB,
+          q.optionC,
+          q.optionD,
+        ].find((option) => option.isCorrect);
+
+        return {
+          id: index.toString(),
+          question: q.question.en || q.question,
+          options: [
+            q.optionA.en || q.optionA,
+            q.optionB.en || q.optionB,
+            q.optionC.en || q.optionC,
+            q.optionD.en || q.optionD,
+          ],
+          correctAnswer: correctOption?.en || correctOption || "",
+          category: q.category || "general",
+          difficulty: "medium" as const,
+          timeLimit: 30,
+        };
+      }
+    );
   };
 
   // ----- Admin goes to select category/topic -----
@@ -334,12 +667,28 @@ const MultiplayerLobby = () => {
         socketService.disconnect();
         // Clear cache for current room
         saveDataToCache(CACHE_KEY.currentRoom, null);
-        router.back();
+        // Remove all sent invitations
+        handleRemoveAllInvites();
+        router.push("/(tabs)/play");
       }
     }
   };
 
-  // ========== Render Functions ==========
+  // ----- Sync Quiz Settings -----
+  const syncQuizSettings = async (roomId: string) => {
+    try {
+      const quizSettings = await loadCacheData(CACHE_KEY.quizSettings);
+      if (quizSettings) {
+        // Emit quiz settings to all players in the room
+        socketService.emit("sync-quiz-settings", { roomId, quizSettings });
+        console.log("Quiz settings emitted to all players:", quizSettings);
+      }
+    } catch (error) {
+      console.error("Error syncing quiz settings:", error);
+    }
+  };
+
+  // ===================== Render Functions =====================
   // ----- Get Combined Players and Invites List -----
   const getCombinedPlayersList = () => {
     const invites = getFilteredSentInvites().map((invite) => ({
@@ -410,7 +759,7 @@ const MultiplayerLobby = () => {
     </View>
   );
 
-  // ===== CustomAlert handlers =====
+  // ================ CustomAlert handlers ================
   const handleNewHostAlertClose = () => {
     setShowNewHostAlert(false);
   };
@@ -427,11 +776,50 @@ const MultiplayerLobby = () => {
     setShowCancelRoomAlert(false);
   };
 
-  if (!roomInfo || !currentRoom) {
+  if (!roomInfo) {
     return (
       <View style={styles.container}>
         <Text style={styles.errorText}>Loading room...</Text>
       </View>
+    );
+  }
+
+  if (!currentRoom) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>
+          {isRejoining ? "Rejoining room..." : "Loading room..."}
+        </Text>
+      </View>
+    );
+  }
+
+  // ==================== Render Component ====================
+  // Show the local loader when AI is generating questions
+  if (showLocalLoader && isGeneratingQuestions) {
+    return (
+      <QuizLoader
+        key={`ai-questions-loader-${Date.now()}`}
+        onComplete={() => {
+          console.log(
+            "QuizLoader animation cycle completed, but waiting for AI..."
+          );
+        }}
+        minDuration={1000} // Minimum display duration for the loader
+        waitForExternal={true} // Wait for external signal (AI generation completion)
+      />
+    );
+  }
+
+  // Zeige den Countdown wenn aktiv
+  if (showCountdown) {
+    return (
+      <Countdown
+        key={`countdown-${Date.now()}`} // Eindeutiger key für jeden Countdown
+        onComplete={handleCountdownComplete}
+        startNumber={3}
+        duration={1500}
+      />
     );
   }
 
@@ -442,7 +830,7 @@ const MultiplayerLobby = () => {
         onPress={leaveRoom}
         accessibilityLabel="Leave room"
       >
-        <Text>BackButton HERE</Text>
+        <IconArrowBack />
       </TouchableOpacity>
 
       <ScrollView
@@ -463,6 +851,13 @@ const MultiplayerLobby = () => {
             {roomInfo.selectedTopic || roomInfo.selectedCategory}
           </Text>
         )}
+
+        {/* =========== TODO Display collected languages ============= */}
+        {allLanguages.length > 0 && (
+          <Text style={styles.languagesDisplay}>
+            Languages: {allLanguages.join(", ")}
+          </Text>
+        )}       
 
         {/* Show combined players and invitations */}
         <View style={styles.playersContainer}>
@@ -582,6 +977,15 @@ const styles = StyleSheet.create({
     color: "#4caf50",
     fontWeight: "500",
   },
+  // ============== TODO
+  languagesDisplay: {
+    fontSize: FontSizes.TextMediumFs,
+    marginBottom: Gaps.g16,
+    color: "#2196f3",
+    fontWeight: "500",
+    textAlign: "center",
+  },
+  // ==============
   playersContainer: {
     width: "100%",
     marginBottom: Gaps.g32,
@@ -620,7 +1024,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: FontSizes.TextLargeFs,
     color: "#666",
-  },
+  }
 });
 
 export default MultiplayerLobby;
