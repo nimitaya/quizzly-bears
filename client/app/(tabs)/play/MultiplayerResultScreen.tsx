@@ -169,12 +169,6 @@ const MultiplayerResultScreen = () => {
                   <View style={styles.pointsRow}>
                     <IconCheckbox />
                     <Text style={styles.pointsText}>
-                      Total: {player.gamePoints?.total || 0} points
-                    </Text>
-                  </View>
-                  <View style={styles.pointsRow}>
-                    <IconCheckbox />
-                    <Text style={styles.pointsText}>
                       Knowledge: {player.gamePoints?.score || 0} points
                     </Text>
                   </View>
@@ -182,6 +176,12 @@ const MultiplayerResultScreen = () => {
                     <IconCheckbox />
                     <Text style={styles.pointsText}>
                       Time bonus: {player.gamePoints?.timePoints || 0} points
+                    </Text>
+                  </View>
+                  <View style={styles.pointsRow}>
+                    <IconCheckbox />
+                    <Text style={styles.pointsText}>
+                      Total Quizzly Points: {player.gamePoints?.total || 0} points
                     </Text>
                   </View>
                   <View style={styles.pointsRow}>
