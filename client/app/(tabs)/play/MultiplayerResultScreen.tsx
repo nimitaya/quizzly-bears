@@ -28,6 +28,8 @@ const MultiplayerResultScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [roomInfo, setRoomInfo] = useState<any>(null);
 
+// ========== useEffect ==========
+
   useEffect(() => {
     const loadRoom = async () => {
       try {
@@ -63,6 +65,7 @@ const MultiplayerResultScreen = () => {
     };
   }, []);
 
+  // ========== Functions ==========
   const handlePlayAgain = async () => {
     if (roomInfo && userData) {
       // Clear cache data except for the current room
@@ -79,16 +82,41 @@ const MultiplayerResultScreen = () => {
     clearCacheData(CACHE_KEY.gameData);
     clearCacheData(CACHE_KEY.quizSettings);
     
-    // Leave the socket room
+    // Leave the socket room and wait for acknowledgment before navigating
     if (roomInfo && userData) {
+      // Add an event listener for room deletion confirmation
+      const onRoomLeft = () => {
+        // Once we receive confirmation, navigate and clean up
+        clearCacheData(CACHE_KEY.currentRoom);
+        router.push("./");
+      };
+      
+      // Listen for error events that might occur when accessing a deleted room
+      socketService.on("error", (data: { message: string }) => {
+        if (data.message === "Room not found") {
+          clearCacheData(CACHE_KEY.currentRoom);
+          router.push("./");
+        }
+      });
+      
+      // First leave the room
       socketService.leaveRoom(roomInfo.roomId, userData.clerkUserId);
-      clearCacheData(CACHE_KEY.currentRoom);
+      
+      // Clean up listeners and navigate after a short delay
+      // This ensures server has time to process the leave-room event
+      setTimeout(() => {
+        socketService.off("error");
+        clearCacheData(CACHE_KEY.currentRoom);
+        router.push("./");
+      }, 300);
+    } else {
+      // If no room info, just navigate home
+      router.push("./");
     }
-    
-    router.push("./");
   };
 
   // Render the trophy icon for top players (1st, 2nd, 3rd place)
+  //  ============================= IMPORTANT TODO Hier MARTINS Medallien einfügen!!!! ========================================
   const renderTrophy = (index: number) => {
     if (index === 0) {
       return <IconTrophy style={styles.trophyGold} />;
@@ -116,7 +144,7 @@ const MultiplayerResultScreen = () => {
         <IconClose />
       </TouchableOpacity>
 
-      <Logo size="big" />
+      <Logo size="small" />
       <View style={styles.resultsContainer}>
         <Text style={styles.title}>Quizzly Leaderboard</Text>
         
