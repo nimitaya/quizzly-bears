@@ -16,6 +16,7 @@ import {
   PlayerTypingData,
   ChatMessageReceivedData,
   PlayerTypingStatusData,
+  QuizRoom, Player
 } from "./types/socket";
 
 const app = express();
@@ -43,35 +44,6 @@ app.get("/", (req, res) => {
   res.send("API is running...");
 });
 // ======Socket.IO Server Setup======
-// Types for quiz rooms
-import { QuizRoom, Player } from './types/socket';
-interface QuizRoom {
-  id: string;
-  name: string;
-  host: string;
-  hostSocketId: string;
-  players: Player[];
-  maxPlayers: number;
-  isStarted: boolean;
-  currentQuestion?: number;
-  questions?: any[];
-  settings: {
-    questionCount: number;
-    timePerQuestion: number;
-    categories: string[];
-  };
-  // Chat functionality
-  chatMessages?: ChatMessage[];
-  typingPlayers?: Set<string>;
-}
-
-interface Player {
-  id: string;
-  name: string;
-  socketId: string;
-  score: number;
-  isReady: boolean;
-}
 
 // Room storage (in production, better to use Redis)
 const quizRooms = new Map<string, QuizRoom>();
