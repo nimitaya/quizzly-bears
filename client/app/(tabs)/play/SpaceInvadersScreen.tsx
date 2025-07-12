@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Alert, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors, Gaps, FontSizes, FontWeights } from '@/styles/theme';
 import IconArrowBack from '@/assets/icons/IconArrowBack';
@@ -86,6 +86,7 @@ const SpaceInvadersScreen = () => {
   const [highscore, setHighscore] = useState(0);
   const [showWaveMessage, setShowWaveMessage] = useState(false);
   const [waveMessage, setWaveMessage] = useState('');
+  const [audioInitialized, setAudioInitialized] = useState(false);
 
   useEffect(() => {
     loadSounds();
@@ -108,6 +109,72 @@ const SpaceInvadersScreen = () => {
       }
     };
   }, []);
+
+  // Keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (gameState.gameOver || gameState.paused) return;
+      
+      // Initialize audio on first interaction
+      if (!audioInitialized) {
+        Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          staysActiveInBackground: false,
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        }).then(() => setAudioInitialized(true));
+      }
+      
+      switch (event.key) {
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+          setGameState(prev => ({ ...prev, keys: { ...prev.keys, ArrowLeft: true } }));
+          break;
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+          setGameState(prev => ({ ...prev, keys: { ...prev.keys, ArrowRight: true } }));
+          break;
+        case ' ':
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+          fireBullet();
+          break;
+        case 'p':
+        case 'P':
+          togglePause();
+          break;
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      switch (event.key) {
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+          setGameState(prev => ({ ...prev, keys: { ...prev.keys, ArrowLeft: false } }));
+          break;
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+          setGameState(prev => ({ ...prev, keys: { ...prev.keys, ArrowRight: false } }));
+          break;
+      }
+    };
+
+    // Add event listeners for web
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('keyup', handleKeyUp);
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+        window.removeEventListener('keyup', handleKeyUp);
+      };
+    }
+  }, [gameState.gameOver, gameState.paused, audioInitialized]);
 
   const loadHighscore = async () => {
     try {
@@ -164,7 +231,23 @@ const SpaceInvadersScreen = () => {
     if (!soundOn || !sounds[type]) return;
     
     try {
-      await sounds[type]?.replayAsync();
+      const sound = sounds[type];
+      if (sound) {
+        // Initialize audio on first interaction if not already done
+        if (!audioInitialized) {
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            staysActiveInBackground: false,
+            playsInSilentModeIOS: true,
+            shouldDuckAndroid: true,
+            playThroughEarpieceAndroid: false,
+          });
+          setAudioInitialized(true);
+        }
+        
+        await sound.setPositionAsync(0);
+        await sound.playAsync();
+      }
     } catch (error) {
       console.log('Error playing sound:', error);
     }
@@ -552,6 +635,17 @@ const SpaceInvadersScreen = () => {
   const handleTouch = (direction: 'left' | 'right' | 'fire') => {
     if (gameState.paused || gameState.gameOver) return;
     
+    // Initialize audio on first interaction
+    if (!audioInitialized) {
+      Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        staysActiveInBackground: false,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      }).then(() => setAudioInitialized(true));
+    }
+    
     if (direction === 'fire') {
       fireBullet();
       return; // Don't change movement keys when firing
@@ -572,8 +666,7 @@ const SpaceInvadersScreen = () => {
       ...prev,
       keys: {
         ...prev.keys,
-        ArrowLeft: direction === 'left' ? false : prev.keys.ArrowLeft,
-        ArrowRight: direction === 'right' ? false : prev.keys.ArrowRight,
+        [direction === 'left' ? 'ArrowLeft' : 'ArrowRight']: false,
       }
     }));
   };
@@ -620,6 +713,13 @@ const SpaceInvadersScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={handleBackPress}
+      >
+        <IconArrowBack color={Colors.primaryLimo} />
+      </TouchableOpacity>
+
       <View style={styles.content}>
         {/* HUD */}
         <View style={styles.hud}>
@@ -721,12 +821,6 @@ const SpaceInvadersScreen = () => {
             ) : (
               <IconPause size={24} color={Colors.primaryLimo} />
             )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.gameButton}
-            onPress={handleBackPress}
-          >
-            <Text style={styles.gameButtonText}>Back</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -885,6 +979,12 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.H2Fs,
     fontWeight: FontWeights.H1Fw as any,
     color: Colors.primaryLimo,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 72,
+    left: 16,
+    zIndex: 10,
   },
 });
 
