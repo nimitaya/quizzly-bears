@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Modal, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Modal, ScrollView, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors, Gaps, FontSizes, FontWeights } from '@/styles/theme';
 import { Fonts } from '@/styles/fonts';
@@ -41,6 +41,48 @@ const ConnectFourScreen = () => {
       });
     };
   }, []);
+
+  // Keyboard controls
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (gameOver) return;
+      
+      switch (event.key) {
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+          const col = parseInt(event.key) - 1;
+          if (col >= 0 && col < COLS && currentPlayer === 'red') {
+            handlePlayerMove(col);
+          }
+          break;
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+          // Move left in column selection (if implemented)
+          break;
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+          // Move right in column selection (if implemented)
+          break;
+        case 'Enter':
+        case ' ':
+          // Drop disc in selected column (if implemented)
+          break;
+      }
+    };
+
+    // Add event listener for web
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', handleKeyPress);
+      return () => window.removeEventListener('keydown', handleKeyPress);
+    }
+  }, [gameOver, currentPlayer, board]);
 
   const loadSounds = async () => {
     try {
@@ -412,18 +454,22 @@ const ConnectFourScreen = () => {
           onPress={() => setSoundOn(!soundOn)}
         >
           {soundOn ? (
-            <IconVolume size={24} color={Colors.primaryLimo} />
+            <IconVolume color={Colors.primaryLimo} />
           ) : (
-            <IconVolumeOff size={24} color={Colors.primaryLimo} />
+            <IconVolumeOff color={Colors.primaryLimo} />
           )}
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.topBarButton}
           onPress={() => setShowHelp(true)}
         >
-          <IconHelp size={24} color={Colors.primaryLimo} />
+          <IconHelp color={Colors.primaryLimo} />
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity style={styles.backButton} onPress={() => router.push("/(tabs)/play/MiniGamesScreen")}>
+        <IconArrowBack color={Colors.primaryLimo} />
+      </TouchableOpacity>
 
       <View style={styles.content}>
         <Text style={styles.title}>Connect Four</Text>
@@ -445,9 +491,6 @@ const ConnectFourScreen = () => {
             {gameOver ? winner : `Player (Circle), it's your turn!`}
           </Text>
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.gameButton} onPress={() => router.push("/(tabs)/play/MiniGamesScreen")}>
-              <Text style={styles.gameButtonText}>Back</Text>
-            </TouchableOpacity>
             <TouchableOpacity style={styles.gameButton} onPress={initializeBoard}>
               <Text style={styles.gameButtonText}>New Game</Text>
             </TouchableOpacity>
@@ -498,8 +541,8 @@ const styles = StyleSheet.create({
   },
   topBar: {
     position: "absolute",
-    top: Gaps.g40,
-    left: Gaps.g16,
+    top: 72,
+    right: Gaps.g16,
     flexDirection: 'row',
     gap: Gaps.g16,
     zIndex: 10,
@@ -659,6 +702,12 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
     fontFamily: Fonts.pressStart2P,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 72,
+    left: 16,
+    zIndex: 10,
   },
 });
 

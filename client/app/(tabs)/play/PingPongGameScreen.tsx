@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors, Gaps, FontSizes, FontWeights } from '@/styles/theme';
 import IconArrowBack from '@/assets/icons/IconArrowBack';
@@ -101,6 +101,61 @@ const PingPongGameScreen = () => {
     };
   }, []);
 
+  // Keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!gameState.gameStarted || gameState.gameOver) return;
+      
+      switch (event.key) {
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+          setGameState(prev => ({ ...prev, keys: { ...prev.keys, up: true } }));
+          break;
+        case 'ArrowDown':
+        case 's':
+        case 'S':
+          setGameState(prev => ({ ...prev, keys: { ...prev.keys, down: true } }));
+          break;
+        case ' ':
+        case 'p':
+        case 'P':
+          togglePause();
+          break;
+        case 'Enter':
+          if (!gameState.gameStarted) {
+            startGame();
+          }
+          break;
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      switch (event.key) {
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+          setGameState(prev => ({ ...prev, keys: { ...prev.keys, up: false } }));
+          break;
+        case 'ArrowDown':
+        case 's':
+        case 'S':
+          setGameState(prev => ({ ...prev, keys: { ...prev.keys, down: false } }));
+          break;
+      }
+    };
+
+    // Add event listeners for web
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('keyup', handleKeyUp);
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+        window.removeEventListener('keyup', handleKeyUp);
+      };
+    }
+  }, [gameState.gameStarted, gameState.gameOver, gameState.paused]);
+
   const loadHighscore = async () => {
     try {
       const highscoreKey = gameSettings.gameMode === 'standard' ? 'pingpong_highscore' : 'pingpong_survival_highscore';
@@ -171,16 +226,16 @@ const PingPongGameScreen = () => {
     
     switch(gameSettings.difficulty) {
       case 'easy':
-        newPaddleSpeed = 3;  // Langsamere KI
+        newPaddleSpeed = 2;  // Noch langsamere KI
         newBallSpeed = 2;    // Deutlich langsamerer Ball
         break;
       case 'medium':
-        newPaddleSpeed = 6;  // Mittlere KI-Geschwindigkeit
-        newBallSpeed = 4;    // Mittlere Ball-Geschwindigkeit
+        newPaddleSpeed = 4;  // Langsamere KI
+        newBallSpeed = 3;    // Langsamerer Ball
         break;
       case 'hard':
-        newPaddleSpeed = 10; // Schnelle KI
-        newBallSpeed = 6;    // Schneller Ball
+        newPaddleSpeed = 7;  // Langsamere KI
+        newBallSpeed = 4;    // Langsamerer Ball
         break;
     }
     
@@ -188,11 +243,14 @@ const PingPongGameScreen = () => {
     BALL_SPEED = newBallSpeed;
     PADDLE_SPEED = newPaddleSpeed;
 
+    // Random ball direction (50/50 chance)
+    const randomDirection = Math.random() < 0.5 ? BALL_SPEED : -BALL_SPEED;
+
     setGameState(prev => ({
       ...prev,
       playerPaddle: { x: 20, y: GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2, width: PADDLE_WIDTH, height: PADDLE_HEIGHT },
       aiPaddle: { x: GAME_WIDTH - 30, y: GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2, width: PADDLE_WIDTH, height: PADDLE_HEIGHT },
-      ball: { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2, dx: BALL_SPEED, dy: BALL_SPEED, size: BALL_SIZE },
+      ball: { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2, dx: randomDirection, dy: BALL_SPEED, size: BALL_SIZE },
       playerScore: 0,
       aiScore: 0,
       gameOver: false,
@@ -294,19 +352,23 @@ const PingPongGameScreen = () => {
           // In survival mode, player loses a life
           setSurvivalState(prev => ({ ...prev, lives: prev.lives - 1 }));
         }
+        // Random ball direction after AI scores
+        const randomDirection = Math.random() < 0.5 ? BALL_SPEED : -BALL_SPEED;
         return {
           ...prev,
           aiScore: prev.aiScore + 1,
-          ball: { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2, dx: BALL_SPEED, dy: BALL_SPEED, size: BALL_SIZE }
+          ball: { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2, dx: randomDirection, dy: BALL_SPEED, size: BALL_SIZE }
         };
       }
       if (newX > GAME_WIDTH) {
         // Player scores
         playSound('success');
+        // Random ball direction after player scores
+        const randomDirection = Math.random() < 0.5 ? BALL_SPEED : -BALL_SPEED;
         return {
           ...prev,
           playerScore: prev.playerScore + 1,
-          ball: { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2, dx: -BALL_SPEED, dy: BALL_SPEED, size: BALL_SIZE }
+          ball: { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2, dx: randomDirection, dy: BALL_SPEED, size: BALL_SIZE }
         };
       }
 
@@ -428,6 +490,17 @@ const PingPongGameScreen = () => {
           {/* Background */}
           <Rect x={0} y={0} width={GAME_WIDTH} height={GAME_HEIGHT} fill={Colors.black} />
           
+          {/* Border */}
+          <Rect 
+            x={0} 
+            y={0} 
+            width={GAME_WIDTH} 
+            height={GAME_HEIGHT} 
+            fill="none" 
+            stroke={Colors.primaryLimo} 
+            strokeWidth={3}
+          />
+          
           {/* Center line */}
           <Rect 
             x={GAME_WIDTH / 2 - 1} 
@@ -481,7 +554,7 @@ const PingPongGameScreen = () => {
     return (
       <SafeAreaView style={styles.container}>
         <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-          <IconArrowBack />
+          <IconArrowBack color={Colors.primaryLimo} />
         </TouchableOpacity>
         
         <View style={styles.gameOverContainer}>
@@ -505,7 +578,7 @@ const PingPongGameScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-        <IconArrowBack />
+        <IconArrowBack color={Colors.primaryLimo} />
       </TouchableOpacity>
 
       <View style={styles.header}>
@@ -549,10 +622,10 @@ const PingPongGameScreen = () => {
         
         <View style={styles.centerButtons}>
           <TouchableOpacity style={styles.iconButton} onPress={toggleSound}>
-            {soundEnabled ? <IconVolume /> : <IconVolumeOff />}
+            {soundEnabled ? <IconVolume color={Colors.primaryLimo} /> : <IconVolumeOff color={Colors.primaryLimo} />}
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton} onPress={togglePause}>
-            {gameState.paused ? <IconPlay /> : <IconPause />}
+            {gameState.paused ? <IconPlay color={Colors.primaryLimo} /> : <IconPause color={Colors.primaryLimo} />}
           </TouchableOpacity>
         </View>
         
@@ -571,14 +644,14 @@ const PingPongGameScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bgGray,
+    backgroundColor: Colors.black,
     alignItems: 'center',
     paddingTop: Gaps.g80,
   },
   backButton: {
     position: 'absolute',
-    top: Gaps.g80,
-    left: Gaps.g16,
+    top: 72,
+    left: 16,
     zIndex: 10,
   },
   header: {
@@ -594,12 +667,12 @@ const styles = StyleSheet.create({
   scoreText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
   },
   highscoreText: {
     fontSize: FontSizes.TextSmallFs,
     fontWeight: FontWeights.TextMediumFw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
   },
   survivalContainer: {
     flexDirection: 'row',
@@ -614,7 +687,7 @@ const styles = StyleSheet.create({
   livesText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
   },
   timeContainer: {
     flexDirection: 'row',
@@ -623,7 +696,7 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
   },
   speedContainer: {
     flexDirection: 'row',
@@ -632,16 +705,14 @@ const styles = StyleSheet.create({
   speedText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
   },
   gameContainer: {
     marginBottom: Gaps.g24,
     position: 'relative',
   },
   gameCanvas: {
-    borderWidth: 2,
-    borderColor: Colors.darkGreen,
-    borderRadius: 8,
+    // Keine abgerundeten Ecken
   },
   controls: {
     flexDirection: 'row',
@@ -657,12 +728,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.darkGreen,
+    borderColor: Colors.primaryLimo,
   },
   controlButtonText: {
     fontSize: 32,
     fontWeight: FontWeights.H1Fw as any,
-    color: Colors.darkGreen,
+    color: Colors.black,
   },
   centerButtons: {
     flexDirection: 'row',
@@ -678,7 +749,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.darkGreen,
+    borderColor: Colors.primaryLimo,
   },
   gameOverContainer: {
     flex: 1,
@@ -689,7 +760,7 @@ const styles = StyleSheet.create({
   gameOverTitle: {
     fontSize: FontSizes.H1Fs,
     fontWeight: FontWeights.H1Fw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
     marginBottom: Gaps.g16,
     textAlign: 'center',
   },
@@ -699,13 +770,13 @@ const styles = StyleSheet.create({
     paddingVertical: Gaps.g16,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: Colors.darkGreen,
+    borderColor: Colors.primaryLimo,
     marginTop: Gaps.g24,
   },
   restartButtonText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.black,
   },
   startButtonOverlay: {
     position: 'absolute',
@@ -723,12 +794,12 @@ const styles = StyleSheet.create({
     paddingVertical: Gaps.g16,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: Colors.darkGreen,
+    borderColor: Colors.primaryLimo,
   },
   gameStartButtonText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.black,
   },
 });
 
