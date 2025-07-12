@@ -22,6 +22,8 @@ import {
 import { useUser } from "@clerk/clerk-expo";
 // Fix: import useStatistics in React component
 import { useStatistics } from "@/providers/UserProvider";
+import { Audio } from 'expo-av';
+import { useSound } from "@/providers/SoundProvider";
 
 // ========================================================== START OF HOOK ==========================================================
 export function useQuizLogic() {
@@ -41,6 +43,16 @@ export function useQuizLogic() {
   const currentPointsRef = useRef({ total: 0, chosenCorrect: 0 });
   // Track if a question transition is already scheduled for multiplayer
   const isTransitionScheduled = useRef<boolean>(false);
+
+  // Audio refs for quiz sounds
+  const timerSoundRef = useRef<Audio.Sound | null>(null);
+  const selectionSoundRef = useRef<Audio.Sound | null>(null);
+  const correctSoundRef = useRef<Audio.Sound | null>(null);
+  const errorSoundRef = useRef<Audio.Sound | null>(null);
+  const nextSoundRef = useRef<Audio.Sound | null>(null);
+
+  // Get global sound settings
+  const { soundEnabled } = useSound();
 
   // ========================================================== STATE MANAGEMENT ==========================================================
   const [currQuestionsArray, setCurrQuestionsArray] = useState<
@@ -73,6 +85,121 @@ export function useQuizLogic() {
     totalAnswers: 0,
   });
   const [showResult, setShowResult] = useState<boolean>(false);
+
+  // ========================================================== SOUND FUNCTIONS ==========================================================
+  // ----- Load quiz sounds -----
+  const loadQuizSounds = async () => {
+    try {
+      const { sound: timerSound } = await Audio.Sound.createAsync(
+        require('@/assets/Sounds/time-01.mp3'),
+        { shouldPlay: false, isLooping: true }
+      );
+      timerSoundRef.current = timerSound;
+
+      const { sound: selectionSound } = await Audio.Sound.createAsync(
+        require('@/assets/Sounds/auswahl.mp3')
+      );
+      selectionSoundRef.current = selectionSound;
+
+      const { sound: correctSound } = await Audio.Sound.createAsync(
+        require('@/assets/Sounds/richtig.mp3')
+      );
+      correctSoundRef.current = correctSound;
+
+      const { sound: errorSound } = await Audio.Sound.createAsync(
+        require('@/assets/Sounds/error.mp3')
+      );
+      errorSoundRef.current = errorSound;
+
+      const { sound: nextSound } = await Audio.Sound.createAsync(
+        require('@/assets/Sounds/next.mp3')
+      );
+      nextSoundRef.current = nextSound;
+    } catch (error) {
+      console.log('Error loading quiz sounds:', error);
+    }
+  };
+
+  // ----- Play timer sound (looping) -----
+  const playTimerSound = async () => {
+    if (!soundEnabled) return;
+    
+    try {
+      if (timerSoundRef.current) {
+        await timerSoundRef.current.setPositionAsync(0);
+        await timerSoundRef.current.playAsync();
+      }
+    } catch (error) {
+      console.log('Error playing timer sound:', error);
+    }
+  };
+
+  // ----- Stop timer sound -----
+  const stopTimerSound = async () => {
+    try {
+      if (timerSoundRef.current) {
+        await timerSoundRef.current.stopAsync();
+      }
+    } catch (error) {
+      console.log('Error stopping timer sound:', error);
+    }
+  };
+
+  // ----- Play selection sound -----
+  const playSelectionSound = async () => {
+    if (!soundEnabled) return;
+    
+    try {
+      if (selectionSoundRef.current) {
+        await selectionSoundRef.current.setPositionAsync(0);
+        await selectionSoundRef.current.playAsync();
+      }
+    } catch (error) {
+      console.log('Error playing selection sound:', error);
+    }
+  };
+
+  // ----- Play correct/error sound -----
+  const playAnswerSound = async (isCorrect: boolean) => {
+    if (!soundEnabled) return;
+    
+    try {
+      const soundRef = isCorrect ? correctSoundRef.current : errorSoundRef.current;
+      if (soundRef) {
+        await soundRef.setPositionAsync(0);
+        await soundRef.playAsync();
+      }
+    } catch (error) {
+      console.log('Error playing answer sound:', error);
+    }
+  };
+
+  // ----- Play next sound -----
+  const playNextSound = async () => {
+    if (!soundEnabled) return;
+    
+    try {
+      if (nextSoundRef.current) {
+        await nextSoundRef.current.setPositionAsync(0);
+        await nextSoundRef.current.playAsync();
+      }
+    } catch (error) {
+      console.log('Error playing next sound:', error);
+    }
+  };
+
+  // ----- Cleanup sounds -----
+  const cleanupSounds = async () => {
+    try {
+      if (timerSoundRef.current) await timerSoundRef.current.unloadAsync();
+      if (selectionSoundRef.current) await selectionSoundRef.current.unloadAsync();
+      if (correctSoundRef.current) await correctSoundRef.current.unloadAsync();
+      if (errorSoundRef.current) await errorSoundRef.current.unloadAsync();
+      if (nextSoundRef.current) await nextSoundRef.current.unloadAsync();
+    } catch (error) {
+      console.log('Error cleaning up sounds:', error);
+    }
+  };
 
   // ========================================================== FUNCTIONS ==========================================================
   // ===== FETCHING FROM CACHE =====
@@ -142,24 +269,24 @@ export function useQuizLogic() {
         // Check if questions have the right structure
         // Reset
         setCurrentQuestionData(questions.questionArray[currQuestionIndex]);
-        setAnswerState((prev) => ({
-          ...prev,
+        setReadTimer(false); // Reset read timer
+        setAnswerState({
           chosenAnswer: null,
           isSelected: false,
           isSubmitted: false,
           isLocked: false,
-        }));
+        });
         // Start the timer for the question
         timingQuestions();
       } else {
         setShowResult(true);
-        setAnswerState((prev) => ({
-          ...prev,
+        setReadTimer(false); // Reset read timer
+        setAnswerState({
           chosenAnswer: null,
           isSelected: false,
           isSubmitted: false,
           isLocked: false,
-        }));
+        });
       }
     } catch (error) {
       console.error("Error loading questions:", error);
@@ -174,9 +301,12 @@ export function useQuizLogic() {
     readTimeout.current = setTimeout(() => {
       // Set read timer to true after 2 seconds to show the answers
       setReadTimer(true);
+      // Start timer sound when answers become visible
+      playTimerSound();
       // Start - you have 30 seconds to choose an answer
       answerTimeout.current = setTimeout(() => {
         setAnswerState((prevState) => ({ ...prevState, isLocked: true }));
+        stopTimerSound(); // Stop timer sound when time is up
         handleAnswerCheck();
         
         // For multiplayer modes, automatically move to next question after a delay
@@ -195,6 +325,9 @@ export function useQuizLogic() {
     if (answerState.isLocked) {
       return;
     }
+
+    // Play selection sound when an answer is chosen
+    playSelectionSound();
 
     setAnswerState((prevState) => ({
       ...prevState,
@@ -229,6 +362,9 @@ export function useQuizLogic() {
     // Store the chosen answer before updating state
     const selectedAnswer = answerState.chosenAnswer;
     
+    // Stop timer sound when answer is submitted
+    stopTimerSound();
+    
     setAnswerState((prevState) => ({
       ...prevState,
       isSubmitted: true,
@@ -256,52 +392,42 @@ export function useQuizLogic() {
     }
   };
 
-  // ----- HELPER for finding correct answer -----
+  // ----- Get if answer is correct -----
   const getIsCorrect = (): boolean => {
     if (!currentQuestionData || !answerState.chosenAnswer) {
       return false;
     }
 
-    const { optionA, optionB, optionC, optionD } = currentQuestionData;
-    const options = [optionA, optionB, optionC, optionD];
-    const chosenOption = answerState.chosenAnswer; // This is now "A", "B", "C" or "D" (option key)
+    const selectedOption = answerState.chosenAnswer;
+    const correctOption = [
+      currentQuestionData.optionA,
+      currentQuestionData.optionB,
+      currentQuestionData.optionC,
+      currentQuestionData.optionD,
+    ].find((option) => option?.isCorrect);
 
-    // Compare by option index (A, B, C, D), not by text
-    let optionIndex = -1;
-
-    // Determine the index of the selected option
-    switch (chosenOption.toUpperCase()) {
-      case "A":
-      case "0":
-        optionIndex = 0;
-        break;
-      case "B":
-      case "1":
-        optionIndex = 1;
-        break;
-      case "C":
-      case "2":
-        optionIndex = 2;
-        break;
-      case "D":
-      case "3":
-        optionIndex = 3;
-        break;
-      default:
-        return false;
-    }
-
-    if (optionIndex === -1 || optionIndex >= options.length) {
+    if (!correctOption) {
       return false;
     }
 
-    const selectedOption = options[optionIndex];
-    return selectedOption.isCorrect;
-  };  
-  
+    const optionMap = {
+      A: currentQuestionData.optionA,
+      B: currentQuestionData.optionB,
+      C: currentQuestionData.optionC,
+      D: currentQuestionData.optionD,
+    };
+
+    return optionMap[selectedOption as keyof typeof optionMap]?.isCorrect || false;
+  };
+
   // ----- Handle ANSWER CHECK -----
   const handleAnswerCheck = (): void => {
     const isCorrect = getIsCorrect();
+
+    // Only play answer sound if an answer was actually selected
+    if (answerState.chosenAnswer) {
+      playAnswerSound(isCorrect);
+    }
 
     if (isCorrect) {
       const newChosenCorrect = pointsState.chosenCorrect + 1;
@@ -351,82 +477,55 @@ export function useQuizLogic() {
 
         return updatedState;
       });
-    }
 
-    // OLD CODE (COMMENTED):
-    // // Add correct points to state
-    // setPointsState((prevPoints) => ({
-    //   ...prevPoints,
-    //   score: prevPoints.score + gainedPoints?.basePoints,
-    //   timePoints: prevPoints.timePoints + gainedPoints?.timeBonus,
-    //   perfectGame: prevPoints.perfectGame + gainedPoints?.bonusAllCorrect,
-    //   total: prevPoints.total + gainedPoints?.totalPoints,
-    //   chosenCorrect: newChosenCorrect,
-    // }));
+      // Cache points
+      cachePoints({
+        gameCategory: gameState.category,
+        score: newTotal,
+        correctAnswers: newChosenCorrect,
+        totalAnswers: pointsState.totalAnswers + 1,
+      });
 
-    // Logic for SOLO Play
-    if (
-      currQuestionIndex < currQuestionsArray.length - 1 &&
-      gameState.playStyle === "solo"
-    ) {
-      // Clear the timeout if answer is submitted early
-      if (answerTimeout.current) {
-        clearTimeout(answerTimeout.current);
-        answerTimeout.current = null;
-      }
-      if (readTimeout.current) {
-        clearTimeout(readTimeout.current);
-        readTimeout.current = null;
-      }
+      // Send points to database
+      sendPointsToDatabase(user?.id || "guest");
+    } else {
+      // Update total answers for incorrect answers
+      setPointsState((prevPoints) => ({
+        ...prevPoints,
+        totalAnswers: prevPoints.totalAnswers + 1,
+      }));
     }
   };
 
   // ----- Handle NEXT QUESTION -----
   const handleNextQuestion = (): void => {
-    const newTotalAnswers = pointsState.totalAnswers + 1;
-
-    // Fix Race Condition: use current data from ref
-    setPointsState((prevPoints) => {
-      const updatedPoints = {
-        ...prevPoints,
-        totalAnswers: newTotalAnswers,
-      };
-
-      // Use current data from ref instead of outdated state
-      const actualTotal = currentPointsRef.current.total || updatedPoints.total;
-      const actualCorrect =
-        currentPointsRef.current.chosenCorrect || updatedPoints.chosenCorrect;
-
-      // Cache current points & information with up-to-date values
-      cachePoints({
-        gameCategory: gameState.category,
-        score: actualTotal, // Use current data from ref
-        correctAnswers: actualCorrect, // Use current data from ref
-        totalAnswers: updatedPoints.totalAnswers,
-      });
-
-      return updatedPoints;
-    });
-
-    // OLD CODE (COMMENTED - RACE CONDITION):
-    // // update totalAnswers
-    // setPointsState((prevPoints) => ({
-    //   ...prevPoints,
-    //   totalAnswers: newTotalAnswers,
-    // }));
-    // // Cache current points & information
-    // cachePoints({
-    //   gameCategory: gameState.category,
-    //   score: pointsState.total,              // PROBLEM: old data
-    //   correctAnswers: pointsState.chosenCorrect,  // PROBLEM: old data
-    //   totalAnswers: newTotalAnswers,
-    // });
-
-    // Clear timer
+    // Clear all timeouts
+    if (readTimeout.current) {
+      clearTimeout(readTimeout.current);
+      readTimeout.current = null;
+    }
     if (answerTimeout.current) {
       clearTimeout(answerTimeout.current);
       answerTimeout.current = null;
     }
+    if (nextQuestionTimeout.current) {
+      clearTimeout(nextQuestionTimeout.current);
+      nextQuestionTimeout.current = null;
+    }
+
+    // Stop timer sound when moving to next question
+    stopTimerSound();
+
+    // Reset answer state
+    setAnswerState({
+      chosenAnswer: null,
+      isSelected: false,
+      isSubmitted: false,
+      isLocked: false,
+    });
+
+    // Play next sound
+    playNextSound();
 
     // Logic for Solo Play
     if (
@@ -480,28 +579,28 @@ export function useQuizLogic() {
     }
   };
 
-  const endGame = async () => {
-    // Fixed version - pass callback for setOnChanges:
-    if (user?.id) {
-      await sendPointsToDatabase(user.id, () => {});
+  // ----- End Game -----
+  const endGame = async (): Promise<void> => {
+    try {
+      // Stop timer sound when game ends
+      stopTimerSound();
+
+      // Cache final points
+      await cachePoints({
+        gameCategory: gameState.category,
+        score: pointsState.total,
+        correctAnswers: pointsState.chosenCorrect,
+        totalAnswers: pointsState.totalAnswers,
+      });
+
+      // Send final points to database
+      await sendPointsToDatabase(user?.id || "guest");
+
+      // Clear cache for next game
+      await clearCachePoints();
+    } catch (error) {
+      console.error("Error ending game:", error);
     }
-    // clear cached data
-    clearCachePoints();
-    // Clear all timers
-    if (answerTimeout.current) {
-      clearTimeout(answerTimeout.current);
-      answerTimeout.current = null;
-    }
-    if (readTimeout.current) {
-      clearTimeout(readTimeout.current);
-      readTimeout.current = null;
-    }
-    if (nextQuestionTimeout.current) {
-      clearTimeout(nextQuestionTimeout.current);
-      nextQuestionTimeout.current = null;
-    }
-    // Reset transition flag
-    isTransitionScheduled.current = false;
   };
 
   // ========================================================== USE EFFECTS ==========================================================
@@ -577,6 +676,31 @@ export function useQuizLogic() {
       };
     }
   }, [readTimer, answerState.isLocked]);
+
+  // ----- Initialize sounds and load data -----
+  useEffect(() => {
+    loadQuizSounds();
+    fetchGameInfo();
+    fetchAiData();
+    loadQuestions();
+
+    return () => {
+      // Cleanup timeouts
+      if (readTimeout.current) clearTimeout(readTimeout.current);
+      if (answerTimeout.current) clearTimeout(answerTimeout.current);
+      if (nextQuestionTimeout.current) clearTimeout(nextQuestionTimeout.current);
+      
+      // Cleanup sounds
+      cleanupSounds();
+    };
+  }, []);
+
+  // ----- Reload questions when question index changes -----
+  useEffect(() => {
+    if (currQuestionsArray.length > 0) {
+      loadQuestions();
+    }
+  }, [currQuestionIndex]);
 
   return {
     currentQuestionData,
