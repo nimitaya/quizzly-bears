@@ -5,8 +5,11 @@ import { Colors, Gaps, FontSizes, FontWeights } from '@/styles/theme';
 import IconArrowBack from '@/assets/icons/IconArrowBack';
 import IconPlay from '@/assets/icons/IconPlay';
 import IconPause from '@/assets/icons/IconPause';
+import IconVolume from '@/assets/icons/IconVolume';
+import IconVolumeOff from '@/assets/icons/IconVolumeOff';
 import Svg, { Rect, Circle } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Audio } from 'expo-av';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const GAME_WIDTH = Math.min(screenWidth - 32, 350);
@@ -36,6 +39,11 @@ const SnakeGameScreen = () => {
   const params = useLocalSearchParams();
   const animationRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
+  // Audio refs
+  const moveSoundRef = useRef<Audio.Sound | null>(null);
+  const eatSoundRef = useRef<Audio.Sound | null>(null);
+  const winSoundRef = useRef<Audio.Sound | null>(null);
+  
   // Parse settings from params
   const gameSettings: GameSettings = params.settings ? JSON.parse(params.settings as string) : {
     difficulty: 'medium',
@@ -60,6 +68,8 @@ const SnakeGameScreen = () => {
     gameTime: 0,
   });
 
+  const [soundEnabled, setSoundEnabled] = useState(soundOn);
+
   // Game speed based on difficulty
   const getGameSpeed = () => {
     const baseSpeed = gameSettings.difficulty === 'easy' ? 400 : 
@@ -70,10 +80,15 @@ const SnakeGameScreen = () => {
   useEffect(() => {
     loadHighscore();
     init();
+    loadSounds();
     return () => {
       if (animationRef.current) {
         clearInterval(animationRef.current);
       }
+      // Cleanup sounds
+      if (moveSoundRef.current) moveSoundRef.current.unloadAsync();
+      if (eatSoundRef.current) eatSoundRef.current.unloadAsync();
+      if (winSoundRef.current) winSoundRef.current.unloadAsync();
     };
   }, []);
 
@@ -108,6 +123,10 @@ const SnakeGameScreen = () => {
         case 'P':
           togglePause();
           break;
+        case 'm':
+        case 'M':
+          toggleSound();
+          break;
         case 'Enter':
           if (!gameState.gameStarted) {
             startGame();
@@ -122,6 +141,65 @@ const SnakeGameScreen = () => {
       return () => window.removeEventListener('keydown', handleKeyPress);
     }
   }, [gameState.gameStarted, gameState.gameOver, gameState.paused]);
+
+  // Sound functions
+  const loadSounds = async () => {
+    try {
+      const { sound: moveSound } = await Audio.Sound.createAsync(
+        require('@/assets/MiniGames/snake/sounds/moove.mp3')
+      );
+      moveSoundRef.current = moveSound;
+
+      const { sound: eatSound } = await Audio.Sound.createAsync(
+        require('@/assets/MiniGames/snake/sounds/eating-sound-effect.mp3')
+      );
+      eatSoundRef.current = eatSound;
+
+      const { sound: winSound } = await Audio.Sound.createAsync(
+        require('@/assets/MiniGames/snake/sounds/win.mp3')
+      );
+      winSoundRef.current = winSound;
+    } catch (error) {
+      console.log('Error loading sounds:', error);
+    }
+  };
+
+  const playSound = async (soundType: 'move' | 'eat' | 'win') => {
+    if (!soundEnabled) return;
+    
+    try {
+      let soundRef: Audio.Sound | null = null;
+      
+      switch (soundType) {
+        case 'move':
+          soundRef = moveSoundRef.current;
+          break;
+        case 'eat':
+          soundRef = eatSoundRef.current;
+          break;
+        case 'win':
+          soundRef = winSoundRef.current;
+          break;
+      }
+      
+      if (soundRef) {
+        await soundRef.setPositionAsync(0);
+        // Reduce volume for move sound to 50%
+        if (soundType === 'move') {
+          await soundRef.setVolumeAsync(0.25);
+        } else {
+          await soundRef.setVolumeAsync(1.0);
+        }
+        await soundRef.playAsync();
+      }
+    } catch (error) {
+      console.log('Error playing sound:', error);
+    }
+  };
+
+  const toggleSound = () => {
+    setSoundEnabled(!soundEnabled);
+  };
 
   const loadHighscore = async () => {
     try {
@@ -241,8 +319,12 @@ const SnakeGameScreen = () => {
       if (newHead.x === prev.food.x && newHead.y === prev.food.y) {
         const newScore = prev.score + 1;
         
+        // Play eat sound
+        playSound('eat');
+        
         // Check win condition for standard mode
         if (gameSettings.gameMode === 'standard' && gameSettings.maxScore > 0 && newScore >= gameSettings.maxScore) {
+          playSound('win');
           saveHighscore();
           return { ...prev, score: newScore, gameOver: true };
         }
@@ -256,6 +338,8 @@ const SnakeGameScreen = () => {
       } else {
         // Remove tail if no food eaten
         newSnake.pop();
+        // Play move sound
+        playSound('move');
         return {
           ...prev,
           snake: newSnake,
@@ -409,6 +493,9 @@ const SnakeGameScreen = () => {
 
       {/* Pause button positioned under the game field, right-aligned */}
       <View style={styles.pauseContainer}>
+        <TouchableOpacity style={styles.iconButton} onPress={toggleSound}>
+          {soundEnabled ? <IconVolume color={Colors.black} size={24} /> : <IconVolumeOff color={Colors.black} size={24} />}
+        </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton} onPress={togglePause}>
           {gameState.paused ? <IconPlay color={Colors.black} size={24} /> : <IconPause color={Colors.black} size={24} />}
         </TouchableOpacity>
@@ -599,7 +686,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: Colors.black + '80', // 50% Transparenz mit Colors.black
   },
   gameStartButton: {
     backgroundColor: Colors.primaryLimo,
@@ -616,8 +703,11 @@ const styles = StyleSheet.create({
   },
   pauseContainer: {
     width: GAME_WIDTH,
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 0,
+    marginTop: Gaps.g8, // Kleiner Abstand nach unten
   },
 });
 

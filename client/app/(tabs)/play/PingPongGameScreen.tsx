@@ -20,7 +20,7 @@ const PIXEL = 2;
 const PADDLE_WIDTH = 10;
 const PADDLE_HEIGHT = 60;
 const BALL_SIZE = 8;
-let BALL_SPEED = 3;
+let BALL_SPEED = 3; // Zurück auf 3
 let PADDLE_SPEED = 4;
 
 interface Paddle {
@@ -70,6 +70,10 @@ const PingPongGameScreen = () => {
     highscore: 0,
     keys: {} as { [key: string]: boolean },
     gameStarted: false,
+    playerPaddleSpeed: 0, // Track player paddle speed
+    aiPaddleSpeed: 0, // Track AI paddle speed
+    lastPlayerPaddleY: GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2,
+    lastAiPaddleY: GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2,
   });
 
   const [soundEnabled, setSoundEnabled] = useState(soundOn);
@@ -243,20 +247,27 @@ const PingPongGameScreen = () => {
     BALL_SPEED = newBallSpeed;
     PADDLE_SPEED = newPaddleSpeed;
 
-    // Random ball direction (50/50 chance)
-    const randomDirection = Math.random() < 0.5 ? BALL_SPEED : -BALL_SPEED;
+    // Random ball start position and direction
+    const randomY = Math.random() * (GAME_HEIGHT - 100) + 50; // Random Y position
+    const randomDx = Math.random() < 0.5 ? BALL_SPEED : -BALL_SPEED; // Random horizontal direction
+    const randomDy = (Math.random() - 0.5) * BALL_SPEED * 1.5; // Random vertical direction
+    const randomX = Math.random() < 0.5 ? 50 : GAME_WIDTH - 50; // Start near either paddle
 
     setGameState(prev => ({
       ...prev,
       playerPaddle: { x: 20, y: GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2, width: PADDLE_WIDTH, height: PADDLE_HEIGHT },
       aiPaddle: { x: GAME_WIDTH - 30, y: GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2, width: PADDLE_WIDTH, height: PADDLE_HEIGHT },
-      ball: { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2, dx: randomDirection, dy: BALL_SPEED, size: BALL_SIZE },
+      ball: { x: randomX, y: randomY, dx: randomDx, dy: randomDy, size: BALL_SIZE },
       playerScore: 0,
       aiScore: 0,
       gameOver: false,
       paused: false,
       keys: {},
       gameStarted: false,
+      playerPaddleSpeed: 0,
+      aiPaddleSpeed: 0,
+      lastPlayerPaddleY: GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2,
+      lastAiPaddleY: GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2,
     }));
     
     // Reset survival state
@@ -273,20 +284,31 @@ const PingPongGameScreen = () => {
   const movePlayerPaddle = () => {
     setGameState(prev => {
       const newY = prev.playerPaddle.y;
+      let paddleSpeed = 0;
       
       if (prev.keys['up'] && newY > 0) {
+        paddleSpeed = -PADDLE_SPEED;
         return {
           ...prev,
-          playerPaddle: { ...prev.playerPaddle, y: Math.max(0, newY - PADDLE_SPEED) }
+          playerPaddle: { ...prev.playerPaddle, y: Math.max(0, newY - PADDLE_SPEED) },
+          playerPaddleSpeed: paddleSpeed,
+          lastPlayerPaddleY: newY,
         };
       }
       if (prev.keys['down'] && newY < GAME_HEIGHT - PADDLE_HEIGHT) {
+        paddleSpeed = PADDLE_SPEED;
         return {
           ...prev,
-          playerPaddle: { ...prev.playerPaddle, y: Math.min(GAME_HEIGHT - PADDLE_HEIGHT, newY + PADDLE_SPEED) }
+          playerPaddle: { ...prev.playerPaddle, y: Math.min(GAME_HEIGHT - PADDLE_HEIGHT, newY + PADDLE_SPEED) },
+          playerPaddleSpeed: paddleSpeed,
+          lastPlayerPaddleY: newY,
         };
       }
-      return prev;
+      return {
+        ...prev,
+        playerPaddleSpeed: 0,
+        lastPlayerPaddleY: newY,
+      };
     });
   };
 
@@ -295,20 +317,31 @@ const PingPongGameScreen = () => {
       const ballCenterY = prev.ball.y;
       const paddleCenterY = prev.aiPaddle.y + PADDLE_HEIGHT / 2;
       const newY = prev.aiPaddle.y;
+      let paddleSpeed = 0;
       
       if (ballCenterY < paddleCenterY - 5 && newY > 0) {
+        paddleSpeed = -PADDLE_SPEED * 0.3;
         return {
           ...prev,
-          aiPaddle: { ...prev.aiPaddle, y: Math.max(0, newY - PADDLE_SPEED * 0.8) }
+          aiPaddle: { ...prev.aiPaddle, y: Math.max(0, newY - PADDLE_SPEED * 0.3) },
+          aiPaddleSpeed: paddleSpeed,
+          lastAiPaddleY: newY,
         };
       }
       if (ballCenterY > paddleCenterY + 5 && newY < GAME_HEIGHT - PADDLE_HEIGHT) {
+        paddleSpeed = PADDLE_SPEED * 0.3;
         return {
           ...prev,
-          aiPaddle: { ...prev.aiPaddle, y: Math.min(GAME_HEIGHT - PADDLE_HEIGHT, newY + PADDLE_SPEED * 0.8) }
+          aiPaddle: { ...prev.aiPaddle, y: Math.min(GAME_HEIGHT - PADDLE_HEIGHT, newY + PADDLE_SPEED * 0.3) },
+          aiPaddleSpeed: paddleSpeed,
+          lastAiPaddleY: newY,
         };
       }
-      return prev;
+      return {
+        ...prev,
+        aiPaddleSpeed: 0,
+        lastAiPaddleY: newY,
+      };
     });
   };
 
@@ -331,7 +364,21 @@ const PingPongGameScreen = () => {
           newX >= prev.playerPaddle.x &&
           newY >= prev.playerPaddle.y && 
           newY <= prev.playerPaddle.y + PADDLE_HEIGHT) {
-        newDx = Math.abs(newDx);
+        
+        // Calculate ball speed based on paddle speed
+        const paddleSpeedFactor = Math.abs(prev.playerPaddleSpeed) / PADDLE_SPEED;
+        const speedMultiplier = 1.0 + paddleSpeedFactor * 0.25; // 1.0 to 1.25x speed (halbiert von 0.5)
+        
+        // Calculate vertical deflection based on where ball hits paddle
+        const hitPosition = (newY - prev.playerPaddle.y) / PADDLE_HEIGHT; // 0 to 1
+        const verticalDeflection = (hitPosition - 0.5) * 2; // -1 to 1
+        
+        // Add paddle speed influence to vertical direction
+        const paddleSpeedInfluence = prev.playerPaddleSpeed / PADDLE_SPEED * 0.15; // Halbiert von 0.3
+        
+        newDx = Math.abs(newDx) * speedMultiplier;
+        newDy = (verticalDeflection * BALL_SPEED * 0.4) + (paddleSpeedInfluence * BALL_SPEED); // Halbiert von 0.8
+        
         playSound('ping');
       }
 
@@ -340,7 +387,21 @@ const PingPongGameScreen = () => {
           newX <= prev.aiPaddle.x + PADDLE_WIDTH &&
           newY >= prev.aiPaddle.y && 
           newY <= prev.aiPaddle.y + PADDLE_HEIGHT) {
-        newDx = -Math.abs(newDx);
+        
+        // Calculate ball speed based on paddle speed
+        const paddleSpeedFactor = Math.abs(prev.aiPaddleSpeed) / (PADDLE_SPEED * 0.3);
+        const speedMultiplier = 1.0 + paddleSpeedFactor * 0.15; // 1.0 to 1.15x speed (halbiert von 0.3)
+        
+        // Calculate vertical deflection based on where ball hits paddle
+        const hitPosition = (newY - prev.aiPaddle.y) / PADDLE_HEIGHT; // 0 to 1
+        const verticalDeflection = (hitPosition - 0.5) * 2; // -1 to 1
+        
+        // Add paddle speed influence to vertical direction
+        const paddleSpeedInfluence = prev.aiPaddleSpeed / (PADDLE_SPEED * 0.3) * 0.1; // Halbiert von 0.2
+        
+        newDx = -Math.abs(newDx) * speedMultiplier;
+        newDy = (verticalDeflection * BALL_SPEED * 0.3) + (paddleSpeedInfluence * BALL_SPEED); // Halbiert von 0.6
+        
         playSound('ping');
       }
 
@@ -352,23 +413,27 @@ const PingPongGameScreen = () => {
           // In survival mode, player loses a life
           setSurvivalState(prev => ({ ...prev, lives: prev.lives - 1 }));
         }
-        // Random ball direction after AI scores
-        const randomDirection = Math.random() < 0.5 ? BALL_SPEED : -BALL_SPEED;
+        // Ball starts near AI paddle with random direction
+        const randomY = Math.random() * (GAME_HEIGHT - 100) + 50; // Random Y position
+        const randomDx = Math.random() < 0.5 ? -BALL_SPEED : -BALL_SPEED * 0.7; // Always towards player
+        const randomDy = (Math.random() - 0.5) * BALL_SPEED * 2; // Random vertical direction
         return {
           ...prev,
           aiScore: prev.aiScore + 1,
-          ball: { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2, dx: randomDirection, dy: BALL_SPEED, size: BALL_SIZE }
+          ball: { x: GAME_WIDTH - 50, y: randomY, dx: randomDx, dy: randomDy, size: BALL_SIZE }
         };
       }
       if (newX > GAME_WIDTH) {
         // Player scores
         playSound('success');
-        // Random ball direction after player scores
-        const randomDirection = Math.random() < 0.5 ? BALL_SPEED : -BALL_SPEED;
+        // Ball starts near player paddle with random direction
+        const randomY = Math.random() * (GAME_HEIGHT - 100) + 50; // Random Y position
+        const randomDx = Math.random() < 0.5 ? BALL_SPEED : BALL_SPEED * 0.7; // Always towards AI
+        const randomDy = (Math.random() - 0.5) * BALL_SPEED * 2; // Random vertical direction
         return {
           ...prev,
           playerScore: prev.playerScore + 1,
-          ball: { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2, dx: randomDirection, dy: BALL_SPEED, size: BALL_SIZE }
+          ball: { x: 50, y: randomY, dx: randomDx, dy: randomDy, size: BALL_SIZE }
         };
       }
 
@@ -622,10 +687,10 @@ const PingPongGameScreen = () => {
         
         <View style={styles.centerButtons}>
           <TouchableOpacity style={styles.iconButton} onPress={toggleSound}>
-            {soundEnabled ? <IconVolume color={Colors.primaryLimo} /> : <IconVolumeOff color={Colors.primaryLimo} />}
+            {soundEnabled ? <IconVolume color={Colors.black} /> : <IconVolumeOff color={Colors.black} />}
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton} onPress={togglePause}>
-            {gameState.paused ? <IconPlay color={Colors.primaryLimo} /> : <IconPause color={Colors.primaryLimo} />}
+            {gameState.paused ? <IconPlay color={Colors.black} /> : <IconPause color={Colors.black} />}
           </TouchableOpacity>
         </View>
         
@@ -786,7 +851,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: Colors.black + '80', // 50% Transparenz mit Colors.black
   },
   gameStartButton: {
     backgroundColor: Colors.primaryLimo,
