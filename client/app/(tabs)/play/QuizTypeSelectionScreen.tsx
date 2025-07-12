@@ -13,6 +13,7 @@ import {
 import { socketService } from "@/utilities/socketService";
 import { useUser } from "@clerk/clerk-expo";
 import { useLanguage } from "@/providers/LanguageContext";
+import { useSound } from "@/providers/SoundProvider";
 
 // Use the cache key for quiz settings
 const cacheKey = CACHE_KEY.quizSettings;
@@ -22,6 +23,7 @@ const QuizTypeSelectionScreen = () => {
   const [playStyle, setPlayStyle] = useState<PlayStyle>("solo");
   const { user } = useUser();
   const { currentLanguage } = useLanguage();
+  const { soundEnabled } = useSound();
 
   // ---------- FUNCTIONS ----------
   // send selected Playstyle to cache
@@ -111,6 +113,7 @@ const QuizTypeSelectionScreen = () => {
       await createMultiplayerRoom(style);
     }
   };
+
   // ----------------------------------------
 
   return (

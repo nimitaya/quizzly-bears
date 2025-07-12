@@ -147,6 +147,10 @@ const SpaceInvadersScreen = () => {
         case 'P':
           togglePause();
           break;
+        case 'm':
+        case 'M':
+          setSoundOn(!soundOn);
+          break;
       }
     };
 
@@ -246,6 +250,8 @@ const SpaceInvadersScreen = () => {
         }
         
         await sound.setPositionAsync(0);
+        // Set volume to 50%
+        await sound.setVolumeAsync(0.5);
         await sound.playAsync();
       }
     } catch (error) {
@@ -836,7 +842,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     alignItems: 'center',
-    paddingTop: Gaps.g40,
+    paddingTop: Gaps.g80,
     paddingHorizontal: Gaps.g16,
     paddingBottom: Gaps.g24,
   },
