@@ -38,6 +38,9 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (!loading && userData?.settings?.music !== undefined) {
         setMusicEnabled(userData.settings.music);
+      } else if (!loading && userData) {
+        // Wenn keine Einstellungen vorhanden sind, setze Musik auf false (ausgeschaltet)
+        setMusicEnabled(false);
       }
 
       if (Platform.OS === "web") {
@@ -71,10 +74,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({
         }
         try {
           const { sound } = await Audio.Sound.createAsync(
-            {
-              // uri: "https://commondatastorage.googleapis.com/codeskulptor-assets/sounddogs/soundtrack.ogg",
-              uri: "https://commondatastorage.googleapis.com/codeskulptor-demos/riceracer_assets/music/race2.ogg",
-            },
+            require('@/assets/Sounds/musik.mp3'),
             {
               shouldPlay: true,
               isLooping: true,
