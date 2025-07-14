@@ -140,6 +140,7 @@ const MultiplayerResultScreen = () => {
         styles.contentContainer,
         { paddingBottom: insets.bottom + 20 },
       ]}
+      showsVerticalScrollIndicator={false}
     >
       <TouchableOpacity
         style={styles.closeButton}

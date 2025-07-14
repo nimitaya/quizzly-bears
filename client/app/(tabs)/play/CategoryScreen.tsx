@@ -15,7 +15,6 @@ import {
   Difficulty,
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { CACHE_KEY } from "@/utilities/cacheUtils";
-//vadim Funktion
 import { categorizeTopic } from "@/utilities/api/quizApi";
 
 const LEVELS = [
@@ -90,7 +89,7 @@ const CategoryScreen = () => {
         selectedTopic: specificTopic,
       };
       await saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
-      
+
       // For multiplayer admin, go back to lobby with selected category
       router.push("/(tabs)/play/MultiplayerLobby");
     } else {
@@ -235,8 +234,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     alignItems: "center",
-    paddingBottom: 32,
-    paddingHorizontal: 0,
+    paddingBottom: Gaps.g32,
   },
   searchToticBlock: {
     gap: Gaps.g16,

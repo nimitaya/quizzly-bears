@@ -104,7 +104,7 @@ const InviteFriendsScreen = () => {
   };
 
   const handleInviteDeclined = (data: any) => {
-    console.log("❌ Invite request declined:", data);
+    console.log("Invite request declined:", data);
 
     // Fetch updated sent invitations
     fetchSentInvites();
@@ -322,7 +322,7 @@ const InviteFriendsScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  };  // ----- Leave Room -----
+  }; // ----- Leave Room -----
   const leaveRoom = async () => {
     try {
       // If we have room info and user data, leave the socket room
@@ -394,14 +394,6 @@ const InviteFriendsScreen = () => {
         // disabled={!item.isOnline}
       >
         <View style={styles.friendInfo}>
-          {/* TODO IMPORTANT */}
-          {/* <View style={[styles.avatar, !item.isOnline && styles.avatarOffline]}> */}
-          {/* <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {item.username?.charAt(0) || item.email.charAt(0)}
-            </Text>
-          </View> */}
-
           {/* Show appropriate selection component based on game style */}
           {gameStyle === "duel" ? (
             <RadioButton
@@ -441,12 +433,6 @@ const InviteFriendsScreen = () => {
         onPress={() => toggleFriendSelection(item._id)}
       >
         <View style={styles.friendInfo}>
-          {/* <View style={[styles.avatar, styles.nonFriendAvatar]}>
-            <Text style={styles.avatarText}>
-              {item.username?.charAt(0) || item.email.charAt(0)}
-            </Text>
-          </View> */}
-
           {/* Show appropriate selection component based on game style */}
           {gameStyle === "duel" ? (
             <RadioButton
@@ -510,12 +496,6 @@ const InviteFriendsScreen = () => {
       </Text>
       <Text style={styles.subtitle}>Room ID: {roomInfo.roomId}</Text>
 
-      {/* <View style={styles.selectionInfo}>
-        <Text style={styles.selectionText}>
-          Selected: {selectedFriends.length} Quizzly Bears
-        </Text>
-      </View> */}
-
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <SearchFriendInput
@@ -534,17 +514,10 @@ const InviteFriendsScreen = () => {
           ) : null}
         </View>
 
-        {/* Search Result !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/}
+        {/* Search Result */}
         {searchState.result && (
           <View style={styles.searchResultContainer}>
             <Text style={styles.searchResultText}>User found and added</Text>
-            {/* <Text style={styles.searchResultSubtext}>
-              {friends.friends.some(
-                (friend) => friend._id === searchState.result?._id
-              )
-                ? "Added to your list below"
-                : "Added to list below"}
-            </Text> */}
           </View>
         )}
       </View>
@@ -565,12 +538,6 @@ const InviteFriendsScreen = () => {
       />
 
       <View style={styles.buttonContainer}>
-        {/* Skip & Continue button commented out - not needed
-        <ButtonSecondary
-          text="Skip & Continue"
-          onPress={() => router.push("/(tabs)/play/MultiplayerLobby")}
-        />
-        */}
         <ButtonPrimary
           text={
             gameStyle === "duel"
@@ -620,7 +587,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: Gaps.g80,
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: Gaps.g24,
   },
   backButton: {
     position: "absolute",
@@ -667,8 +634,7 @@ const styles = StyleSheet.create({
   },
   friendName: {
     fontSize: FontSizes.TextMediumFs,
-    fontWeight: "500",
-    marginBottom: 2,
+    marginBottom: Gaps.g4,
   },
   friendNameOffline: {
     color: Colors.systemRed,
@@ -686,7 +652,7 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.TextSmallFs,
     color: Colors.systemRed,
   },
-  // Added styles from ProfileFriendsScreen.tsx
+
   searchContainer: {
     marginBottom: Gaps.g16,
   },
@@ -709,9 +675,8 @@ const styles = StyleSheet.create({
     gap: Gaps.g16,
   },
   iconButton: {
-    padding: 4,
+    padding: Gaps.g4,
   },
-  // Added by Co-Pilot for non-friend styling
 
   nonFriendStatus: {
     color: Colors.systemOrange,
@@ -719,13 +684,9 @@ const styles = StyleSheet.create({
   rightSection: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: Gaps.g8,
   },
-  // addFriendButton: {
-  //   padding: 8,
-  //   backgroundColor: "#f0f0f0",
-  //   borderRadius: 8,
-  // },
+
   searchResultContainer: {},
   searchResultText: {
     fontSize: FontSizes.TextSmallFs,
@@ -734,7 +695,7 @@ const styles = StyleSheet.create({
   searchResultSubtext: {
     fontSize: FontSizes.TextSmallFs,
     color: Colors.darkGreen,
-    marginTop: 4,
+    marginTop: Gaps.g4,
   },
 });
 

@@ -22,10 +22,10 @@ const StatisticsScreen = () => {
 
   useEffect(() => {
     socket.on("pointsUpdated", () => {
-      console.log("🔁 pointsUpdated received - outside");
+      console.log("pointsUpdated received - outside");
       refetch &&
         refetch.forEach((fn) => {
-          console.log("🔁 pointsUpdated received - inside");
+          console.log("pointsUpdated received - inside");
           fn();
         });
     });
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     alignItems: "center",
-    paddingBottom: 32,
+    paddingBottom: Gaps.g32,
     paddingHorizontal: 0,
   },
   CategoryPerformanceContainer: {
