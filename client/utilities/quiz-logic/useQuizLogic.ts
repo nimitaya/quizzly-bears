@@ -292,8 +292,8 @@ export function useQuizLogic() {
 
     const selectedOption = options[optionIndex];
     return selectedOption.isCorrect;
-  };  
-  
+  };
+
   // ----- Handle ANSWER CHECK -----
   const handleAnswerCheck = (): void => {
     const isCorrect = getIsCorrect();
