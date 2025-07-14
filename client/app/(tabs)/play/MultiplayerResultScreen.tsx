@@ -284,6 +284,7 @@ const styles = StyleSheet.create({
   buttonsContainer: {
     gap: Gaps.g16,
     marginTop: Gaps.g16,
+    paddingBottom: Gaps.g80,
   },
 });
 
