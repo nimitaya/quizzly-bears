@@ -21,7 +21,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
 import IconClose from "@/assets/icons/IconClose";
 import TimerBar from "@/components/TimerBar";
-import { clearCacheData, CACHE_KEY, loadCacheData } from "@/utilities/cacheUtils";
+import {
+  clearCacheData,
+  CACHE_KEY,
+  loadCacheData,
+} from "@/utilities/cacheUtils";
 import CustomAlert from "@/components/CustomAlert";
 import { useLanguage } from "@/providers/LanguageContext";
 import { getLocalizedText } from "@/utilities/languageUtils";
@@ -66,7 +70,7 @@ const QuizLogic = () => {
 
   const { userData } = useContext(UserContext);
   const [showAlert, setShowAlert] = useState(false);
-  
+
   // ~~~~~~~ Effect to ensure socket connection for final results ~~~~~~~
   useEffect(() => {
     if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
@@ -74,7 +78,7 @@ const QuizLogic = () => {
       console.log("Ensuring socket connection for multiplayer results...");
       socketService.ensureConnection();
     }
-    
+
     return () => {
       // Nothing to clean up
     };
@@ -89,7 +93,7 @@ const QuizLogic = () => {
   //         await leaveSocketRoom();
   //       }
   //     };
-      
+
   //     cleanupSocketRoom();
   //   };
   // }, [gameState.playStyle, userData]);
@@ -115,7 +119,7 @@ const QuizLogic = () => {
               perfectGame: pointsState.perfectGame,
               total: pointsState.score + pointsState.timePoints,
               chosenCorrect: pointsState.chosenCorrect,
-              totalAnswers: pointsState.totalAnswers
+              totalAnswers: pointsState.totalAnswers,
             }
           );
           // Navigate to the multiplayer results screen
@@ -129,8 +133,8 @@ const QuizLogic = () => {
       return;
     }
     router.push("./CategoryScreen");
-  };  
-  
+  };
+
   const handleHome = async () => {
     clearCacheData(cacheKey.questions);
     clearCacheData(cacheKey.points);
@@ -159,14 +163,14 @@ const QuizLogic = () => {
     clearCacheData(cacheKey.questions);
     clearCacheData(cacheKey.points);
     clearCacheData(cacheKey.settings);
-    
+
     // Leave socket room if in multiplayer mode
     if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
       await leaveSocketRoom();
       clearCacheData(cacheKey.currentRoom);
       handleRemoveAllInvites();
     }
-    
+
     router.push("./");
   };
 
@@ -179,7 +183,7 @@ const QuizLogic = () => {
       console.error("Error removing all invitations:", error);
     }
   };
-  
+
   // ----- Helper function to leave socket room -----
   const leaveSocketRoom = async () => {
     if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
@@ -226,6 +230,7 @@ const QuizLogic = () => {
         <ScrollView
           style={styles.containerResult}
           contentContainerStyle={styles.contentContainerResult}
+          showsVerticalScrollIndicator={false}
         >
           <Logo size="big" />
           <View style={styles.resultsContainer}>
@@ -347,7 +352,8 @@ const QuizLogic = () => {
                   {answerState.isLocked && gameState.playStyle === "solo" ? (
                     <ButtonPrimary text="Next" onPress={handleNextQuestion} />
                   ) : answerState.isLocked &&
-                    (gameState.playStyle === "group" || gameState.playStyle === "duel") ? (
+                    (gameState.playStyle === "group" ||
+                      gameState.playStyle === "duel") ? (
                     <ButtonPrimaryDisabled text="Waiting for other bears..." />
                   ) : answerState.isSelected ? (
                     <ButtonPrimary text="Answer" onPress={handleAnswerSubmit} />
@@ -441,6 +447,7 @@ const styles = StyleSheet.create({
   },
   buttonsContainer: {
     gap: Gaps.g16,
+    paddingBottom: Gaps.g80,
   },
 });
 
