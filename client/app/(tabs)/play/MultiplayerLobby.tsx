@@ -55,7 +55,8 @@ const MultiplayerLobby = () => {
   // ====================== State Variables =====================
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [currentRoom, setCurrentRoom] = useState<QuizRoom | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  // IMPORTANT TODO: May be deleted, don't need this currently
+  // const [isReady, setIsReady] = useState(false);
   const [allLanguages, setAllLanguages] = useState<string[]>([]);
 
   // CustomAlert states
@@ -558,17 +559,18 @@ const MultiplayerLobby = () => {
   };
 
   // ----- Toggle Ready -----
-  const toggleReady = () => {
-    if (roomInfo && currentRoom) {
-      const playerId = currentRoom.players.find(
-        (p) => p.socketId === socketService.getSocketId()
-      )?.id;
-      if (playerId) {
-        socketService.togglePlayerReady(roomInfo.roomId, playerId);
-        setIsReady(!isReady);
-      }
-    }
-  };
+  // IMPORTANT TODO: May be deleted, don't need this currently
+  // const toggleReady = () => {
+  //   if (roomInfo && currentRoom) {
+  //     const playerId = currentRoom.players.find(
+  //       (p) => p.socketId === socketService.getSocketId()
+  //     )?.id;
+  //     if (playerId) {
+  //       socketService.togglePlayerReady(roomInfo.roomId, playerId);
+  //       setIsReady(!isReady);
+  //     }
+  //   }
+  // };
 
   // ----- Start Game -----
   const startGame = async () => {
@@ -578,11 +580,12 @@ const MultiplayerLobby = () => {
       roomInfo.selectedCategory
     ) {
       // Check that all players are ready
-      const allReady = currentRoom.players.every((p) => p.isReady);
-      if (!allReady) {
-        setShowWarningAlert(true);
-        return;
-      }
+      // IMPORTANT TODO: May be deleted, don't need this currently
+      // const allReady = currentRoom.players.every((p) => p.isReady);
+      // if (!allReady) {
+      //   setShowWarningAlert(true);
+      //   return;
+      // }
 
       try {
         console.log("Starting quiz generation...");
@@ -855,7 +858,8 @@ const MultiplayerLobby = () => {
             type: "player" as const,
             id: player.id,
             name: displayName,
-            isReady: player.isReady,
+            // IMPORTANT TODO: May be deleted, don't need this currently
+            // isReady: player.isReady,
             isHost,
             data: player,
           };
@@ -1003,11 +1007,12 @@ const MultiplayerLobby = () => {
         </View>
       </ScrollView>
 
+{/* IMPORTANT TODO: May be deleted, don't need this currently */}
       <View style={styles.buttonContainer}>
         {!roomInfo.isAdmin && (
           <ButtonSecondary
-            text={isReady ? "Not Ready" : "Ready"}
-            onPress={toggleReady}
+            text={"Waiting admin bear..."}
+            disabled
           />
         )}
 
