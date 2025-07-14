@@ -191,11 +191,27 @@ export function useQuizLogic() {
   // ----- Cleanup sounds -----
   const cleanupSounds = async () => {
     try {
-      if (timerSoundRef.current) await timerSoundRef.current.unloadAsync();
-      if (selectionSoundRef.current) await selectionSoundRef.current.unloadAsync();
-      if (correctSoundRef.current) await correctSoundRef.current.unloadAsync();
-      if (errorSoundRef.current) await errorSoundRef.current.unloadAsync();
-      if (nextSoundRef.current) await nextSoundRef.current.unloadAsync();
+      // Stop all sounds first, then unload them
+      if (timerSoundRef.current) {
+        await timerSoundRef.current.stopAsync();
+        await timerSoundRef.current.unloadAsync();
+      }
+      if (selectionSoundRef.current) {
+        await selectionSoundRef.current.stopAsync();
+        await selectionSoundRef.current.unloadAsync();
+      }
+      if (correctSoundRef.current) {
+        await correctSoundRef.current.stopAsync();
+        await correctSoundRef.current.unloadAsync();
+      }
+      if (errorSoundRef.current) {
+        await errorSoundRef.current.stopAsync();
+        await errorSoundRef.current.unloadAsync();
+      }
+      if (nextSoundRef.current) {
+        await nextSoundRef.current.stopAsync();
+        await nextSoundRef.current.unloadAsync();
+      }
     } catch (error) {
       console.log('Error cleaning up sounds:', error);
     }
@@ -703,17 +719,21 @@ export function useQuizLogic() {
   }, [currQuestionIndex]);
 
   return {
+    // State
     currentQuestionData,
     currQuestionIndex,
-    answerState,
     gameState,
-    pointsState,
+    answerState,
     readTimer,
-    remainingTime,
+    pointsState,
     showResult,
+    remainingTime,
+    
+    // Functions
     handleAnswerSelect,
     handleSelection,
     handleAnswerSubmit,
     handleNextQuestion,
+    stopTimerSound, // Exportiere stopTimerSound
   };
 }

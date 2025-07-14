@@ -42,6 +42,7 @@ const QuizLogic = () => {
     handleSelection,
     handleAnswerSubmit,
     handleNextQuestion,
+    stopTimerSound, // Füge stopTimerSound hinzu
   } = useQuizLogic();
 
   const router = useRouter();
@@ -132,6 +133,9 @@ const QuizLogic = () => {
   };  
   
   const handleHome = async () => {
+    // Stop timer sound when leaving quiz
+    stopTimerSound();
+    
     clearCacheData(cacheKey.questions);
     clearCacheData(cacheKey.points);
     clearCacheData(cacheKey.settings);
@@ -156,6 +160,10 @@ const QuizLogic = () => {
 
   const handleConfirmAlert = async () => {
     setShowAlert(false);
+    
+    // Stop timer sound when confirming to leave quiz
+    stopTimerSound();
+    
     clearCacheData(cacheKey.questions);
     clearCacheData(cacheKey.points);
     clearCacheData(cacheKey.settings);
