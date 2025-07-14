@@ -433,12 +433,12 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.TextMediumFs,
   },
   input: {
-    fontSize: 18,
+    fontSize: FontSizes.TextLargeFs,
     borderBottomWidth: 1,
     borderColor: "transparent",
-    paddingVertical: 4,
+    paddingVertical: Gaps.g4,
     minWidth: 60,
-    paddingHorizontal: 8,
+    paddingHorizontal: Gaps.g8,
     textAlign: "center",
   },
 });

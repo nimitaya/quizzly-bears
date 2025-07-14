@@ -57,7 +57,10 @@ const PlayScreen = () => {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
+    <ScrollView
+      contentContainerStyle={styles.scrollContainer}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.container}>
         <View style={{ marginBottom: Gaps.g40 }}>
           <Logo size="big" />

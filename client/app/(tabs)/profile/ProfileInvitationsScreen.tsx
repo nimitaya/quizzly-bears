@@ -22,7 +22,11 @@ import IconAccept from "@/assets/icons/IconAccept";
 import IconDismiss from "@/assets/icons/IconDismiss";
 import IconPending from "@/assets/icons/IconPending";
 import { socketService } from "@/utilities/socketService";
-import { saveDataToCache, CACHE_KEY, loadCacheData } from "@/utilities/cacheUtils";
+import {
+  saveDataToCache,
+  CACHE_KEY,
+  loadCacheData,
+} from "@/utilities/cacheUtils";
 import { useLanguage } from "@/providers/LanguageContext";
 import { UserContext } from "@/providers/UserProvider";
 import { io } from "socket.io-client";
@@ -60,7 +64,8 @@ const ProfilInvitationsScreen = () => {
       }
 
       // Join the room via socket
-      const playerName = user.firstName || user.emailAddresses[0]?.emailAddress || "Player";
+      const playerName =
+        user.firstName || user.emailAddresses[0]?.emailAddress || "Player";
       // Get user's language from context or cache
       let userLanguage = currentLanguage?.code;
       if (!userLanguage) {
@@ -315,7 +320,7 @@ const styles = StyleSheet.create({
     marginBottom: Gaps.g16,
   },
   iconButton: {
-    padding: 4,
+    padding: Gaps.g4,
   },
   actionButtons: {
     flexDirection: "row",

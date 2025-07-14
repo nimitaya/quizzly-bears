@@ -188,17 +188,17 @@ const ProfileScreen = () => {
       };
 
       const handleInviteRequestSent = (data: any) => {
-        console.log("📩 Invite request sent:", data);
+        console.log("Invite request sent:", data);
 
         if (!userData?.clerkUserId) {
-          console.warn("⚠️ clerkUserId відсутній");
+          console.warn("clerkUserId відсутній");
           return;
         }
 
         getReceivedInviteRequests(userData.clerkUserId)
           .then((response) => {
             if (!response?.inviteRequests) {
-              console.warn("⚠️ No inviteRequests field in response:", response);
+              console.warn("No inviteRequests field in response:", response);
               return;
             }
 
@@ -208,18 +208,18 @@ const ProfileScreen = () => {
             );
             // Log all invite requests for debugging
             console.log("All invite requests:", allInvites);
-            console.log("📊 Total requests:", allInvites.length);
-            console.log("⏳ Pending:", pendingInvites.length);
+            console.log("Total requests:", allInvites.length);
+            console.log("Pending:", pendingInvites.length);
 
             if (typeof setReceivedInviteRequests === "function") {
               setReceivedInviteRequests(pendingInvites.length);
-              console.log("✅ State updated");
+              console.log("State updated");
             } else {
-              console.warn("⚠️ setReceivedInviteRequests is not a function");
+              console.warn("setReceivedInviteRequests is not a function");
             }
           })
           .catch((error) => {
-            console.error("❌ getReceivedInviteRequests error:", error);
+            console.error("getReceivedInviteRequests error:", error);
           });
       };
 
