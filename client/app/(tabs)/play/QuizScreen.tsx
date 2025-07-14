@@ -202,6 +202,10 @@ const QuizLogic = () => {
       currentQuestionData.question,
       currentLanguage.code
     );
+    console.log("getQuestionText input:", currentQuestionData.question); // TODO
+    console.log("getQuestionText currentLanguage:", currentLanguage.code); // TODO
+    console.log("getQuestionText result:", result); // TODO
+    
     return result;
   };
 
@@ -323,9 +327,9 @@ const QuizLogic = () => {
                   {/* show one quiz button for each option */}
                   {options &&
                     options.map(({ key, data }) => {
-                      console.log(`Processing option ${key}:`, data);
+                      // console.log(`Processing option ${key}:`, data);
                       const optionText = getOptionText(data);
-                      console.log(`Option ${key} text:`, optionText);
+                      // console.log(`Option ${key} text:`, optionText);
                       return (
                         <QuizButton
                           key={key}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import {
   View,
   Text,
@@ -48,6 +48,7 @@ const MultiplayerLobby = () => {
   const router = useRouter();
   const { userData } = useContext(UserContext);
   const { currentLanguage } = useLanguage();
+  const roomRefreshIntervalRef = useRef<any>(null);
 
   // ====================== State Variables =====================
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
@@ -176,16 +177,37 @@ const MultiplayerLobby = () => {
       }
     }, 1000);
 
-    // Add periodic room state refresh
-    const roomRefreshInterval = setInterval(() => {
-      if (roomInfo?.roomId && socketService.isConnected() && !isRejoining && !gameStarted) {
-        socketService.requestRoomState(roomInfo.roomId);
-      }
-    }, 3000);
+    // Add periodic room state refresh - stored in ref so it can be accessed from anywhere
+    if (!roomRefreshIntervalRef.current) {
+      roomRefreshIntervalRef.current = setInterval(() => {
+        // Only request room state if not in game and connected
+        if (roomInfo?.roomId && 
+            socketService.isConnected() && 
+            !isRejoining && 
+            !gameStarted && 
+            !socketService.isRoomGameStarted(roomInfo.roomId)) {
+          
+          // Debugging
+          console.log("[MultiplayerLobby] Requesting room state for:", roomInfo.roomId);
+          
+          socketService.requestRoomState(roomInfo.roomId);
+        } else if (roomInfo?.roomId && (gameStarted || socketService.isRoomGameStarted(roomInfo.roomId))) {
+          // If game has started, clear the interval
+          console.log("[MultiplayerLobby] Game detected as started, clearing refresh interval");
+          if (roomRefreshIntervalRef.current) {
+            clearInterval(roomRefreshIntervalRef.current);
+            roomRefreshIntervalRef.current = null;
+          }
+        }
+      }, 3000) as unknown as NodeJS.Timeout;
+    }
 
     return () => {
       clearInterval(interval);
-      clearInterval(roomRefreshInterval);
+      if (roomRefreshIntervalRef.current) {
+        clearInterval(roomRefreshIntervalRef.current);
+        roomRefreshIntervalRef.current = null;
+      }
       // Clean up listeners when component unmounts
       socketService.off("room-joined");
       socketService.off("room-state-updated");
@@ -390,45 +412,65 @@ const MultiplayerLobby = () => {
     socketService.onGameStarted(async (data) => {
       console.log("Game started!");
       setGameStarted(true); // Stop room refresh when game starts
+      
+      // Mark the room as started in the socket service to prevent further room state requests
+      if (roomInfo?.roomId) {
+        socketService.markRoomGameStarted(roomInfo.roomId);
+      }
 
       // If we received questions from the server, cache them locally
       if (data.questions && data.questions.length > 0) {
+        // Determine available languages from the room data if available
+        let availableLanguages: string[] = ['en']; // Always include English as default
+        
+        // Extract languages from the room data if available
+        if (data.room && data.room.players) {
+          const languagesFromRoom = data.room.players
+            .map(player => player.language)
+            .filter((lang): lang is string => !!lang)
+            .filter((lang, index, arr) => arr.indexOf(lang) === index); // Remove duplicates
+          
+          if (languagesFromRoom.length > 0) {
+            // Add any languages from the room that aren't already in our array
+            languagesFromRoom.forEach(lang => {
+              if (!availableLanguages.includes(lang)) {
+                availableLanguages.push(lang);
+              }
+            });
+          }
+        }
+        
+        // Create a function to generate language-specific fields dynamically
+        const createLanguageFields = (content: string) => {
+          const fields: Record<string, string> = {};
+          
+          // Add all detected languages with the content
+          availableLanguages.forEach(lang => {
+            fields[lang] = content; // Using the same content for all languages as fallback
+          });
+          
+          return fields;
+        };
+
         // Transform questions from socket format to the format expected by useQuizLogic
         const transformedQuestions = {
           questionArray: data.questions.map((q: any) => ({
-            question: {
-              en: q.question,
-              de: q.question, // For now, use English as fallback for other languages
-              es: q.question,
-              fr: q.question,
-            },
+            question: createLanguageFields(q.question),
             optionA: {
               isCorrect: q.correctAnswer === q.options[0],
-              en: q.options[0],
-              de: q.options[0],
-              es: q.options[0],
-              fr: q.options[0],
+              ...createLanguageFields(q.options[0]),
             },
             optionB: {
               isCorrect: q.correctAnswer === q.options[1],
-              en: q.options[1],
-              de: q.options[1],
-              es: q.options[1],
-              fr: q.options[1],
+              ...createLanguageFields(q.options[1]),
             },
             optionC: {
               isCorrect: q.correctAnswer === q.options[2],
-              en: q.options[2],
-              de: q.options[2],
-              es: q.options[2],
-              fr: q.options[2],
+              ...createLanguageFields(q.options[2]),
             },
             optionD: {
               isCorrect: q.correctAnswer === q.options[3],
-              en: q.options[3],
-              de: q.options[3],
-              es: q.options[3],
-              fr: q.options[3],
+              ...createLanguageFields(q.options[3]),
             },
           })),
         };
@@ -520,9 +562,9 @@ const MultiplayerLobby = () => {
         
         // Load questions based on selected category
         const { loadCacheData } = await import("@/utilities/cacheUtils");
-        const { generateMultipleQuizQuestions } = await import(
-          "@/utilities/api/quizApi"
-        );
+        const { generateMultiplayerQuestions } = await import(
+          "@/utilities/api/quizApiGroup"
+        )
 
         const cachedQuizSpecs = await loadCacheData(CACHE_KEY.quizSettings);
         if (!cachedQuizSpecs) {
@@ -533,10 +575,11 @@ const MultiplayerLobby = () => {
           return;
         }
 
-        const fetchedQuestions = await generateMultipleQuizQuestions(
+        const fetchedQuestions = await generateMultiplayerQuestions(
           cachedQuizSpecs.chosenTopic || cachedQuizSpecs.quizCategory,
           cachedQuizSpecs.quizLevel,
-          10 // question count
+          10, // question count
+          allLanguages
         );
 
         setQuestionsData(fetchedQuestions);
@@ -558,6 +601,18 @@ const MultiplayerLobby = () => {
         setShowLocalLoader(false);
         setIsGeneratingQuestions(false);
         setGameStarted(true); // Stop room refresh when game starts
+        
+        // Mark the room as started in the socket service to prevent further room state requests
+        if (roomInfo?.roomId) {
+          socketService.markRoomGameStarted(roomInfo.roomId);
+          
+          // Clear any existing room refresh interval
+          if (roomRefreshIntervalRef.current) {
+            clearInterval(roomRefreshIntervalRef.current);
+            roomRefreshIntervalRef.current = null;
+          }
+        }
+        
         // setShowCountdown(true);
         socketService.startGame(roomInfo.roomId, socketQuestions);
       } catch (error) {
@@ -642,6 +697,16 @@ const MultiplayerLobby = () => {
       const playerId = currentRoom.players.find(
         (p) => p.socketId === socketService.getSocketId()
       )?.id;
+      
+      // Clear the room refresh interval to prevent further requests
+      if (roomRefreshIntervalRef.current) {
+        clearInterval(roomRefreshIntervalRef.current);
+        roomRefreshIntervalRef.current = null;
+      }
+      
+      // Set gameStarted to true to prevent any new requestRoomState calls
+      setGameStarted(true);
+      
       if (playerId) {
         socketService.leaveRoom(roomInfo.roomId, playerId);
       }
@@ -663,6 +728,15 @@ const MultiplayerLobby = () => {
         (p) => p.socketId === socketService.getSocketId()
       )?.id;
       if (playerId) {
+        // Clear the room refresh interval to prevent further requests
+        if (roomRefreshIntervalRef.current) {
+          clearInterval(roomRefreshIntervalRef.current);
+          roomRefreshIntervalRef.current = null;
+        }
+        
+        // Set gameStarted to true to prevent any new requestRoomState calls
+        setGameStarted(true);
+        
         socketService.leaveRoom(roomInfo.roomId, playerId);
         socketService.disconnect();
         // Clear cache for current room
@@ -845,19 +919,13 @@ const MultiplayerLobby = () => {
         <Text style={styles.roomTitle}>{currentRoom.name}</Text>
         <Text style={styles.roomId}>Room ID: {roomInfo.roomId}</Text>
 
+{/* TODO SHOW after choosing topic. Needs to update with socket */}
         {roomInfo.selectedCategory && (
           <Text style={styles.selectedCategory}>
             Selected Topic:{" "}
             {roomInfo.selectedTopic || roomInfo.selectedCategory}
           </Text>
         )}
-
-        {/* =========== TODO Display collected languages ============= */}
-        {allLanguages.length > 0 && (
-          <Text style={styles.languagesDisplay}>
-            Languages: {allLanguages.join(", ")}
-          </Text>
-        )}       
 
         {/* Show combined players and invitations */}
         <View style={styles.playersContainer}>

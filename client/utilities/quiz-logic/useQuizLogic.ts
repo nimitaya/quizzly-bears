@@ -20,8 +20,6 @@ import {
   QuestionStructure,
 } from "@/utilities/quiz-logic/data";
 import { useUser } from "@clerk/clerk-expo";
-// Fix: import useStatistics in React component
-import { useStatistics } from "@/providers/UserProvider";
 
 // ========================================================== START OF HOOK ==========================================================
 export function useQuizLogic() {
@@ -32,7 +30,6 @@ export function useQuizLogic() {
   const NEXT_QUESTION_DELAY = 3000;
   // get current user from Clerk:
   const { user } = useUser();
-  // Fix: use useStatistics inside React component
   // To reset Timers
   const readTimeout = useRef<number | null>(null);
   const answerTimeout = useRef<number | null>(null);
