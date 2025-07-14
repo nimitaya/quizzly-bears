@@ -235,7 +235,6 @@ export function useQuizLogic() {
     // Check the answer and update points
     handleAnswerCheck();
     
-    // For multiplayer modes, we need to maintain consistent timing
     // Clear the answer timeout since we've manually submitted
     if ((gameState.playStyle === "group" || gameState.playStyle === "duel") && !isTransitionScheduled.current) {
       // Clear any existing timers
@@ -245,7 +244,6 @@ export function useQuizLogic() {
       }
       
       // Schedule the next question after the fixed delay
-      // This ensures consistent timing between questions in multiplayer modes
       isTransitionScheduled.current = true;
       nextQuestionTimeout.current = setTimeout(() => {
         handleNextQuestion();
@@ -443,24 +441,6 @@ export function useQuizLogic() {
       // since the delay was already applied either in handleAnswerSubmit or timingQuestions
       setCurrentQuestionIndex(prevIndex => prevIndex + 1);
       setReadTimer(false);
-        
-      // Optionally notify the server about the question change (for analytics)
-      // const notifyQuestionChange = async () => {
-      //   try {
-      //     const roomInfo = await loadCacheData(CACHE_KEY.currentRoom);
-      //     if (roomInfo && roomInfo.roomId) {
-      //       socketService.emit("question-progress", {
-      //         roomId: roomInfo.roomId,
-      //         questionIndex: currQuestionIndex + 1,
-      //         playerId: user?.id || "guest"
-      //       });
-      //     }
-      //   } catch (error) {
-      //     // Non-critical operation, just log the error
-      //     console.log("Error notifying question change:", error);
-      //   }
-      // };
-      // notifyQuestionChange();
     }
     // ---------------------------------
     // if last question done

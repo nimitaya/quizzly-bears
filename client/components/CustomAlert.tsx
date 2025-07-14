@@ -1,6 +1,13 @@
 import { Colors, FontSizes, Gaps, Radius } from "@/styles/theme";
 import React, { useState } from "react";
-import { Modal, View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
+import {
+  Modal,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+} from "react-native";
 
 import { Logo } from "./Logos";
 
@@ -34,11 +41,8 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
   <Modal transparent visible={visible} animationType="fade">
     <View style={styles.overlay}>
       <View style={styles.alertBox}>
-
-        {imageSource && (
-          <Image source={imageSource} style={styles.image} />
-        )}
-        {noInternet ? <Logo size="small" /> : null}
+        {imageSource && <Image source={imageSource} style={styles.image} />}
+        {noInternet ? <Logo size="noconnect" /> : <Logo size="small" />}
 
         <Text style={styles.message}>{message}</Text>
         <View
@@ -54,7 +58,10 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
             </TouchableOpacity>
           )}
           {showMiniGamesButton && onMiniGamesPress && (
-            <TouchableOpacity style={styles.miniGamesBtn} onPress={onMiniGamesPress}>
+            <TouchableOpacity
+              style={styles.miniGamesBtn}
+              onPress={onMiniGamesPress}
+            >
               <Text style={styles.miniGamesText}>Mini Games</Text>
             </TouchableOpacity>
           )}

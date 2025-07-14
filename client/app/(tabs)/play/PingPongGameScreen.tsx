@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors, Gaps, FontSizes, FontWeights } from '@/styles/theme';
 import IconArrowBack from '@/assets/icons/IconArrowBack';
@@ -20,7 +20,7 @@ const PIXEL = 2;
 const PADDLE_WIDTH = 10;
 const PADDLE_HEIGHT = 60;
 const BALL_SIZE = 8;
-let BALL_SPEED = 3;
+let BALL_SPEED = 3; // Zurück auf 3
 let PADDLE_SPEED = 4;
 
 interface Paddle {
@@ -70,6 +70,10 @@ const PingPongGameScreen = () => {
     highscore: 0,
     keys: {} as { [key: string]: boolean },
     gameStarted: false,
+    playerPaddleSpeed: 0, // Track player paddle speed
+    aiPaddleSpeed: 0, // Track AI paddle speed
+    lastPlayerPaddleY: GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2,
+    lastAiPaddleY: GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2,
   });
 
   const [soundEnabled, setSoundEnabled] = useState(soundOn);
@@ -100,6 +104,61 @@ const PingPongGameScreen = () => {
       }
     };
   }, []);
+
+  // Keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!gameState.gameStarted || gameState.gameOver) return;
+      
+      switch (event.key) {
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+          setGameState(prev => ({ ...prev, keys: { ...prev.keys, up: true } }));
+          break;
+        case 'ArrowDown':
+        case 's':
+        case 'S':
+          setGameState(prev => ({ ...prev, keys: { ...prev.keys, down: true } }));
+          break;
+        case ' ':
+        case 'p':
+        case 'P':
+          togglePause();
+          break;
+        case 'Enter':
+          if (!gameState.gameStarted) {
+            startGame();
+          }
+          break;
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      switch (event.key) {
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+          setGameState(prev => ({ ...prev, keys: { ...prev.keys, up: false } }));
+          break;
+        case 'ArrowDown':
+        case 's':
+        case 'S':
+          setGameState(prev => ({ ...prev, keys: { ...prev.keys, down: false } }));
+          break;
+      }
+    };
+
+    // Add event listeners for web
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('keyup', handleKeyUp);
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+        window.removeEventListener('keyup', handleKeyUp);
+      };
+    }
+  }, [gameState.gameStarted, gameState.gameOver, gameState.paused]);
 
   const loadHighscore = async () => {
     try {
@@ -171,16 +230,16 @@ const PingPongGameScreen = () => {
     
     switch(gameSettings.difficulty) {
       case 'easy':
-        newPaddleSpeed = 3;  // Langsamere KI
+        newPaddleSpeed = 2;  // Noch langsamere KI
         newBallSpeed = 2;    // Deutlich langsamerer Ball
         break;
       case 'medium':
-        newPaddleSpeed = 6;  // Mittlere KI-Geschwindigkeit
-        newBallSpeed = 4;    // Mittlere Ball-Geschwindigkeit
+        newPaddleSpeed = 4;  // Langsamere KI
+        newBallSpeed = 3;    // Langsamerer Ball
         break;
       case 'hard':
-        newPaddleSpeed = 10; // Schnelle KI
-        newBallSpeed = 6;    // Schneller Ball
+        newPaddleSpeed = 7;  // Langsamere KI
+        newBallSpeed = 4;    // Langsamerer Ball
         break;
     }
     
@@ -188,17 +247,27 @@ const PingPongGameScreen = () => {
     BALL_SPEED = newBallSpeed;
     PADDLE_SPEED = newPaddleSpeed;
 
+    // Random ball start position and direction
+    const randomY = Math.random() * (GAME_HEIGHT - 100) + 50; // Random Y position
+    const randomDx = Math.random() < 0.5 ? BALL_SPEED : -BALL_SPEED; // Random horizontal direction
+    const randomDy = (Math.random() - 0.5) * BALL_SPEED * 1.5; // Random vertical direction
+    const randomX = Math.random() < 0.5 ? 50 : GAME_WIDTH - 50; // Start near either paddle
+
     setGameState(prev => ({
       ...prev,
       playerPaddle: { x: 20, y: GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2, width: PADDLE_WIDTH, height: PADDLE_HEIGHT },
       aiPaddle: { x: GAME_WIDTH - 30, y: GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2, width: PADDLE_WIDTH, height: PADDLE_HEIGHT },
-      ball: { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2, dx: BALL_SPEED, dy: BALL_SPEED, size: BALL_SIZE },
+      ball: { x: randomX, y: randomY, dx: randomDx, dy: randomDy, size: BALL_SIZE },
       playerScore: 0,
       aiScore: 0,
       gameOver: false,
       paused: false,
       keys: {},
       gameStarted: false,
+      playerPaddleSpeed: 0,
+      aiPaddleSpeed: 0,
+      lastPlayerPaddleY: GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2,
+      lastAiPaddleY: GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2,
     }));
     
     // Reset survival state
@@ -215,20 +284,31 @@ const PingPongGameScreen = () => {
   const movePlayerPaddle = () => {
     setGameState(prev => {
       const newY = prev.playerPaddle.y;
+      let paddleSpeed = 0;
       
       if (prev.keys['up'] && newY > 0) {
+        paddleSpeed = -PADDLE_SPEED;
         return {
           ...prev,
-          playerPaddle: { ...prev.playerPaddle, y: Math.max(0, newY - PADDLE_SPEED) }
+          playerPaddle: { ...prev.playerPaddle, y: Math.max(0, newY - PADDLE_SPEED) },
+          playerPaddleSpeed: paddleSpeed,
+          lastPlayerPaddleY: newY,
         };
       }
       if (prev.keys['down'] && newY < GAME_HEIGHT - PADDLE_HEIGHT) {
+        paddleSpeed = PADDLE_SPEED;
         return {
           ...prev,
-          playerPaddle: { ...prev.playerPaddle, y: Math.min(GAME_HEIGHT - PADDLE_HEIGHT, newY + PADDLE_SPEED) }
+          playerPaddle: { ...prev.playerPaddle, y: Math.min(GAME_HEIGHT - PADDLE_HEIGHT, newY + PADDLE_SPEED) },
+          playerPaddleSpeed: paddleSpeed,
+          lastPlayerPaddleY: newY,
         };
       }
-      return prev;
+      return {
+        ...prev,
+        playerPaddleSpeed: 0,
+        lastPlayerPaddleY: newY,
+      };
     });
   };
 
@@ -237,20 +317,31 @@ const PingPongGameScreen = () => {
       const ballCenterY = prev.ball.y;
       const paddleCenterY = prev.aiPaddle.y + PADDLE_HEIGHT / 2;
       const newY = prev.aiPaddle.y;
+      let paddleSpeed = 0;
       
       if (ballCenterY < paddleCenterY - 5 && newY > 0) {
+        paddleSpeed = -PADDLE_SPEED * 0.3;
         return {
           ...prev,
-          aiPaddle: { ...prev.aiPaddle, y: Math.max(0, newY - PADDLE_SPEED * 0.8) }
+          aiPaddle: { ...prev.aiPaddle, y: Math.max(0, newY - PADDLE_SPEED * 0.3) },
+          aiPaddleSpeed: paddleSpeed,
+          lastAiPaddleY: newY,
         };
       }
       if (ballCenterY > paddleCenterY + 5 && newY < GAME_HEIGHT - PADDLE_HEIGHT) {
+        paddleSpeed = PADDLE_SPEED * 0.3;
         return {
           ...prev,
-          aiPaddle: { ...prev.aiPaddle, y: Math.min(GAME_HEIGHT - PADDLE_HEIGHT, newY + PADDLE_SPEED * 0.8) }
+          aiPaddle: { ...prev.aiPaddle, y: Math.min(GAME_HEIGHT - PADDLE_HEIGHT, newY + PADDLE_SPEED * 0.3) },
+          aiPaddleSpeed: paddleSpeed,
+          lastAiPaddleY: newY,
         };
       }
-      return prev;
+      return {
+        ...prev,
+        aiPaddleSpeed: 0,
+        lastAiPaddleY: newY,
+      };
     });
   };
 
@@ -273,7 +364,21 @@ const PingPongGameScreen = () => {
           newX >= prev.playerPaddle.x &&
           newY >= prev.playerPaddle.y && 
           newY <= prev.playerPaddle.y + PADDLE_HEIGHT) {
-        newDx = Math.abs(newDx);
+        
+        // Calculate ball speed based on paddle speed
+        const paddleSpeedFactor = Math.abs(prev.playerPaddleSpeed) / PADDLE_SPEED;
+        const speedMultiplier = 1.0 + paddleSpeedFactor * 0.25; // 1.0 to 1.25x speed (halbiert von 0.5)
+        
+        // Calculate vertical deflection based on where ball hits paddle
+        const hitPosition = (newY - prev.playerPaddle.y) / PADDLE_HEIGHT; // 0 to 1
+        const verticalDeflection = (hitPosition - 0.5) * 2; // -1 to 1
+        
+        // Add paddle speed influence to vertical direction
+        const paddleSpeedInfluence = prev.playerPaddleSpeed / PADDLE_SPEED * 0.15; // Halbiert von 0.3
+        
+        newDx = Math.abs(newDx) * speedMultiplier;
+        newDy = (verticalDeflection * BALL_SPEED * 0.4) + (paddleSpeedInfluence * BALL_SPEED); // Halbiert von 0.8
+        
         playSound('ping');
       }
 
@@ -282,7 +387,21 @@ const PingPongGameScreen = () => {
           newX <= prev.aiPaddle.x + PADDLE_WIDTH &&
           newY >= prev.aiPaddle.y && 
           newY <= prev.aiPaddle.y + PADDLE_HEIGHT) {
-        newDx = -Math.abs(newDx);
+        
+        // Calculate ball speed based on paddle speed
+        const paddleSpeedFactor = Math.abs(prev.aiPaddleSpeed) / (PADDLE_SPEED * 0.3);
+        const speedMultiplier = 1.0 + paddleSpeedFactor * 0.15; // 1.0 to 1.15x speed (halbiert von 0.3)
+        
+        // Calculate vertical deflection based on where ball hits paddle
+        const hitPosition = (newY - prev.aiPaddle.y) / PADDLE_HEIGHT; // 0 to 1
+        const verticalDeflection = (hitPosition - 0.5) * 2; // -1 to 1
+        
+        // Add paddle speed influence to vertical direction
+        const paddleSpeedInfluence = prev.aiPaddleSpeed / (PADDLE_SPEED * 0.3) * 0.1; // Halbiert von 0.2
+        
+        newDx = -Math.abs(newDx) * speedMultiplier;
+        newDy = (verticalDeflection * BALL_SPEED * 0.3) + (paddleSpeedInfluence * BALL_SPEED); // Halbiert von 0.6
+        
         playSound('ping');
       }
 
@@ -294,19 +413,27 @@ const PingPongGameScreen = () => {
           // In survival mode, player loses a life
           setSurvivalState(prev => ({ ...prev, lives: prev.lives - 1 }));
         }
+        // Ball starts near AI paddle with random direction
+        const randomY = Math.random() * (GAME_HEIGHT - 100) + 50; // Random Y position
+        const randomDx = Math.random() < 0.5 ? -BALL_SPEED : -BALL_SPEED * 0.7; // Always towards player
+        const randomDy = (Math.random() - 0.5) * BALL_SPEED * 2; // Random vertical direction
         return {
           ...prev,
           aiScore: prev.aiScore + 1,
-          ball: { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2, dx: BALL_SPEED, dy: BALL_SPEED, size: BALL_SIZE }
+          ball: { x: GAME_WIDTH - 50, y: randomY, dx: randomDx, dy: randomDy, size: BALL_SIZE }
         };
       }
       if (newX > GAME_WIDTH) {
         // Player scores
         playSound('success');
+        // Ball starts near player paddle with random direction
+        const randomY = Math.random() * (GAME_HEIGHT - 100) + 50; // Random Y position
+        const randomDx = Math.random() < 0.5 ? BALL_SPEED : BALL_SPEED * 0.7; // Always towards AI
+        const randomDy = (Math.random() - 0.5) * BALL_SPEED * 2; // Random vertical direction
         return {
           ...prev,
           playerScore: prev.playerScore + 1,
-          ball: { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2, dx: -BALL_SPEED, dy: BALL_SPEED, size: BALL_SIZE }
+          ball: { x: 50, y: randomY, dx: randomDx, dy: randomDy, size: BALL_SIZE }
         };
       }
 
@@ -428,6 +555,17 @@ const PingPongGameScreen = () => {
           {/* Background */}
           <Rect x={0} y={0} width={GAME_WIDTH} height={GAME_HEIGHT} fill={Colors.black} />
           
+          {/* Border */}
+          <Rect 
+            x={0} 
+            y={0} 
+            width={GAME_WIDTH} 
+            height={GAME_HEIGHT} 
+            fill="none" 
+            stroke={Colors.primaryLimo} 
+            strokeWidth={3}
+          />
+          
           {/* Center line */}
           <Rect 
             x={GAME_WIDTH / 2 - 1} 
@@ -481,7 +619,7 @@ const PingPongGameScreen = () => {
     return (
       <SafeAreaView style={styles.container}>
         <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-          <IconArrowBack />
+          <IconArrowBack color={Colors.primaryLimo} />
         </TouchableOpacity>
         
         <View style={styles.gameOverContainer}>
@@ -505,7 +643,7 @@ const PingPongGameScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-        <IconArrowBack />
+        <IconArrowBack color={Colors.primaryLimo} />
       </TouchableOpacity>
 
       <View style={styles.header}>
@@ -549,10 +687,10 @@ const PingPongGameScreen = () => {
         
         <View style={styles.centerButtons}>
           <TouchableOpacity style={styles.iconButton} onPress={toggleSound}>
-            {soundEnabled ? <IconVolume /> : <IconVolumeOff />}
+            {soundEnabled ? <IconVolume color={Colors.black} /> : <IconVolumeOff color={Colors.black} />}
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton} onPress={togglePause}>
-            {gameState.paused ? <IconPlay /> : <IconPause />}
+            {gameState.paused ? <IconPlay color={Colors.black} /> : <IconPause color={Colors.black} />}
           </TouchableOpacity>
         </View>
         
@@ -571,14 +709,14 @@ const PingPongGameScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bgGray,
+    backgroundColor: Colors.black,
     alignItems: 'center',
     paddingTop: Gaps.g80,
   },
   backButton: {
     position: 'absolute',
-    top: Gaps.g80,
-    left: Gaps.g16,
+    top: 72,
+    left: 16,
     zIndex: 10,
   },
   header: {
@@ -594,12 +732,12 @@ const styles = StyleSheet.create({
   scoreText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
   },
   highscoreText: {
     fontSize: FontSizes.TextSmallFs,
     fontWeight: FontWeights.TextMediumFw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
   },
   survivalContainer: {
     flexDirection: 'row',
@@ -614,7 +752,7 @@ const styles = StyleSheet.create({
   livesText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
   },
   timeContainer: {
     flexDirection: 'row',
@@ -623,7 +761,7 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
   },
   speedContainer: {
     flexDirection: 'row',
@@ -632,16 +770,14 @@ const styles = StyleSheet.create({
   speedText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
   },
   gameContainer: {
     marginBottom: Gaps.g24,
     position: 'relative',
   },
   gameCanvas: {
-    borderWidth: 2,
-    borderColor: Colors.darkGreen,
-    borderRadius: 8,
+    // Keine abgerundeten Ecken
   },
   controls: {
     flexDirection: 'row',
@@ -657,12 +793,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.darkGreen,
+    borderColor: Colors.primaryLimo,
   },
   controlButtonText: {
     fontSize: 32,
     fontWeight: FontWeights.H1Fw as any,
-    color: Colors.darkGreen,
+    color: Colors.black,
   },
   centerButtons: {
     flexDirection: 'row',
@@ -678,7 +814,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.darkGreen,
+    borderColor: Colors.primaryLimo,
   },
   gameOverContainer: {
     flex: 1,
@@ -689,7 +825,7 @@ const styles = StyleSheet.create({
   gameOverTitle: {
     fontSize: FontSizes.H1Fs,
     fontWeight: FontWeights.H1Fw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
     marginBottom: Gaps.g16,
     textAlign: 'center',
   },
@@ -699,13 +835,13 @@ const styles = StyleSheet.create({
     paddingVertical: Gaps.g16,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: Colors.darkGreen,
+    borderColor: Colors.primaryLimo,
     marginTop: Gaps.g24,
   },
   restartButtonText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.black,
   },
   startButtonOverlay: {
     position: 'absolute',
@@ -715,7 +851,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: Colors.black + '80', // 50% Transparenz mit Colors.black
   },
   gameStartButton: {
     backgroundColor: Colors.primaryLimo,
@@ -723,12 +859,12 @@ const styles = StyleSheet.create({
     paddingVertical: Gaps.g16,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: Colors.darkGreen,
+    borderColor: Colors.primaryLimo,
   },
   gameStartButtonText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.black,
   },
 });
 

@@ -46,17 +46,14 @@ const _Layout = () => {
         console.log("📩 Invite request sent:", data);
 
         if (!userData?.clerkUserId) {
-          console.warn("⚠️ clerkUserId відсутній");
+          console.warn("⚠️ clerkUserId is missing");
           return;
         }
 
         getReceivedInviteRequests(userData.clerkUserId)
           .then((response) => {
             if (!response?.inviteRequests) {
-              console.warn(
-                "⚠️ Немає поля inviteRequests у відповіді:",
-                response
-              );
+              console.warn("⚠️ No inviteRequests field in response:", response);
               return;
             }
 
@@ -65,14 +62,14 @@ const _Layout = () => {
               (i) => i.status === "pending"
             );
 
-            console.log("📊 Усього запитів:", allInvites.length);
+            console.log("📊 Total requests:", allInvites.length);
             console.log("⏳ Pending:", pendingInvites.length);
 
             if (typeof setReceivedInviteRequests === "function") {
               setReceivedInviteRequests(pendingInvites.length);
-              console.log("✅ Оновлено стейт");
+              console.log("✅ State updated");
             } else {
-              console.warn("⚠️ setReceivedInviteRequests не є функцією");
+              console.warn("⚠️ setReceivedInviteRequests is not a function");
             }
           })
           .catch((error) => {
@@ -108,11 +105,9 @@ const _Layout = () => {
             backgroundColor: Colors.bgGray,
             borderTopWidth: 1,
             borderTopColor: Colors.darkGreen,
-            elevation: 0,
-            boxShadow: "none",
             height: 60 + insets.bottom,
             paddingBottom: insets.bottom,
-            paddingTop: 16,
+            paddingTop: Gaps.g16,
           },
         }}
       >

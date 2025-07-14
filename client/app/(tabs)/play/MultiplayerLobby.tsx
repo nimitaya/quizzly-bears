@@ -26,6 +26,7 @@ import {
 } from "@/utilities/invitationApi";
 import { UserContext } from "@/providers/UserProvider";
 import { useLanguage } from "@/providers/LanguageContext";
+import { useSound } from "@/providers/SoundProvider";
 import IconPending from "@/assets/icons/IconPending";
 import IconAccept from "@/assets/icons/IconAccept";
 import IconDismiss from "@/assets/icons/IconDismiss";
@@ -49,6 +50,7 @@ const MultiplayerLobby = () => {
   const { userData } = useContext(UserContext);
   const { currentLanguage } = useLanguage();
   const roomRefreshIntervalRef = useRef<any>(null);
+  const { soundEnabled } = useSound();
 
   // ====================== State Variables =====================
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
@@ -954,6 +956,7 @@ const MultiplayerLobby = () => {
         onComplete={handleCountdownComplete}
         startNumber={3}
         duration={1500}
+        soundEnabled={soundEnabled}
       />
     );
   }

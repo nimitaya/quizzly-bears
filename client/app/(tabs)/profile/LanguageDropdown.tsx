@@ -57,9 +57,6 @@ const LanguageDropdown = ({ onLanguageChange }: LanguageDropdownProps) => {
         <Text style={styles.languageName}>{item.name}</Text>
         <Text style={styles.nativeName}>{item.nativeName}</Text>
       </View>
-      {currentLanguage.code === item.code && (
-        <Text style={styles.checkmark}>✓</Text>
-      )}
     </TouchableOpacity>
   );
 
@@ -138,19 +135,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   dropdownContainer: {
-    backgroundColor: "white",
-    borderRadius: 16,
+    backgroundColor: Colors.white,
+    borderRadius: Gaps.g24,
     padding: Gaps.g16,
     width: "85%",
     maxHeight: "70%",
     elevation: 10,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    boxShadow: "0 2px 3.84px rgba(0, 0, 0, 0.25)",
   },
   dropdownHeader: {
     flexDirection: "row",
@@ -159,22 +150,17 @@ const styles = StyleSheet.create({
     marginBottom: Gaps.g16,
     paddingBottom: Gaps.g8,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: Colors.disable,
   },
   dropdownTitle: {
-    fontSize: FontSizes.H2Fs,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: FontSizes.H3Fs,
+    color: Colors.black,
   },
   closeButton: {
-    padding: Gaps.g4,
-    borderRadius: 12,
-    backgroundColor: "#f0f0f0",
+    padding: Gaps.g8,
   },
   closeButtonText: {
-    fontSize: 16,
-    color: "#666",
-    fontWeight: "bold",
+    fontSize: FontSizes.TextLargeFs,
   },
   languageList: {
     flexGrow: 0,
@@ -182,9 +168,9 @@ const styles = StyleSheet.create({
   languageItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: Gaps.g16,
+    paddingVertical: Gaps.g8,
     paddingHorizontal: Gaps.g8,
-    borderRadius: 8,
+    borderRadius: Gaps.g16,
     marginVertical: 2,
   },
   selectedItem: {
@@ -196,18 +182,11 @@ const styles = StyleSheet.create({
   },
   languageName: {
     fontSize: FontSizes.H3Fs,
-    fontWeight: "500",
-    color: "#333",
+    color: Colors.black,
   },
   nativeName: {
-    fontSize: FontSizes.H3Fs,
-    color: "#666",
-    marginTop: 2,
-  },
-  checkmark: {
-    fontSize: 18,
-    color: "#2196f3",
-    fontWeight: "bold",
+    fontSize: FontSizes.TextLargeFs,
+    color: "gray",
   },
 });
 

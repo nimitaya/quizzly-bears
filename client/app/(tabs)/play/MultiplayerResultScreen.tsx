@@ -6,29 +6,34 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
-import { Colors, FontSizes, FontWeights, Gaps } from "@/styles/theme";
+import { Colors, FontSizes, Gaps } from "@/styles/theme";
 import { Logo } from "@/components/Logos";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { UserContext } from "@/providers/UserProvider";
-import { loadCacheData, clearCacheData, CACHE_KEY } from "@/utilities/cacheUtils";
+import {
+  loadCacheData,
+  clearCacheData,
+  CACHE_KEY,
+} from "@/utilities/cacheUtils";
 import socketService, { Player } from "@/utilities/socketService";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
 import IconClose from "@/assets/icons/IconClose";
-import IconBearTab from "@/assets/icons/IconBearTab";
-import IconTrophy from "@/assets/icons/IconTrophy";
+import IconMedal1PlaceWebp from "@/assets/icons-webp/IconMedal1PlaceWebp";
+import IconMedal2PlaceWebp from "@/assets/icons-webp/IconMedal2PlaceWebp";
+import IconMedal3PlaceWebp from "@/assets/icons-webp/IconMedal3PlaceWebp";
 
 const MultiplayerResultScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { userData } = useContext(UserContext);
-  
+
   const [players, setPlayers] = useState<Player[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [roomInfo, setRoomInfo] = useState<any>(null);
 
-// ========== useEffect ==========
+  // ========== useEffect ==========
 
   useEffect(() => {
     const loadRoom = async () => {
@@ -69,10 +74,10 @@ const MultiplayerResultScreen = () => {
   const handlePlayAgain = async () => {
     if (roomInfo && userData) {
       // Clear cache data except for the current room
-      clearCacheData(CACHE_KEY.aiQuestions);     
+      clearCacheData(CACHE_KEY.aiQuestions);
       // Signal readiness for another game
       socketService.togglePlayerReady(roomInfo.roomId, userData.clerkUserId);
-      router.push("./MultiPlayerLobby");
+      router.push("./MultiplayerLobby");
     }
   };
 
@@ -81,7 +86,7 @@ const MultiplayerResultScreen = () => {
     clearCacheData(CACHE_KEY.aiQuestions);
     clearCacheData(CACHE_KEY.gameData);
     clearCacheData(CACHE_KEY.quizSettings);
-    
+
     // Leave the socket room and wait for acknowledgment before navigating
     if (roomInfo && userData) {
       // Add an event listener for room deletion confirmation
@@ -90,7 +95,7 @@ const MultiplayerResultScreen = () => {
         clearCacheData(CACHE_KEY.currentRoom);
         router.push("./");
       };
-      
+
       // Listen for error events that might occur when accessing a deleted room
       socketService.on("error", (data: { message: string }) => {
         if (data.message === "Room not found") {
@@ -98,10 +103,10 @@ const MultiplayerResultScreen = () => {
           router.push("./");
         }
       });
-      
+
       // First leave the room
       socketService.leaveRoom(roomInfo.roomId, userData.clerkUserId);
-      
+
       // Clean up listeners and navigate after a short delay
       // This ensures server has time to process the leave-room event
       setTimeout(() => {
@@ -119,11 +124,11 @@ const MultiplayerResultScreen = () => {
   //  ============================= IMPORTANT TODO Hier MARTINS Medallien einfügen!!!! ========================================
   const renderTrophy = (index: number) => {
     if (index === 0) {
-      return <IconTrophy style={styles.trophyGold} />;
+      return <IconMedal1PlaceWebp />;
     } else if (index === 1) {
-      return <IconTrophy style={styles.trophySilver} />;
+      return <IconMedal2PlaceWebp />;
     } else if (index === 2) {
-      return <IconTrophy style={styles.trophyBronze} />;
+      return <IconMedal3PlaceWebp />;
     }
     return null;
   };
@@ -147,7 +152,7 @@ const MultiplayerResultScreen = () => {
       <Logo size="small" />
       <View style={styles.resultsContainer}>
         <Text style={styles.title}>Quizzly Leaderboard</Text>
-        
+
         {isLoading ? (
           <Text style={styles.loadingText}>Loading results...</Text>
         ) : (
@@ -156,15 +161,16 @@ const MultiplayerResultScreen = () => {
             {players.map((player, index) => (
               <View key={player.id} style={styles.playerCard}>
                 <View style={styles.playerRankRow}>
-                  {renderTrophy(index)}
                   <View style={styles.playerIcon}>
-                    <IconBearTab />
+                    {renderTrophy(index)}
+                    {/* <IconBearTab /> */}
                   </View>
                   <Text style={styles.playerName}>
-                    {player.name} {player.id === userData?.clerkUserId ? "(You)" : ""}
+                    {player.name}{" "}
+                    {player.id === userData?.clerkUserId ? "(You)" : ""}
                   </Text>
                 </View>
-                
+
                 <View style={styles.scoreDetails}>
                   <View style={styles.pointsRow}>
                     <IconCheckbox />
@@ -181,13 +187,15 @@ const MultiplayerResultScreen = () => {
                   <View style={styles.pointsRow}>
                     <IconCheckbox />
                     <Text style={styles.pointsText}>
-                      Total Quizzly Points: {player.gamePoints?.total || 0} points
+                      Total Quizzly Points: {player.gamePoints?.total || 0}{" "}
+                      points
                     </Text>
                   </View>
                   <View style={styles.pointsRow}>
                     <IconCheckbox />
                     <Text style={styles.pointsText}>
-                      Correct: {player.gamePoints?.chosenCorrect || 0}/{player.gamePoints?.totalAnswers || 0}
+                      Correct: {player.gamePoints?.chosenCorrect || 0}/
+                      {player.gamePoints?.totalAnswers || 0}
                     </Text>
                   </View>
                 </View>
@@ -229,7 +237,7 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.H1Fs,
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: Gaps.g24,
+    marginBottom: Gaps.g16,
   },
   loadingText: {
     fontSize: FontSizes.TextLargeFs,
@@ -239,19 +247,14 @@ const styles = StyleSheet.create({
   resultsContainer: {
     alignItems: "center",
     gap: Gaps.g16,
-    paddingVertical: Gaps.g32,
+    paddingVertical: Gaps.g24,
   },
   playerCard: {
     width: "100%",
     backgroundColor: Colors.white,
-    borderRadius: 12,
+    borderRadius: Gaps.g24,
     padding: Gaps.g16,
     marginBottom: Gaps.g16,
-    shadowColor: Colors.black,
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
   },
   playerRankRow: {
     flexDirection: "row",
@@ -263,11 +266,10 @@ const styles = StyleSheet.create({
   },
   playerName: {
     fontSize: FontSizes.TextLargeFs,
-    fontWeight: "bold",
     flexGrow: 1,
   },
   scoreDetails: {
-    marginLeft: Gaps.g32,
+    // marginLeft: Gaps.g32,
   },
   pointsRow: {
     flexDirection: "row",
@@ -278,21 +280,11 @@ const styles = StyleSheet.create({
   pointsText: {
     fontSize: FontSizes.TextMediumFs,
   },
-  trophyGold: {
-    color: "#FFD700",
-    marginRight: Gaps.g8,
-  },
-  trophySilver: {
-    color: "#C0C0C0",
-    marginRight: Gaps.g8,
-  },
-  trophyBronze: {
-    color: "#CD7F32",
-    marginRight: Gaps.g8,
-  },
+
   buttonsContainer: {
     gap: Gaps.g16,
     marginTop: Gaps.g16,
+    paddingBottom: Gaps.g80,
   },
 });
 

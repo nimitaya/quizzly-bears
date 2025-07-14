@@ -43,7 +43,7 @@ const PingPongStartScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-        <IconArrowBack />
+        <IconArrowBack color={Colors.primaryLimo} />
       </TouchableOpacity>
 
       <View style={styles.menuContainer}>
@@ -188,14 +188,14 @@ const PingPongStartScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bgGray,
+    backgroundColor: Colors.black,
     alignItems: 'center',
     paddingTop: Gaps.g80,
   },
   backButton: {
     position: 'absolute',
-    top: Gaps.g80,
-    left: Gaps.g16,
+    top: 72,
+    left: 16,
     zIndex: 10,
   },
   menuContainer: {
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: FontSizes.H1Fs,
     fontWeight: FontWeights.H1Fw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
     marginBottom: Gaps.g24,
     textAlign: 'center',
   },
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
     marginBottom: Gaps.g8,
   },
   selectContainer: {
@@ -231,7 +231,8 @@ const styles = StyleSheet.create({
   },
   selectOption: {
     backgroundColor: "rgba(205, 245, 70, 0.7)",
-    padding: Gaps.g8,
+    paddingHorizontal: Gaps.g16,
+    paddingVertical: Gaps.g16,
     borderRadius: 50,
   },
   selectOptionActive: {
@@ -240,10 +241,10 @@ const styles = StyleSheet.create({
   selectOptionText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.TextMediumFw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
   },
   selectOptionTextActive: {
-    color: Colors.darkGreen,
+    color: Colors.black,
     fontWeight: FontWeights.SubtitleFw as any,
   },
   inputContainer: {
@@ -256,13 +257,13 @@ const styles = StyleSheet.create({
   numberInput: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.TextMediumFw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
     textAlign: 'center',
   },
   modeDescription: {
     fontSize: FontSizes.TextSmallFs,
     fontWeight: FontWeights.TextMediumFw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
     marginTop: Gaps.g8,
     textAlign: 'center',
   },
@@ -277,7 +278,7 @@ const styles = StyleSheet.create({
   menuStartButtonText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.black,
     textAlign: 'center',
   },
 });
