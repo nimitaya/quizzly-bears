@@ -281,6 +281,10 @@ class SocketService {
       this.socket = null;
     }
     this.listeners.clear();
+    
+    // Clear all room state tracking
+    this.lastRoomStateRequest = {};
+    this.roomStateGameStarted = {};
   }
 
   isConnected(): boolean {
@@ -328,12 +332,62 @@ class SocketService {
     this.emit("rejoin-room", { roomId, playerId, playerName, language });
   }
 
-  // Add method to request current room state
+  // Add method to request current room state with throttling to prevent excessive calls
+  private lastRoomStateRequest: Record<string, number> = {};
+  private roomStateGameStarted: Record<string, boolean> = {};
+  
   requestRoomState(roomId: string) {
+    // Debug logging for room state requests in dev mode
+    if (__DEV__) {
+      console.log(`[SocketService] Room state request attempted for: ${roomId}`);
+      
+      if (this.roomStateGameStarted[roomId]) {
+        console.log(`[SocketService] Blocked room state request - game already started for room: ${roomId}`);
+        return;
+      }
+    }
+    
+    // Don't make requests for rooms where the game has started
+    if (this.roomStateGameStarted[roomId]) {
+      return;
+    }
+    
+    const now = Date.now();
+    const lastRequest = this.lastRoomStateRequest[roomId] || 0;
+    
+    // Throttle requests to prevent excessive calls (min 2 seconds between requests)
+    if (now - lastRequest < 2000) {
+      if (__DEV__) {
+        console.log(`[SocketService] Throttled room state request - too soon (${now - lastRequest}ms since last request)`);
+      }
+      return;
+    }
+    
+    // Update last request timestamp
+    this.lastRoomStateRequest[roomId] = now;
+    
+    // Make the actual request
+    if (__DEV__) {
+      console.log(`[SocketService] Sending room state request for room: ${roomId}`);
+    }
     this.emit("get-room-state", { roomId });
+  }
+  
+  // Method to mark a room as having started a game (to prevent further state requests)
+  markRoomGameStarted(roomId: string) {
+    this.roomStateGameStarted[roomId] = true;
+  }
+
+  // Method to check if a game has started for a specific room
+  isRoomGameStarted(roomId: string): boolean {
+    return !!this.roomStateGameStarted[roomId];
   }
 
   leaveRoom(roomId: string, playerId: string) {
+    // Clean up room state tracking for this room
+    delete this.lastRoomStateRequest[roomId];
+    delete this.roomStateGameStarted[roomId];
+    
     this.emit("leave-room", { roomId, playerId });
   }
 
@@ -486,10 +540,16 @@ class SocketService {
     this.on("host-changed", callback);
   }
 
-  onGameStarted(
-    callback: (data: { room: QuizRoom; questions?: QuizQuestion[] }) => void
-  ) {
-    this.on("game-started", callback);
+  onGameStarted(callback: (data: { room: QuizRoom; questions?: QuizQuestion[] }) => void) {
+    // Create a wrapper that automatically marks the room as started
+    const wrappedCallback = (data: { room: QuizRoom; questions?: QuizQuestion[] }) => {
+      if (data.room && data.room.id) {
+        this.markRoomGameStarted(data.room.id);
+      }
+      callback(data);
+    };
+    
+    this.on("game-started", wrappedCallback);
   }
 
   onShowStartQuiz(callback: (data: { room: QuizRoom }) => void) {
