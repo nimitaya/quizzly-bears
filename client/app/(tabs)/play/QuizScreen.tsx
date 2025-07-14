@@ -202,9 +202,9 @@ const QuizLogic = () => {
       currentQuestionData.question,
       currentLanguage.code
     );
-    console.log("getQuestionText input:", currentQuestionData.question); // TODO
-    console.log("getQuestionText currentLanguage:", currentLanguage.code); // TODO
-    console.log("getQuestionText result:", result); // TODO
+    console.log("getQuestionText input:", currentQuestionData.question);
+    console.log("getQuestionText currentLanguage:", currentLanguage.code);
+    console.log("getQuestionText result:", result);
     
     return result;
   };

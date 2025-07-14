@@ -454,25 +454,57 @@ const MultiplayerLobby = () => {
 
         // Transform questions from socket format to the format expected by useQuizLogic
         const transformedQuestions = {
-          questionArray: data.questions.map((q: any) => ({
-            question: createLanguageFields(q.question),
-            optionA: {
-              isCorrect: q.correctAnswer === q.options[0],
-              ...createLanguageFields(q.options[0]),
-            },
-            optionB: {
-              isCorrect: q.correctAnswer === q.options[1],
-              ...createLanguageFields(q.options[1]),
-            },
-            optionC: {
-              isCorrect: q.correctAnswer === q.options[2],
-              ...createLanguageFields(q.options[2]),
-            },
-            optionD: {
-              isCorrect: q.correctAnswer === q.options[3],
-              ...createLanguageFields(q.options[3]),
-            },
-          })),
+          questionArray: data.questions.map((q: any) => {
+            // Check if we have the new format (with multilingual support) TODO
+            const hasNewFormat = q.options && 
+                             q.options[0] && 
+                             typeof q.options[0] === 'object' && 
+                             q.options[0].content !== undefined;
+            
+            if (hasNewFormat) {
+              // New format with multilingual support
+              return {
+                question: q.question, // Already in correct format with all languages
+                optionA: {
+                  isCorrect: q.options[0].isCorrect,
+                  ...q.options[0].content,
+                },
+                optionB: {
+                  isCorrect: q.options[1].isCorrect,
+                  ...q.options[1].content,
+                },
+                optionC: {
+                  isCorrect: q.options[2].isCorrect,
+                  ...q.options[2].content,
+                },
+                optionD: {
+                  isCorrect: q.options[3].isCorrect,
+                  ...q.options[3].content,
+                },
+              };
+            } else {
+              // Legacy format - fallback to previous behavior TODO
+              return {
+                question: createLanguageFields(q.question),
+                optionA: {
+                  isCorrect: q.correctAnswer === q.options[0],
+                  ...createLanguageFields(q.options[0]),
+                },
+                optionB: {
+                  isCorrect: q.correctAnswer === q.options[1],
+                  ...createLanguageFields(q.options[1]),
+                },
+                optionC: {
+                  isCorrect: q.correctAnswer === q.options[2],
+                  ...createLanguageFields(q.options[2]),
+                },
+                optionD: {
+                  isCorrect: q.correctAnswer === q.options[3],
+                  ...createLanguageFields(q.options[3]),
+                },
+              };
+            }
+          }),
         };
 
         // Cache the transformed questions
@@ -598,6 +630,8 @@ const MultiplayerLobby = () => {
 
         // Transform questions to socket format
         const socketQuestions = transformQuestionsForSocket(fetchedQuestions);
+        console.log("=====Transformed questions for socket=====:", socketQuestions); // TODO
+        
         setShowLocalLoader(false);
         setIsGeneratingQuestions(false);
         setGameStarted(true); // Stop room refresh when game starts
@@ -651,17 +685,44 @@ const MultiplayerLobby = () => {
           q.optionC,
           q.optionD,
         ].find((option) => option.isCorrect);
+        
+        // Prepare localized questions with all available languages
+        // Extract isCorrect property and convert options to full localized format
+        const optionA = { ...q.optionA };
+        const optionB = { ...q.optionB };
+        const optionC = { ...q.optionC };
+        const optionD = { ...q.optionD };
+        
+        // Extract isCorrect from options for socket format
+        const isCorrectA = optionA.isCorrect || false;
+        const isCorrectB = optionB.isCorrect || false;
+        const isCorrectC = optionC.isCorrect || false;
+        const isCorrectD = optionD.isCorrect || false;
+        delete optionA.isCorrect;
+        delete optionB.isCorrect;
+        delete optionC.isCorrect;
+        delete optionD.isCorrect;
+        
+        // Get English versions for correctAnswer identification
+        const optionAEn = optionA.en || (typeof optionA === 'string' ? optionA : '');
+        const optionBEn = optionB.en || (typeof optionB === 'string' ? optionB : '');
+        const optionCEn = optionC.en || (typeof optionC === 'string' ? optionC : '');
+        const optionDEn = optionD.en || (typeof optionD === 'string' ? optionD : '');
 
         return {
           id: index.toString(),
-          question: q.question.en || q.question,
+          question: q.question, // Send full localized question object
           options: [
-            q.optionA.en || q.optionA,
-            q.optionB.en || q.optionB,
-            q.optionC.en || q.optionC,
-            q.optionD.en || q.optionD,
+            { content: optionA, isCorrect: isCorrectA },
+            { content: optionB, isCorrect: isCorrectB },
+            { content: optionC, isCorrect: isCorrectC },
+            { content: optionD, isCorrect: isCorrectD }
           ],
-          correctAnswer: correctOption?.en || correctOption || "",
+          // Keep English version for backward compatibility
+          correctAnswer: isCorrectA ? optionAEn : 
+                         isCorrectB ? optionBEn : 
+                         isCorrectC ? optionCEn : 
+                         isCorrectD ? optionDEn : "",
           category: q.category || "general",
           difficulty: "medium" as const,
           timeLimit: 30,
@@ -1045,15 +1106,6 @@ const styles = StyleSheet.create({
     color: "#4caf50",
     fontWeight: "500",
   },
-  // ============== TODO
-  languagesDisplay: {
-    fontSize: FontSizes.TextMediumFs,
-    marginBottom: Gaps.g16,
-    color: "#2196f3",
-    fontWeight: "500",
-    textAlign: "center",
-  },
-  // ==============
   playersContainer: {
     width: "100%",
     marginBottom: Gaps.g32,
