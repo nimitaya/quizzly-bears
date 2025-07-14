@@ -20,8 +20,6 @@ import {
   QuestionStructure,
 } from "@/utilities/quiz-logic/data";
 import { useUser } from "@clerk/clerk-expo";
-// Fix: import useStatistics in React component
-import { useStatistics } from "@/providers/UserProvider";
 
 // ========================================================== START OF HOOK ==========================================================
 export function useQuizLogic() {
@@ -32,8 +30,6 @@ export function useQuizLogic() {
   const NEXT_QUESTION_DELAY = 3000;
   // get current user from Clerk:
   const { user } = useUser();
-  // Fix: use useStatistics inside React component
-  const { setOnChanges } = useStatistics();
   // To reset Timers
   const readTimeout = useRef<number | null>(null);
   const answerTimeout = useRef<number | null>(null);
@@ -222,7 +218,7 @@ export function useQuizLogic() {
     if (answerState.isLocked) {
       return;
     }
-    
+
     setAnswerState((prevState) => ({
       ...prevState,
       chosenAnswer: selectedOption,
@@ -265,43 +261,19 @@ export function useQuizLogic() {
     // Check the answer and update points
     handleAnswerCheck();
     
-    // For multiplayer modes, notify other players about answer submission
-    if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
-      try {
-        // Clear the answer timeout since we've manually submitted
-        if (answerTimeout.current) {
-          clearTimeout(answerTimeout.current);
-          answerTimeout.current = null;
-        }
-        
-        // Get the current room info from cache
-        const roomInfo = await loadCacheData(CACHE_KEY.currentRoom);
-        
-        if (roomInfo && roomInfo.roomId && user?.id) {
-          // Notify the server that this player has submitted their answer
-          socketService.playerAnswerSubmitted(
-            roomInfo.roomId,
-            user.id,
-            currQuestionIndex
-          );
-        }
-      } catch (error) {
-        console.error("Error notifying answer submission:", error);
+    // Clear the answer timeout since we've manually submitted
+    if ((gameState.playStyle === "group" || gameState.playStyle === "duel") && !isTransitionScheduled.current) {
+      // Clear any existing timers
+      if (answerTimeout.current) {
+        clearTimeout(answerTimeout.current);
+        answerTimeout.current = null;
       }
-    } else if (gameState.playStyle === "solo") {
-      // For solo mode, we can proceed immediately (no need to wait for others)
-      // This existing code was moved here from handleAnswerCheck function
-      if (currQuestionIndex < currQuestionsArray.length - 1) {
-        // Clear timers as we're manually advancing
-        if (answerTimeout.current) {
-          clearTimeout(answerTimeout.current);
-          answerTimeout.current = null;
-        }
-        if (readTimeout.current) {
-          clearTimeout(readTimeout.current);
-          readTimeout.current = null;
-        }
-      }
+      
+      // Schedule the next question after the fixed delay
+      isTransitionScheduled.current = true;
+      nextQuestionTimeout.current = setTimeout(() => {
+        handleNextQuestion();
+      }, NEXT_QUESTION_DELAY);
     }
   };
 
@@ -310,14 +282,14 @@ export function useQuizLogic() {
     if (!currentQuestionData || !answerState.chosenAnswer) {
       return false;
     }
-    
+
     const { optionA, optionB, optionC, optionD } = currentQuestionData;
     const options = [optionA, optionB, optionC, optionD];
     const chosenOption = answerState.chosenAnswer; // This is now "A", "B", "C" or "D" (option key)
-    
+
     // Compare by option index (A, B, C, D), not by text
     let optionIndex = -1;
-    
+
     // Determine the index of the selected option
     switch (chosenOption.toUpperCase()) {
       case "A":
@@ -339,19 +311,19 @@ export function useQuizLogic() {
       default:
         return false;
     }
-    
+
     if (optionIndex === -1 || optionIndex >= options.length) {
       return false;
     }
-    
+
     const selectedOption = options[optionIndex];
     return selectedOption.isCorrect;
-  };  
-  
+  };
+
   // ----- Handle ANSWER CHECK -----
   const handleAnswerCheck = (): void => {
     const isCorrect = getIsCorrect();
-    
+
     if (isCorrect) {
       const newChosenCorrect = pointsState.chosenCorrect + 1;
 
@@ -377,7 +349,7 @@ export function useQuizLogic() {
       if (!gainedPoints) {
         return;
       }
-      
+
       // Update state and save current data for caching
       const newTotal = pointsState.total + gainedPoints.totalPoints;
 
@@ -391,17 +363,17 @@ export function useQuizLogic() {
           total: newTotal,
           chosenCorrect: newChosenCorrect,
         };
-        
+
         // Update ref with current data
         currentPointsRef.current = {
           total: updatedState.total,
-          chosenCorrect: updatedState.chosenCorrect
+          chosenCorrect: updatedState.chosenCorrect,
         };
-        
+
         return updatedState;
       });
     }
-    
+
     // OLD CODE (COMMENTED):
     // // Add correct points to state
     // setPointsState((prevPoints) => ({
@@ -412,36 +384,51 @@ export function useQuizLogic() {
     //   total: prevPoints.total + gainedPoints?.totalPoints,
     //   chosenCorrect: newChosenCorrect,
     // }));
-    
-    // No longer need the solo play logic here as it was moved to handleAnswerSubmit
+
+    // Logic for SOLO Play
+    if (
+      currQuestionIndex < currQuestionsArray.length - 1 &&
+      gameState.playStyle === "solo"
+    ) {
+      // Clear the timeout if answer is submitted early
+      if (answerTimeout.current) {
+        clearTimeout(answerTimeout.current);
+        answerTimeout.current = null;
+      }
+      if (readTimeout.current) {
+        clearTimeout(readTimeout.current);
+        readTimeout.current = null;
+      }
+    }
   };
 
   // ----- Handle NEXT QUESTION -----
   const handleNextQuestion = (): void => {
     const newTotalAnswers = pointsState.totalAnswers + 1;
-    
+
     // Fix Race Condition: use current data from ref
     setPointsState((prevPoints) => {
       const updatedPoints = {
         ...prevPoints,
         totalAnswers: newTotalAnswers,
       };
-      
+
       // Use current data from ref instead of outdated state
       const actualTotal = currentPointsRef.current.total || updatedPoints.total;
-      const actualCorrect = currentPointsRef.current.chosenCorrect || updatedPoints.chosenCorrect;
-      
+      const actualCorrect =
+        currentPointsRef.current.chosenCorrect || updatedPoints.chosenCorrect;
+
       // Cache current points & information with up-to-date values
       cachePoints({
         gameCategory: gameState.category,
-        score: actualTotal,        // Use current data from ref
-        correctAnswers: actualCorrect,  // Use current data from ref
+        score: actualTotal, // Use current data from ref
+        correctAnswers: actualCorrect, // Use current data from ref
         totalAnswers: updatedPoints.totalAnswers,
       });
-      
+
       return updatedPoints;
     });
-    
+
     // OLD CODE (COMMENTED - RACE CONDITION):
     // // update totalAnswers
     // setPointsState((prevPoints) => ({
@@ -455,7 +442,7 @@ export function useQuizLogic() {
     //   correctAnswers: pointsState.chosenCorrect,  // PROBLEM: old data
     //   totalAnswers: newTotalAnswers,
     // });
-    
+
     // Clear timer
     if (answerTimeout.current) {
       clearTimeout(answerTimeout.current);
@@ -480,24 +467,6 @@ export function useQuizLogic() {
       // since the delay was already applied either in handleAnswerSubmit or timingQuestions
       setCurrentQuestionIndex(prevIndex => prevIndex + 1);
       setReadTimer(false);
-        
-      // Optionally notify the server about the question change (for analytics)
-      // const notifyQuestionChange = async () => {
-      //   try {
-      //     const roomInfo = await loadCacheData(CACHE_KEY.currentRoom);
-      //     if (roomInfo && roomInfo.roomId) {
-      //       socketService.emit("question-progress", {
-      //         roomId: roomInfo.roomId,
-      //         questionIndex: currQuestionIndex + 1,
-      //         playerId: user?.id || "guest"
-      //       });
-      //     }
-      //   } catch (error) {
-      //     // Non-critical operation, just log the error
-      //     console.log("Error notifying question change:", error);
-      //   }
-      // };
-      // notifyQuestionChange();
     }
     // ---------------------------------
     // if last question done
@@ -517,9 +486,7 @@ export function useQuizLogic() {
   const endGame = async () => {
     // Fixed version - pass callback for setOnChanges:
     if (user?.id) {
-      await sendPointsToDatabase(user.id, () => {
-        setOnChanges(true);
-      });
+      await sendPointsToDatabase(user.id, () => {});
     }
     // clear cached data
     clearCachePoints();

@@ -23,7 +23,7 @@ export interface Player {
   score: number;
   isReady: boolean;
   language?: string;
-  gamePoints?: GamePoints; // Add gamePoints to store detailed score information
+  gamePoints?: GamePoints;
 }
 
 export interface GamePoints {
@@ -52,50 +52,106 @@ export interface QuizSettings {
   difficulty: "easy" | "medium" | "hard" | "mixed";
 }
 
+// Chat-related types
+export interface ChatMessage {
+  id: string;
+  roomId: string;
+  playerId: string;
+  playerName: string;
+  message: string;
+  timestamp: Date;
+  isOwnMessage?: boolean;
+}
+
+export interface SendChatMessageData {
+  roomId: string;
+  playerId: string;
+  message: string;
+}
+
+export interface PlayerTypingData {
+  roomId: string;
+  playerId: string;
+  isTyping: boolean;
+}
+
+export interface ChatMessageReceivedData {
+  id: string;
+  playerId: string;
+  playerName: string;
+  message: string;
+  timestamp: Date;
+}
+
+export interface PlayerTypingStatusData {
+  playerId: string;
+  playerName: string;
+  isTyping: boolean;
+}
+
 // Configuration
 // Platform-specific URLs for React Native development
 const getSocketUrls = () => {
-  // ========== No hardcoded IP address anymore, needed to be added to be used on different IP addresses ==========
-  // Common IP ranges to try - covers most home/office networks
-  const commonIPs = [
-    "192.168.178.21", // Sonja current IP
-    "192.168.0.226", // Natallia IP
-    "192.168.1.100",  // Common router range (192.168.1.x)
-    "192.168.0.100",  // Common router range (192.168.0.x) 
-    "192.168.2.100",  // Another common range
-    "10.0.0.100",     // Some routers use 10.x.x.x
-  ];
-  
+  // ========== OLD HARDCODED LOGIC - COMMENTED OUT ==========
+  // const teamIPs = [
+  //   "192.168.0.226",  // Natallia IP
+  //   "192.168.178.21", // Sonja current IP
+  // ];
+
+  // ========== NEW UNIVERSAL LOGIC ==========
+  // Priority 1: Platform-specific primary URLs (fastest and most reliable)
+  const primaryUrls = [];
   if (Platform.OS === "android") {
-    return [
-      ...commonIPs.map(ip => `http://${ip}:3000`), // Try common IPs for real device
-      "http://10.0.2.2:3000", // Android emulator
-    ];
+    primaryUrls.push("http://10.0.2.2:3000"); // Android emulator
   } else if (Platform.OS === "ios") {
-    return [
-      // "http://192.168.0.226:3000", // Current local IP for real device (primary for Expo Go)
-      // Uncomment below for iOS simulator testing:
-      // "http://localhost:3000", // iOS simulator
-      // "http://127.0.0.1:3000", // iOS simulator fallback
-      ...commonIPs.map(ip => `http://${ip}:3000`), // Try common IPs for real device
-      "http://localhost:3000", // iOS simulator
-      "http://127.0.0.1:3000", // iOS simulator fallback
-    ];
+    primaryUrls.push("http://localhost:3000"); // iOS simulator
   } else {
-    return [
-      "http://localhost:3000", // Web (primary)
-      "http://127.0.0.1:3000", // Web fallback
-      ...commonIPs.map(ip => `http://${ip}:3000`), // Network fallbacks
-    ];
+    primaryUrls.push("http://localhost:3000"); // Web
   }
+
+  // Priority 2: Smart IP detection - try to find the development server
+  // This works by testing common development IP patterns in the current network
+  const smartDetectionUrls: string[] = [];
+
+  // Try to detect current network range by testing common router IPs
+  const networkRanges = [
+    "192.168.0",
+    "192.168.1",
+    "192.168.2",
+    "192.168.178",
+    "10.0.0",
+    "10.0.1",
+    "172.16.0",
+  ];
+
+  // Common development server IPs within each network (most likely first)
+  const commonDevHosts = [226, 100, 101, 1, 10, 20, 50, 102, 200, 250];
+
+  // Generate smart detection URLs
+  networkRanges.forEach((range) => {
+    commonDevHosts.forEach((host) => {
+      smartDetectionUrls.push(`http://${range}.${host}:3000`);
+    });
+  });
+
+  // Priority 3: Try additional common patterns
+  const additionalUrls = ["http://127.0.0.1:3000", "http://0.0.0.0:3000"];
+
+  // Create final URL list with smart priority
+  const finalUrls = [
+    ...primaryUrls, // Platform-specific (localhost, 10.0.2.2)
+    ...smartDetectionUrls.slice(0, 12), // First 12 most likely IPs
+    ...additionalUrls, // Additional common patterns
+  ];
+
+  return finalUrls;
 };
 
 const SOCKET_URLS = getSocketUrls();
 
-// Best practice: Use environment variables for production URL
-const PRODUCTION_URL = process.env.EXPO_PUBLIC_SOCKET_URL || "https://quizzly-bears.onrender.com";
-
-const SOCKET_URL = __DEV__ ? SOCKET_URLS[0] : PRODUCTION_URL;
+const PRODUCTION_URL =
+  process.env.EXPO_PUBLIC_SOCKET_URL || "https://quizzly-bears.onrender.com";
+const SOCKET_URL = PRODUCTION_URL;
 
 class SocketService {
   private socket: Socket | null = null;
@@ -106,22 +162,52 @@ class SocketService {
   connect(): Promise<void> {
     return new Promise(async (resolve, reject) => {
       if (__DEV__) {
-        // In development, try multiple URLs
-        for (const url of SOCKET_URLS) {
+        const urls = SOCKET_URLS;
+        console.log(`🔌 Platform: ${Platform.OS}`);
+        console.log(`🔌 Trying ${urls.length} auto-generated URLs...`);
+
+        // Try priority URLs first (platform-specific + first few smart detection)
+        const priorityUrls = urls.slice(0, 6); // localhost + first 5 smart detection URLs
+        console.log(`Priority URLs: ${JSON.stringify(priorityUrls)}`);
+
+        for (let i = 0; i < priorityUrls.length; i++) {
           try {
-            console.log(`Trying to connect to Socket.IO at ${url}...`);
-            await this.connectToUrl(url);
-            console.log(`Successfully connected to Socket.IO at ${url}`);
+            console.log(
+              ` Priority ${i + 1}/${priorityUrls.length}: ${priorityUrls[i]}...`
+            );
+            await this.connectToUrl(priorityUrls[i]);
+            console.log(`Connected via priority: ${priorityUrls[i]}`);
             resolve();
             return;
           } catch (error) {
-            console.warn(`Failed to connect to ${url}:`, error);
+            console.warn(`Priority failed: ${priorityUrls[i]}`);
             continue;
           }
         }
+
+        // Try remaining URLs if priority fails
+        const remainingUrls = urls.slice(6);
+        console.log(`Trying ${remainingUrls.length} fallback URLs...`);
+
+        for (let i = 0; i < remainingUrls.length; i++) {
+          try {
+            console.log(
+              `Fallback ${i + 1}/${remainingUrls.length}: ${
+                remainingUrls[i]
+              }...`
+            );
+            await this.connectToUrl(remainingUrls[i]);
+            console.log(`Connected via fallback: ${remainingUrls[i]}`);
+            resolve();
+            return;
+          } catch (error) {
+            console.warn(`Fallback failed: ${remainingUrls[i]}`);
+            continue;
+          }
+        }
+
         reject(new Error("Could not connect to any Socket.IO server"));
       } else {
-        // In production, use the configured URL
         try {
           await this.connectToUrl(SOCKET_URL);
           resolve();
@@ -135,11 +221,11 @@ class SocketService {
   private connectToUrl(url: string): Promise<void> {
     return new Promise((resolve, reject) => {
       this.socket = io(url, {
-        transports: ["websocket", "polling"], // Try both transports
-        timeout: 5000,
+        transports: ["websocket", "polling"],
+        timeout: 2000, // Very fast timeout for quick fallback
         reconnection: true,
         reconnectionDelay: 1000,
-        reconnectionAttempts: 5,
+        reconnectionAttempts: 2, // Reduced for faster fallback
         forceNew: true,
       });
 
@@ -149,11 +235,11 @@ class SocketService {
           this.socket = null;
         }
         reject(new Error("Connection timeout"));
-      }, 6000);
+      }, 2500); // Very fast timeout for quick fallback
 
       this.socket.on("connect", () => {
         clearTimeout(timeout);
-        console.log(`Connected to Socket.IO server at ${url}`);
+        console.log(`✅ Connected to Socket.IO server at ${url}`);
         this.connectionRetries = 0;
         resolve();
       });
@@ -169,7 +255,7 @@ class SocketService {
       });
 
       this.socket.on("disconnect", () => {
-        console.log("Disconnected from Socket.IO server");
+        console.log("🔌 Disconnected from Socket.IO server");
       });
     });
   }
@@ -195,6 +281,10 @@ class SocketService {
       this.socket = null;
     }
     this.listeners.clear();
+    
+    // Clear all room state tracking
+    this.lastRoomStateRequest = {};
+    this.roomStateGameStarted = {};
   }
 
   isConnected(): boolean {
@@ -213,25 +303,91 @@ class SocketService {
     settings: QuizSettings,
     hostLanguage?: string
   ) {
-    this.emit("create-room", { roomName, hostName, hostId, hostLanguage, settings });
+    this.emit("create-room", {
+      roomName,
+      hostName,
+      hostId,
+      hostLanguage,
+      settings,
+    });
   }
 
-  joinRoom(roomId: string, playerId: string, playerName: string, language?: string) {
+  joinRoom(
+    roomId: string,
+    playerId: string,
+    playerName: string,
+    language?: string
+  ) {
     this.emit("join-room", { roomId, playerId, playerName, language });
   }
 
   // Add method to rejoin a room (for when user returns from another screen)
-  rejoinRoom(roomId: string, playerId: string, playerName: string, language?: string) {
+  rejoinRoom(
+    roomId: string,
+    playerId: string,
+    playerName: string,
+    language?: string
+  ) {
     // Emit rejoin event to update server state and socket room
     this.emit("rejoin-room", { roomId, playerId, playerName, language });
   }
 
-  // Add method to request current room state
+  // Add method to request current room state with throttling to prevent excessive calls
+  private lastRoomStateRequest: Record<string, number> = {};
+  private roomStateGameStarted: Record<string, boolean> = {};
+  
   requestRoomState(roomId: string) {
+    // Debug logging for room state requests in dev mode
+    if (__DEV__) {
+      console.log(`[SocketService] Room state request attempted for: ${roomId}`);
+      
+      if (this.roomStateGameStarted[roomId]) {
+        console.log(`[SocketService] Blocked room state request - game already started for room: ${roomId}`);
+        return;
+      }
+    }
+    
+    // Don't make requests for rooms where the game has started
+    if (this.roomStateGameStarted[roomId]) {
+      return;
+    }
+    
+    const now = Date.now();
+    const lastRequest = this.lastRoomStateRequest[roomId] || 0;
+    
+    // Throttle requests to prevent excessive calls (min 2 seconds between requests)
+    if (now - lastRequest < 2000) {
+      if (__DEV__) {
+        console.log(`[SocketService] Throttled room state request - too soon (${now - lastRequest}ms since last request)`);
+      }
+      return;
+    }
+    
+    // Update last request timestamp
+    this.lastRoomStateRequest[roomId] = now;
+    
+    // Make the actual request
+    if (__DEV__) {
+      console.log(`[SocketService] Sending room state request for room: ${roomId}`);
+    }
     this.emit("get-room-state", { roomId });
+  }
+  
+  // Method to mark a room as having started a game (to prevent further state requests)
+  markRoomGameStarted(roomId: string) {
+    this.roomStateGameStarted[roomId] = true;
+  }
+
+  // Method to check if a game has started for a specific room
+  isRoomGameStarted(roomId: string): boolean {
+    return !!this.roomStateGameStarted[roomId];
   }
 
   leaveRoom(roomId: string, playerId: string) {
+    // Clean up room state tracking for this room
+    delete this.lastRoomStateRequest[roomId];
+    delete this.roomStateGameStarted[roomId];
+    
     this.emit("leave-room", { roomId, playerId });
   }
 
@@ -267,8 +423,25 @@ class SocketService {
     playerName: string,
     gamePoints: GamePoints
   ) {
-    this.emit("submit-game-results", { roomId, playerId, playerName, gamePoints });
+    this.emit("submit-game-results", {
+      roomId,
+      playerId,
+      playerName,
+      gamePoints,
+    });
   }
+
+  // ========== CHAT FUNCTIONALITY ==========
+  // Send chat message
+  sendChatMessage(roomId: string, playerId: string, message: string) {
+    this.emit("send-chat-message", { roomId, playerId, message });
+  }
+
+  // Send typing status
+  sendTypingStatus(roomId: string, playerId: string, isTyping: boolean) {
+    this.emit("player-typing", { roomId, playerId, isTyping });
+  }
+  // ========== END CHAT FUNCTIONALITY ==========
 
   // Universal methods for working with events
   emit(event: string, data?: any) {
@@ -327,7 +500,9 @@ class SocketService {
     this.on("player-joined", callback);
   }
 
-  onPlayerRejoined(callback: (data: { player: Player; room: QuizRoom }) => void) {
+  onPlayerRejoined(
+    callback: (data: { player: Player; room: QuizRoom }) => void
+  ) {
     this.on("player-rejoined", callback);
   }
 
@@ -371,7 +546,15 @@ class SocketService {
   }
 
   onGameStarted(callback: (data: { room: QuizRoom; questions?: QuizQuestion[] }) => void) {
-    this.on("game-started", callback);
+    // Create a wrapper that automatically marks the room as started
+    const wrappedCallback = (data: { room: QuizRoom; questions?: QuizQuestion[] }) => {
+      if (data.room && data.room.id) {
+        this.markRoomGameStarted(data.room.id);
+      }
+      callback(data);
+    };
+    
+    this.on("game-started", wrappedCallback);
   }
 
   onShowStartQuiz(callback: (data: { room: QuizRoom }) => void) {
@@ -390,14 +573,26 @@ class SocketService {
 
   // Deprecated - use onGameResults instead
   onGameEnded(callback: (data: { finalScores: Player[] }) => void) {
-    console.warn('onGameEnded is deprecated, use onGameResults instead');
+    console.warn("onGameEnded is deprecated, use onGameResults instead");
     this.on("game-results", callback);
   }
+
+  // ========== CHAT EVENT LISTENERS ==========
+
+  onChatMessageReceived(callback: (data: ChatMessageReceivedData) => void) {
+    this.on("chat-message-received", callback);
+  }
+
+  onPlayerTypingStatus(callback: (data: PlayerTypingStatusData) => void) {
+    this.on("player-typing-status", callback);
+  }
+
+  // ========== END CHAT EVENT LISTENERS ==========
 
   onError(callback: (data: { message: string; code?: string }) => void) {
     this.on("error", callback);
   }
-  
+
   // Quiz settings synchronization
   onQuizSettingsSync(callback: (data: { quizSettings: any }) => void) {
     this.on("quiz-settings-sync", callback);

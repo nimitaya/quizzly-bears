@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Alert, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors, Gaps, FontSizes, FontWeights } from '@/styles/theme';
 import IconArrowBack from '@/assets/icons/IconArrowBack';
@@ -86,7 +86,9 @@ const SpaceInvadersScreen = () => {
   const [highscore, setHighscore] = useState(0);
   const [showWaveMessage, setShowWaveMessage] = useState(false);
   const [waveMessage, setWaveMessage] = useState('');
+  const [audioInitialized, setAudioInitialized] = useState(false);
 
+  // Load sounds and initialize
   useEffect(() => {
     loadSounds();
     loadHighscore();
@@ -133,30 +135,52 @@ const SpaceInvadersScreen = () => {
 
   const loadSounds = async () => {
     try {
-      const { sound: laserSound } = await Audio.Sound.createAsync(
-        require('@/assets/MiniGames/Space-Invaders/assets/laser.mp3')
+      // Initialize audio mode for mobile devices
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        staysActiveInBackground: false,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+
+      // Load sounds from the Sounds directory
+      const { sound: shootSound } = await Audio.Sound.createAsync(
+        require('@/assets/Sounds/laser.mp3')
       );
-      const { sound: laserAlienSound } = await Audio.Sound.createAsync(
-        require('@/assets/MiniGames/Space-Invaders/assets/laser-alien.mp3')
+      const { sound: explosionSound } = await Audio.Sound.createAsync(
+        require('@/assets/Sounds/richtig.mp3')
       );
-      const { sound: bgMusicSound } = await Audio.Sound.createAsync(
-        require('@/assets/MiniGames/Space-Invaders/assets/8-bit.mp3'),
-        { isLooping: true, volume: 0.4 }
+      const { sound: playerHitSound } = await Audio.Sound.createAsync(
+        require('@/assets/Sounds/error.mp3')
+      );
+      const { sound: enemyShootSound } = await Audio.Sound.createAsync(
+        require('@/assets/Sounds/laser-alien.mp3')
       );
 
       setSounds({
-        laser: laserSound,
-        laserAlien: laserAlienSound,
+        shoot: shootSound,
+        explosion: explosionSound,
+        playerHit: playerHitSound,
+        enemyShoot: enemyShootSound,
       });
 
+      // Load background music
+      const { sound: bgMusicSound } = await Audio.Sound.createAsync(
+        require('@/assets/Sounds/8-bit.mp3'),
+        { isLooping: true, volume: 0.3 }
+      );
       setBgMusic(bgMusicSound);
-
-      // Start background music if music is on
-      if (musicOn) {
-        await bgMusicSound.playAsync();
-      }
     } catch (error) {
       console.log('Error loading sounds:', error);
+      // Set empty sounds object to prevent further errors
+      setSounds({
+        shoot: null,
+        explosion: null,
+        playerHit: null,
+        enemyShoot: null,
+      });
+      setBgMusic(null);
     }
   };
 
@@ -164,7 +188,25 @@ const SpaceInvadersScreen = () => {
     if (!soundOn || !sounds[type]) return;
     
     try {
-      await sounds[type]?.replayAsync();
+      const sound = sounds[type];
+      if (sound) {
+        // Initialize audio on first interaction if not already done
+        if (!audioInitialized) {
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            staysActiveInBackground: false,
+            playsInSilentModeIOS: true,
+            shouldDuckAndroid: true,
+            playThroughEarpieceAndroid: false,
+          });
+          setAudioInitialized(true);
+        }
+        
+        await sound.setPositionAsync(0);
+        // Set volume to 50%
+        await sound.setVolumeAsync(0.5);
+        await sound.playAsync();
+      }
     } catch (error) {
       console.log('Error playing sound:', error);
     }
@@ -232,14 +274,17 @@ const SpaceInvadersScreen = () => {
   };
 
   const fireBullet = () => {
-    setGameState(prev => ({
-      ...prev,
-      bullets: [...prev.bullets, {
-        x: prev.player.x + PLAYER_WIDTH / 2 - BULLET_WIDTH / 2,
-        y: prev.player.y - BULLET_HEIGHT
-      }]
-    }));
-    playSound('laser');
+    if (gameState.bullets.length < 3) { // Limit bullets
+      const newBullet: Bullet = {
+        x: gameState.player.x + PLAYER_WIDTH / 2 - BULLET_WIDTH / 2,
+        y: gameState.player.y - BULLET_HEIGHT,
+      };
+      setGameState(prev => ({
+        ...prev,
+        bullets: [...prev.bullets, newBullet],
+      }));
+      playSound('shoot');
+    }
   };
 
   const movePlayer = () => {
@@ -323,7 +368,7 @@ const SpaceInvadersScreen = () => {
             x: e.x + ENEMY_WIDTH / 2 - BULLET_WIDTH / 2,
             y: e.y + ENEMY_HEIGHT
           });
-          playSound('laserAlien');
+          playSound('enemyShoot');
         }
       });
 
@@ -335,6 +380,9 @@ const SpaceInvadersScreen = () => {
   };
 
   const collisions = () => {
+    let shouldPlayExplosion = false;
+    let shouldPlayPlayerHit = false;
+    
     setGameState(prev => {
       const newBullets = [...prev.bullets];
       const newEnemyBullets = [...prev.enemyBullets];
@@ -354,6 +402,7 @@ const SpaceInvadersScreen = () => {
             enemy.alive = false;
             bullet.hit = true;
             newScore += 100;
+            shouldPlayExplosion = true;
           }
         });
       });
@@ -369,6 +418,7 @@ const SpaceInvadersScreen = () => {
             newLives--;
             newInvincible = true;
             newHitFlash = 60;
+            shouldPlayPlayerHit = true;
             if (newLives <= 0) {
               return {
                 ...prev,
@@ -396,6 +446,14 @@ const SpaceInvadersScreen = () => {
         gameOver: newLives <= 0
       };
     });
+    
+    // Play sounds outside of setState
+    if (shouldPlayExplosion) {
+      playSound('explosion');
+    }
+    if (shouldPlayPlayerHit) {
+      playSound('playerHit');
+    }
   };
 
   const handleBlink = () => {
@@ -552,6 +610,19 @@ const SpaceInvadersScreen = () => {
   const handleTouch = (direction: 'left' | 'right' | 'fire') => {
     if (gameState.paused || gameState.gameOver) return;
     
+    // Initialize audio on first interaction
+    if (!audioInitialized) {
+      Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        staysActiveInBackground: false,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      }).then(() => setAudioInitialized(true)).catch(error => {
+        console.log('Error initializing audio:', error);
+      });
+    }
+    
     if (direction === 'fire') {
       fireBullet();
       return; // Don't change movement keys when firing
@@ -572,8 +643,7 @@ const SpaceInvadersScreen = () => {
       ...prev,
       keys: {
         ...prev.keys,
-        ArrowLeft: direction === 'left' ? false : prev.keys.ArrowLeft,
-        ArrowRight: direction === 'right' ? false : prev.keys.ArrowRight,
+        [direction === 'left' ? 'ArrowLeft' : 'ArrowRight']: false,
       }
     }));
   };
@@ -591,7 +661,12 @@ const SpaceInvadersScreen = () => {
         }
       } catch (error) {
         console.log('Error toggling music:', error);
+        // If there's an error, set music to off
+        setMusicOn(false);
       }
+    } else {
+      // If no background music is available, just toggle the state
+      console.log('No background music available');
     }
   };
 
@@ -620,6 +695,13 @@ const SpaceInvadersScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={handleBackPress}
+      >
+        <IconArrowBack color={Colors.primaryLimo} />
+      </TouchableOpacity>
+
       <View style={styles.content}>
         {/* HUD */}
         <View style={styles.hud}>
@@ -722,12 +804,6 @@ const SpaceInvadersScreen = () => {
               <IconPause size={24} color={Colors.primaryLimo} />
             )}
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.gameButton}
-            onPress={handleBackPress}
-          >
-            <Text style={styles.gameButtonText}>Back</Text>
-          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -742,9 +818,10 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     alignItems: 'center',
-    paddingTop: Gaps.g40,
+    paddingTop: Gaps.g80,
     paddingHorizontal: Gaps.g16,
     paddingBottom: Gaps.g24,
+    marginTop: Gaps.g24, // Added margin to avoid overlap with back button
   },
   title: {
     fontSize: FontSizes.H1Fs,
@@ -885,6 +962,12 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.H2Fs,
     fontWeight: FontWeights.H1Fw as any,
     color: Colors.primaryLimo,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 72,
+    left: 16,
+    zIndex: 10,
   },
 });
 

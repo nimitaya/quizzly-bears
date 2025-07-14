@@ -10,6 +10,14 @@ import quizRoomsRouter, { setRoomsReference } from "./routes/QuizRooms";
 import userRoutes from "./routes/UserStats";
 import pointsRouter from "./routes/PointsRoutes";
 import invitationsRouter from "./routes/InvitationsRoutes";
+import {
+  ChatMessage,
+  SendChatMessageData,
+  PlayerTypingData,
+  ChatMessageReceivedData,
+  PlayerTypingStatusData,
+  QuizRoom, Player
+} from "./types/socket";
 
 const app = express();
 const httpServer = createServer(app);
@@ -36,8 +44,6 @@ app.get("/", (req, res) => {
   res.send("API is running...");
 });
 // ======Socket.IO Server Setup======
-// Types for quiz rooms
-import { QuizRoom, Player } from './types/socket';
 
 // Room storage (in production, better to use Redis)
 const quizRooms = new Map<string, QuizRoom>();
@@ -79,6 +85,9 @@ io.on("connection", (socket) => {
         isStarted: false,
         createdAt: new Date(),
         settings: data.settings,
+        // Chat functionality
+        chatMessages: [],
+        typingPlayers: new Set(),
       };
 
       quizRooms.set(roomId, room);
@@ -487,6 +496,113 @@ io.on("connection", (socket) => {
     leaveRoom(socket, data.roomId, data.playerId);
   });
 
+  // ========== CHAT FUNCTIONALITY ==========
+
+  // Send chat message
+  socket.on("send-chat-message", (data: SendChatMessageData) => {
+    const room = quizRooms.get(data.roomId);
+    if (!room) {
+      socket.emit("error", { message: "Room not found" });
+      return;
+    }
+
+    // Find the player
+    const player = room.players.find((p) => p.id === data.playerId);
+    if (!player) {
+      socket.emit("error", { message: "Player not found in room" });
+      return;
+    }
+
+    // Validate message
+    if (!data.message || data.message.trim().length === 0) {
+      socket.emit("error", { message: "Message cannot be empty" });
+      return;
+    }
+
+    // Limit message length
+    if (data.message.length > 500) {
+      socket.emit("error", { message: "Message too long" });
+      return;
+    }
+
+    // Create chat message
+    const chatMessage: ChatMessage = {
+      id: generateMessageId(),
+      roomId: data.roomId,
+      playerId: data.playerId,
+      playerName: player.name,
+      message: data.message.trim(),
+      timestamp: new Date(),
+    };
+
+    // Initialize chatMessages if not exists
+    if (!room.chatMessages) {
+      room.chatMessages = [];
+    }
+
+    // Add to room's chat history (keep last 50 messages)
+    room.chatMessages.push(chatMessage);
+    if (room.chatMessages.length > 50) {
+      room.chatMessages.shift(); // Remove oldest message
+    }
+
+    // Broadcast message to all players in the room
+    io.to(data.roomId).emit("chat-message-received", {
+      id: chatMessage.id,
+      playerId: chatMessage.playerId,
+      playerName: chatMessage.playerName,
+      message: chatMessage.message,
+      timestamp: chatMessage.timestamp,
+    });
+
+    console.log(
+      `Chat message from ${player.name} in room ${data.roomId}: ${data.message}`
+    );
+  });
+
+  // Player typing status
+  socket.on("player-typing", (data: PlayerTypingData) => {
+    const room = quizRooms.get(data.roomId);
+    if (!room) {
+      socket.emit("error", { message: "Room not found" });
+      return;
+    }
+
+    // Find the player
+    const player = room.players.find((p) => p.id === data.playerId);
+    if (!player) {
+      socket.emit("error", { message: "Player not found in room" });
+      return;
+    }
+
+    // Initialize typingPlayers if not exists
+    if (!room.typingPlayers) {
+      room.typingPlayers = new Set();
+    }
+
+    // Update typing status
+    if (data.isTyping) {
+      room.typingPlayers.add(data.playerId);
+    } else {
+      room.typingPlayers.delete(data.playerId);
+    }
+
+    // Broadcast typing status to other players (not the sender)
+    socket.to(data.roomId).emit("player-typing-status", {
+      playerId: data.playerId,
+      playerName: player.name,
+      isTyping: data.isTyping,
+    });
+
+    console.log(
+      `${player.name} is ${
+        data.isTyping ? "typing" : "stopped typing"
+      } in room ${data.roomId}`
+    );
+  });
+
+  // ========== END CHAT FUNCTIONALITY ==========
+
   // Disconnect
   socket.on("disconnect", () => {
     console.log(`User disconnected: ${socket.id}`);
@@ -510,6 +626,10 @@ function generateRoomId(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
+function generateMessageId(): string {
+  return `msg_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+}
+
 function leaveRoom(socket: any, roomId: string, playerId: string) {
   const room = quizRooms.get(roomId);
   if (!room) return;
@@ -518,6 +638,12 @@ function leaveRoom(socket: any, roomId: string, playerId: string) {
   if (playerIndex === -1) return;
 
   const player = room.players[playerIndex];
+
+  // Remove from typing players if they were typing (chat functionality)
+  if (room.typingPlayers) {
+    room.typingPlayers.delete(playerId);
+  }
+
   room.players.splice(playerIndex, 1);
   socket.leave(roomId);
 

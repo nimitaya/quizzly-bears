@@ -6,5 +6,5 @@ export const getLocalizedText = (textObject: any, currentLanguageCode: string): 
     }
     
     // Priorizieren der Übersetzung in der aktuellen Sprache
-    return textObject[currentLanguageCode] || textObject.de || textObject.en || '';
+    return textObject[currentLanguageCode] || textObject.en || textObject.de || '';
   };

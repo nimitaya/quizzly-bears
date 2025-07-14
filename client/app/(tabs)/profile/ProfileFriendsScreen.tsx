@@ -30,12 +30,9 @@ import { FriendsState, User } from "@/utilities/friendInterfaces";
 import { UserContext } from "@/providers/UserProvider";
 import { io } from "socket.io-client";
 
-// const API_BASE_URL = "http://localhost:3000/api";
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
-
 const ProfilFriendsScreen = () => {
   const router = useRouter();
-  const { userData, setReceivedRequestsCount } = useContext(UserContext);
+  const { userData } = useContext(UserContext);
   const [isLoading, setIsLoading] = useState(false);
   const [searchState, setSearchState] = useState<{
     email: string;
@@ -205,7 +202,6 @@ const ProfilFriendsScreen = () => {
       // Update the received friend requests list in real time
       if (userData) {
         getReceivedFriendRequests(userData.clerkUserId).then((received) => {
-          setReceivedRequestsCount(received.friendRequests.length);
           setFriendsState((prev) => ({
             ...prev,
             receivedFriendRequests: received,
@@ -220,7 +216,7 @@ const ProfilFriendsScreen = () => {
       if (userData) {
         const clerkUserId = userData.clerkUserId;
 
-        // 🔄 Оновити список друзів
+        // Update the friends list
         getFriends(clerkUserId).then((friends) => {
           setFriendsState((prev) => ({
             ...prev,
@@ -228,7 +224,7 @@ const ProfilFriendsScreen = () => {
           }));
         });
 
-        // 🧹 Оновити список запитів (прибрати прийнятий)
+        // Update the requests list (remove the accepted one)
         getSentFriendRequests(clerkUserId).then((sent) => {
           setFriendsState((prev) => ({
             ...prev,
@@ -430,10 +426,8 @@ const styles = StyleSheet.create({
   },
   pageTitle: {
     fontSize: FontSizes.H2Fs,
-    fontWeight: "600",
     textAlign: "center",
     marginBottom: Gaps.g24,
-    color: Colors.black,
   },
   searchContainer: {
     marginBottom: Gaps.g24,
@@ -459,7 +453,6 @@ const styles = StyleSheet.create({
   },
   friendName: {
     fontSize: FontSizes.TextLargeFs,
-    color: Colors.black,
     flex: 1,
   },
   actionButtons: {
@@ -467,7 +460,7 @@ const styles = StyleSheet.create({
     gap: Gaps.g16,
   },
   iconButton: {
-    padding: 4,
+    padding: Gaps.g4,
   },
   emptyContainer: {
     alignItems: "center",
@@ -475,7 +468,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FontSizes.TextLargeFs,
-    color: Colors.black,
     textAlign: "center",
   },
 });

@@ -1,14 +1,13 @@
-import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
-import IconArrowBack from "@/assets/icons/IconArrowBack";
+import { View, TouchableOpacity, Text, StyleSheet, Image } from "react-native";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
 import { FontSizes, Gaps } from "@/styles/theme";
 import { useRouter } from "expo-router";
+import IconArrowBack from "@/assets/icons/IconArrowBack";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
 import { useState, useEffect } from "react";
 import { loadCacheData, saveDataToCache } from "@/utilities/cacheUtils";
-//import { generateMultipleQuizQuestions } from "@/utilities/api/QiuzzApiTest"; //openrouter
-import { generateMultipleQuizQuestions } from "@/utilities/api/quizApi"; // groq
+import { generateMultipleQuizQuestions } from "@/utilities/api/quizApi";
 import { Difficulty } from "@/utilities/types";
 import { PlayStyle } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { CACHE_KEY } from "@/utilities/cacheUtils";
@@ -16,11 +15,13 @@ import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import Countdown from "@/components/Countdown";
 import QuizLoader from "@/components/QuizLoader";
 import CustomAlert from "@/components/CustomAlert";
+import { useSound } from "@/providers/SoundProvider";
 
 const StartQuizScreen = () => {
   const router = useRouter();
   const cacheKey = CACHE_KEY.quizSettings;
   const cacheAi = CACHE_KEY.aiQuestions;
+  const { soundEnabled } = useSound();
   const [level, setLevel] = useState<Difficulty>("medium");
   const [topic, setTopic] = useState<string>("");
   const [category, setCategory] = useState<string>("");
@@ -93,7 +94,7 @@ const StartQuizScreen = () => {
       setShowLocalLoader(false);
       setIsGeneratingQuestions(false);
       setErrorMessage(
-        "Failed to generate questions. Please try again or check your internet connection."
+        "Failed to generate questions. Please try again or check your internet connection — or play the mini games in the meantime."
       );
       setShowErrorAlert(true);
     }
@@ -116,6 +117,12 @@ const StartQuizScreen = () => {
     setShowErrorAlert(false);
     setErrorMessage("");
     // You can try again or go back
+  };
+
+  const handleMiniGamesPress = () => {
+    setShowErrorAlert(false);
+    setErrorMessage("");
+    router.push("/(tabs)/play");
   };
 
   // ---------- USE EFFECT ----------
@@ -155,6 +162,7 @@ const StartQuizScreen = () => {
         onComplete={handleCountdownComplete}
         startNumber={3}
         duration={1500}
+        soundEnabled={soundEnabled}
       />
     );
   }
@@ -182,6 +190,9 @@ const StartQuizScreen = () => {
           handleStartQuiz(topic, level, rounds);
         }}
         noInternet={false}
+        showMiniGamesButton={true}
+        onMiniGamesPress={handleMiniGamesPress}
+        imageSource={require("@/assets/images/Bear-green-black-ooh.webp")}
       />
 
       <View style={{ marginBottom: Gaps.g40 }}>

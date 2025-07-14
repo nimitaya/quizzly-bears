@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Keyboard } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors, Gaps, FontSizes, FontWeights } from '@/styles/theme';
 import IconArrowBack from '@/assets/icons/IconArrowBack';
-import IconArrowUp from '@/assets/icons/IconArrowUp';
-import IconArrowDown from '@/assets/icons/IconArrowDown';
-import IconArrowRight from '@/assets/icons/IconArrowRight';
 import IconPlay from '@/assets/icons/IconPlay';
 import IconPause from '@/assets/icons/IconPause';
+import IconVolume from '@/assets/icons/IconVolume';
+import IconVolumeOff from '@/assets/icons/IconVolumeOff';
 import Svg, { Rect, Circle } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Audio } from 'expo-av';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const GAME_WIDTH = Math.min(screenWidth - 32, 350);
@@ -39,6 +39,11 @@ const SnakeGameScreen = () => {
   const params = useLocalSearchParams();
   const animationRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
+  // Audio refs
+  const moveSoundRef = useRef<Audio.Sound | null>(null);
+  const eatSoundRef = useRef<Audio.Sound | null>(null);
+  const winSoundRef = useRef<Audio.Sound | null>(null);
+  
   // Parse settings from params
   const gameSettings: GameSettings = params.settings ? JSON.parse(params.settings as string) : {
     difficulty: 'medium',
@@ -63,22 +68,96 @@ const SnakeGameScreen = () => {
     gameTime: 0,
   });
 
+  const [soundEnabled, setSoundEnabled] = useState(soundOn);
+
   // Game speed based on difficulty
   const getGameSpeed = () => {
-    const baseSpeed = gameSettings.difficulty === 'easy' ? 200 : 
-                     gameSettings.difficulty === 'medium' ? 150 : 100;
+    const baseSpeed = gameSettings.difficulty === 'easy' ? 400 : 
+                     gameSettings.difficulty === 'medium' ? 300 : 200;
     return baseSpeed / survivalState.speedMultiplier;
   };
 
   useEffect(() => {
+    loadSounds();
     loadHighscore();
     init();
     return () => {
+      // Cleanup sounds
+      if (moveSoundRef.current) moveSoundRef.current.unloadAsync();
+      if (eatSoundRef.current) eatSoundRef.current.unloadAsync();
       if (animationRef.current) {
         clearInterval(animationRef.current);
       }
     };
   }, []);
+
+  // Sound functions
+  const loadSounds = async () => {
+    try {
+      // Initialize audio mode for mobile devices
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        staysActiveInBackground: false,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+
+      const { sound: moveSound } = await Audio.Sound.createAsync(
+        require('@/assets/Sounds/moove.mp3')
+      );
+      moveSoundRef.current = moveSound;
+
+      const { sound: eatSound } = await Audio.Sound.createAsync(
+        require('@/assets/Sounds/eating-sound-effect.mp3')
+      );
+      eatSoundRef.current = eatSound;
+
+      const { sound: winSound } = await Audio.Sound.createAsync(
+        require('@/assets/Sounds/you-won.mp3')
+      );
+      winSoundRef.current = winSound;
+    } catch (error) {
+      console.log('Error loading sounds:', error);
+    }
+  };
+
+  const playSound = async (soundType: 'move' | 'eat' | 'win') => {
+    if (!soundEnabled) return;
+    
+    try {
+      let soundRef: Audio.Sound | null = null;
+      
+      switch (soundType) {
+        case 'move':
+          soundRef = moveSoundRef.current;
+          break;
+        case 'eat':
+          soundRef = eatSoundRef.current;
+          break;
+        case 'win':
+          soundRef = winSoundRef.current;
+          break;
+      }
+      
+      if (soundRef) {
+        await soundRef.setPositionAsync(0);
+        // Reduce volume for move sound to 50%
+        if (soundType === 'move') {
+          await soundRef.setVolumeAsync(0.25);
+        } else {
+          await soundRef.setVolumeAsync(1.0);
+        }
+        await soundRef.playAsync();
+      }
+    } catch (error) {
+      console.log('Error playing sound:', error);
+    }
+  };
+
+  const toggleSound = () => {
+    setSoundEnabled(!soundEnabled);
+  };
 
   const loadHighscore = async () => {
     try {
@@ -198,8 +277,12 @@ const SnakeGameScreen = () => {
       if (newHead.x === prev.food.x && newHead.y === prev.food.y) {
         const newScore = prev.score + 1;
         
+        // Play eat sound
+        playSound('eat');
+        
         // Check win condition for standard mode
         if (gameSettings.gameMode === 'standard' && gameSettings.maxScore > 0 && newScore >= gameSettings.maxScore) {
+          playSound('win');
           saveHighscore();
           return { ...prev, score: newScore, gameOver: true };
         }
@@ -213,6 +296,8 @@ const SnakeGameScreen = () => {
       } else {
         // Remove tail if no food eaten
         newSnake.pop();
+        // Play move sound
+        playSound('move');
         return {
           ...prev,
           snake: newSnake,
@@ -248,7 +333,7 @@ const SnakeGameScreen = () => {
       const interval = setInterval(() => {
         setSurvivalState(prev => {
           const newTime = prev.gameTime + 100;
-          const newSpeedMultiplier = 1.0 + Math.floor(newTime / 10000) * 0.1; // Increase speed every 10 seconds
+          const newSpeedMultiplier = 1.0 + Math.floor(newTime / 20000) * 0.05; // Increase speed every 20 seconds by 0.05
           return {
             ...prev,
             gameTime: newTime,
@@ -266,6 +351,17 @@ const SnakeGameScreen = () => {
         <Svg width={GAME_WIDTH} height={GAME_HEIGHT} style={styles.gameCanvas}>
           {/* Background */}
           <Rect x={0} y={0} width={GAME_WIDTH} height={GAME_HEIGHT} fill={Colors.black} />
+          
+          {/* Border */}
+          <Rect 
+            x={0} 
+            y={0} 
+            width={GAME_WIDTH} 
+            height={GAME_HEIGHT} 
+            fill="none" 
+            stroke={Colors.primaryLimo} 
+            strokeWidth={3}
+          />
           
           {/* Snake */}
           {gameState.snake.map((segment, index) => (
@@ -304,7 +400,7 @@ const SnakeGameScreen = () => {
     return (
       <SafeAreaView style={styles.container}>
         <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-          <IconArrowBack />
+          <IconArrowBack color={Colors.primaryLimo} />
         </TouchableOpacity>
         
         <View style={styles.gameOverContainer}>
@@ -328,11 +424,12 @@ const SnakeGameScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-        <IconArrowBack />
+        <IconArrowBack color={Colors.primaryLimo} />
       </TouchableOpacity>
 
       <View style={styles.header}>
         <View style={styles.scoreContainer}>
+          <View style={styles.spacer} />
           <Text style={styles.scoreText}>Score: {gameState.score}</Text>
           <Text style={styles.highscoreText}>Length: {gameState.snake.length}</Text>
         </View>
@@ -355,8 +452,11 @@ const SnakeGameScreen = () => {
 
       {/* Pause button positioned under the game field, right-aligned */}
       <View style={styles.pauseContainer}>
+        <TouchableOpacity style={styles.iconButton} onPress={toggleSound}>
+          {soundEnabled ? <IconVolume color={Colors.black} size={24} /> : <IconVolumeOff color={Colors.black} size={24} />}
+        </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton} onPress={togglePause}>
-          {gameState.paused ? <IconPlay /> : <IconPause />}
+          {gameState.paused ? <IconPlay color={Colors.black} size={24} /> : <IconPause color={Colors.black} size={24} />}
         </TouchableOpacity>
       </View>
 
@@ -366,7 +466,7 @@ const SnakeGameScreen = () => {
             style={styles.directionButton} 
             onPress={() => changeDirection({ x: -1, y: 0 })}
           >
-            <IconArrowBack />
+            <Text style={styles.directionButtonText}>◄</Text>
           </TouchableOpacity>
           
           <View style={styles.centerButtons}>
@@ -374,14 +474,14 @@ const SnakeGameScreen = () => {
               style={styles.controlButton} 
               onPress={() => changeDirection({ x: 0, y: -1 })}
             >
-              <IconArrowUp />
+              <Text style={styles.controlButtonText}>▲</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={styles.controlButton} 
               onPress={() => changeDirection({ x: 0, y: 1 })}
             >
-              <IconArrowDown />
+              <Text style={styles.controlButtonText}>▼</Text>
             </TouchableOpacity>
           </View>
           
@@ -389,7 +489,7 @@ const SnakeGameScreen = () => {
             style={styles.directionButton} 
             onPress={() => changeDirection({ x: 1, y: 0 })}
           >
-            <IconArrowRight />
+            <Text style={styles.directionButtonText}>►</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -400,14 +500,14 @@ const SnakeGameScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bgGray,
+    backgroundColor: Colors.black,
     alignItems: 'center',
     paddingTop: Gaps.g80,
   },
   backButton: {
     position: 'absolute',
-    top: Gaps.g80,
-    left: Gaps.g16,
+    top: 72,
+    left: 16,
     zIndex: 10,
   },
   header: {
@@ -423,12 +523,12 @@ const styles = StyleSheet.create({
   scoreText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
   },
   highscoreText: {
     fontSize: FontSizes.TextSmallFs,
     fontWeight: FontWeights.TextMediumFw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
   },
   survivalContainer: {
     flexDirection: 'row',
@@ -439,21 +539,19 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
   },
   speedText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
   },
   gameContainer: {
     marginBottom: Gaps.g4,
     position: 'relative',
   },
   gameCanvas: {
-    borderWidth: 2,
-    borderColor: Colors.darkGreen,
-    borderRadius: 8,
+    // Keine abgerundeten Ecken
   },
   controls: {
     marginTop: -Gaps.g16,
@@ -467,12 +565,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.darkGreen,
+    borderColor: Colors.primaryLimo,
   },
   controlButtonText: {
     fontSize: 32,
     fontWeight: FontWeights.H1Fw as any,
-    color: Colors.darkGreen,
+    color: Colors.black,
   },
   centerButtons: {
     flexDirection: 'column',
@@ -488,7 +586,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.darkGreen,
+    borderColor: Colors.primaryLimo,
   },
   directionControls: {
     flexDirection: 'row',
@@ -505,12 +603,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.darkGreen,
+    borderColor: Colors.primaryLimo,
   },
   directionButtonText: {
     fontSize: 32,
     fontWeight: FontWeights.H1Fw as any,
-    color: Colors.darkGreen,
+    color: Colors.black,
   },
   gameOverContainer: {
     flex: 1,
@@ -521,7 +619,7 @@ const styles = StyleSheet.create({
   gameOverTitle: {
     fontSize: FontSizes.H1Fs,
     fontWeight: FontWeights.H1Fw as any,
-    color: Colors.darkGreen,
+    color: Colors.primaryLimo,
     marginBottom: Gaps.g16,
     textAlign: 'center',
   },
@@ -531,13 +629,13 @@ const styles = StyleSheet.create({
     paddingVertical: Gaps.g16,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: Colors.darkGreen,
+    borderColor: Colors.primaryLimo,
     marginTop: Gaps.g24,
   },
   restartButtonText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.black,
   },
   startButtonOverlay: {
     position: 'absolute',
@@ -547,7 +645,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: Colors.black + '80', // 50% Transparenz mit Colors.black
   },
   gameStartButton: {
     backgroundColor: Colors.primaryLimo,
@@ -555,17 +653,23 @@ const styles = StyleSheet.create({
     paddingVertical: Gaps.g16,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: Colors.darkGreen,
+    borderColor: Colors.primaryLimo,
   },
   gameStartButtonText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.black,
   },
   pauseContainer: {
     width: GAME_WIDTH,
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 0,
+    marginTop: Gaps.g8, // Kleiner Abstand nach unten
+  },
+  spacer: {
+    width: GAME_WIDTH / 2 - 80, // Adjust as needed to center the score text
   },
 });
 

@@ -1,6 +1,10 @@
 import { Request, Response } from "express";
-import { User} from "../models/User";
-import { InviteRequest, IInviteRequestPopulated } from "../models/InviteRequests";
+import { User } from "../models/User";
+import {
+  InviteRequest,
+  IInviteRequestPopulated,
+} from "../models/InviteRequests";
+import { io } from "../server";
 
 // ==================== Search user by email ====================
 export const searchUser = async (
@@ -121,6 +125,23 @@ export const sendInvitationRequest = async (
       roomcode: roomcode,
       status: "pending",
     });
+
+    // Emit event to notify the target user about the new friend request
+    io.emit("inviteRequestSent", {
+      from: {
+        _id: requestingUser._id,
+        username: requestingUser.username,
+        email: requestingUser.email,
+      },
+      to: {
+        _id: targetUser._id,
+        username: targetUser.username,
+        email: targetUser.email,
+      },
+      status: inviteRequest.status,
+      createdAt: inviteRequest.createdAt,
+    });
+
     // Save request to database
     await inviteRequest.save();
 
@@ -243,7 +264,9 @@ export const acceptInvitationRequest = async (
     }
 
     // Find the invite request user wants to accept
-    const inviteRequest = await InviteRequest.findById(inviteRequestId).populate("from to") as IInviteRequestPopulated | null;
+    const inviteRequest = (await InviteRequest.findById(
+      inviteRequestId
+    ).populate("from to")) as IInviteRequestPopulated | null;
     if (!inviteRequest) {
       res.status(404).json({ error: "Invite request not found" });
       return;
@@ -264,6 +287,11 @@ export const acceptInvitationRequest = async (
     // Update invite request status
     inviteRequest.status = "accepted";
     await inviteRequest.save();
+    // Emit event to notify both users about the accepted friend request
+    io.emit("inviteRequestAccepted", {
+      from: inviteRequest.from,
+      to: inviteRequest.to,
+    });
 
     // ----- Response -----
     res.json({ message: "Invitation accepted successfully" });
@@ -313,6 +341,12 @@ export const declineInvitationRequest = async (
       res.status(400).json({ error: "Invite request is not pending" });
       return;
     }
+    // Emit event to notify the requester about the declined friend request
+    io.emit("inviteRequestDeclined", {
+      inviteId: inviteRequest._id,
+      from: inviteRequest.from,
+      to: inviteRequest.to,
+    });
 
     // Remove invite request from invite request collection
     await InviteRequest.findByIdAndDelete(inviteRequestId);
@@ -386,6 +420,12 @@ export const removeInvitation = async (
       status: "accepted",
     });
 
+    // Emit event to notify both users about the removed friendship
+    io.emit("inviteRemoved", {
+      user: user._id,
+      friend: friendId,
+    });
+
     // ----- Response -----
     res.json({ message: "Invite removed successfully" });
   } catch (error) {
@@ -420,10 +460,14 @@ export const removeAllInvitations = async (
       status: "accepted",
     });
 
+    io.emit("allInvitesRemoved", {
+      user: user._id,
+    });
+
     // ----- Response -----
-    res.json({ 
+    res.json({
       message: "All invites removed successfully",
-      deletedCount: deleteResult.deletedCount 
+      deletedCount: deleteResult.deletedCount,
     });
   } catch (error) {
     console.error("Error removing invite:", error);

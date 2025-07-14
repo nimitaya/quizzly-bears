@@ -4,33 +4,29 @@ import { Category, Difficulty } from "../types";
 import { QuestionStructure, AiQuestions } from "@/utilities/quiz-logic/data";
 import { LANGUAGES } from "../languages";
 
-// ==================== KONFIGURATION DER APIs ====================
+// ==================== API CONFIGURATION =============================================
 const GROQ_API_URL =
   process.env.EXPO_PUBLIC_GROQ_API_URL ||
   "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY?.trim() || "";
-//console.log("GROQ API URL:", GROQ_API_URL);
-//console.log("GROQ API Key:", GROQ_API_KEY);
 
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 const OPENROUTER_API_KEY =
   process.env.EXPO_PUBLIC_OPENROUTER_API_KEY?.trim() || "";
-//console.log("OpenRouter API URL:", OPENROUTER_API_URL);
-//console.log("OpenRouter API Key:", OPENROUTER_API_KEY);
 
-// ==================== KONSTANTEN ====================
+// ==================== CONSTANTS ==========================================================
 const DELAY_MS = 5000;
 
-// ==================== HILFSFUNKTIONEN ====================
+// ==================== UTILITY FUNCTIONS =====================================================
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// ==================== SPRACHFUNKTIONEN ====================
+// ==================== LANGUAGE FUNCTIONS ====================================================
 const getCurrentLanguage = async (): Promise<string> => {
   try {
     const savedLanguage = await AsyncStorage.getItem("selected_language");
     return savedLanguage || "en";
   } catch (error) {
-    console.error("Error beim aktuellen Sprache generiere", error);
+    console.error("Error getting current language", error);
     return "en";
   }
 };
@@ -40,7 +36,33 @@ const getLanguageName = (code: string): string => {
   return language?.name || "English";
 };
 
-// ==================== PROMPT-GENERATOR CONSISTENTE ====================
+// ==================== DIFFICULTY LEVELS CONFIGURATION ================================
+const getDifficultyDescription = (difficulty: Difficulty): string => {
+  const difficultyLevels = {
+    easy: {
+      description: "Basic knowledge and common facts",
+      characteristics: "Simple recall, well-known information, straightforward concepts",
+      examples: "What is the capital of France? Which planet is closest to the Sun?",
+      complexity: "Elementary level understanding required"
+    },
+    medium: {
+      description: "Moderate complexity requiring some analysis",
+      characteristics: "Application of knowledge, moderate reasoning, connections between concepts",
+      examples: "Why does water boil at different temperatures at different altitudes? How do photosynthesis and respiration relate?",
+      complexity: "Intermediate level understanding and basic analysis required"
+    },
+    hard: {
+      description: "Advanced knowledge requiring deep understanding",
+      characteristics: "Complex analysis, synthesis of multiple concepts, expert-level knowledge",
+      examples: "What are the implications of quantum entanglement for computing? How do monetary policies affect international trade dynamics?",
+      complexity: "Advanced level critical thinking and specialized knowledge required"
+    }
+  };
+
+  return difficultyLevels[difficulty]?.description || difficultyLevels.medium.description;
+};
+
+// ==================== CONSISTENT PROMPT GENERATOR ========================================
 const generatePrompt = (
   topic: string,
   difficulty: Difficulty,
@@ -54,73 +76,121 @@ const generatePrompt = (
   const sessionId = Math.random().toString(36).substring(2, 15);
   const topicHash = topic.toLowerCase().replace(/\s+/g, "-").substring(0, 10);
   const uniqueId = `${topicHash}-${difficulty}-${timestamp}-${randomSeed}-${sessionId}`;
+  const difficultySpec = getDifficultyDescription(difficulty);
 
-  return `Generate EXACTLY ${questionCount} unique, factual multiple-choice quiz questions about "${topic}" at the ${difficulty} level.
-JSON FORMAT (respond with this exact structure only):
-{
-  "category": "${topic}",
-  "questionArray": [
-    {
-      "question": {
-        "de": "German question text",
-        "${currentLanguageCode}": "Native ${currentLanguageName} question text"
-      },
-      "optionA": {
-        "isCorrect": true/false,
-        "de": "German answer",
-        "${currentLanguageCode}": "Native ${currentLanguageName} answer"
-      },
-      "optionB": {
-        "isCorrect": true/false,
-        "de": "German answer",
-        "${currentLanguageCode}": "Native ${currentLanguageName} answer"
-      },
-      "optionC": {
-        "isCorrect": true/false,
-        "de": "German answer",
-        "${currentLanguageCode}": "Native ${currentLanguageName} answer"
-      },
-      "optionD": {
-        "isCorrect": true/false,
-        "de": "German answer",
-        "${currentLanguageCode}": "Native ${currentLanguageName} answer"
+  
+  return `Generate EXACTLY ${questionCount} unique multiple-choice quiz questions about "${topic}" at ${difficulty.toUpperCase()} difficulty level.
+
+  DIFFICULTY SPECIFICATIONS FOR ${difficulty.toUpperCase()}:
+  - Level: ${difficultySpec}
+  - Characteristics: ${difficultySpec}
+  - Complexity: ${difficultySpec}
+  - Examples: ${difficultySpec}
+  
+  REQUIRED JSON FORMAT (respond with this structure only):
+  {
+    "category": "${topic}",
+    "questionArray": [
+      {
+        "question": {
+          "en": "English question text",
+          "${currentLanguageCode}": "Native ${currentLanguageName} question text"
+        },
+        "optionA": {
+          "isCorrect": true/false,
+          "en": "English answer",
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"
+        },
+        "optionB": {
+          "isCorrect": true/false,
+          "en": "English answer",
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"
+        },
+        "optionC": {
+          "isCorrect": true/false,
+          "en": "English answer",
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"
+        },
+        "optionD": {
+          "isCorrect": true/false,
+          "en": "English answer",
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"
+        }
       }
-    }
-  ]
-}
-- Each question must be completely original and test a different aspect of "${topic}"
-- Questions must be written in **both German** and **${currentLanguageName}** (${currentLanguageCode})
-- All text in ${currentLanguageCode} must be in authentic, natural native language — no English allowed
-- Use only verified facts, specific names, dates, and real-world data
-- Vary question styles: factual, analytical, comparative, and conceptual
-- Each question must be up to **120 characters long**
-- Provide exactly four answer options per question, labeled A, B, C, and D
-- Only ONE correct answer per question: use \`"isCorrect": true\` for that option
-- Distribute correct answers **randomly and evenly** among A, B, C, and D — over the full question set, each option must appear as the correct answer in approximately 25% of cases
-- The same correct option (A, B, C, or D) **must NOT appear more than twice in a row**
-- Make incorrect options **plausible** but clearly wrong and not misleading
-- Use clear, unambiguous wording in all answer options
-- Ensure all characters are UTF-8 encoded for ${currentLanguageName}
-- Avoid duplicated questions, options, or phrasing
-- Escape all JSON special characters properly
-- Do NOT include any extra text — only the final JSON structure
-- Maintain the exact same structure, tone, and formatting across ALL requests
-- Do NOT introduce new output styles, patterns, or formats in future generations
-- Persist and respect all rules consistently in every session or follow-up request
--All question must have different answer options, if you generate some question with the same answer options, you must generate a new question
-- Session ID: ${uniqueId}`;
-};
+    ]
+  }
+  
+  CONTENT REQUIREMENTS:
+  - Create ${questionCount} completely unique questions about different aspects of "${topic}"
+  - Include questions in both English and ${currentLanguageName} (${currentLanguageCode})
+  - Use only factual, verifiable information with specific names, dates, and data
+  - Mix question types: factual recall, analysis, comparison, and application
+  - IMPORTANt: All questions must match ${difficulty.toUpperCase()} difficulty level: ${difficultySpec}
+  - Question complexity should require: ${difficultySpec}
+  
+  CHARACTER LIMITS:
+  - Question text: maximum 120 characters per language
+  - Answer options: maximum 40 characters per language
+  - Count includes spaces and punctuation
+  
+  ANSWER STRUCTURE:
+  - Provide exactly 4 options: A, B, C, D for each question
+  - Set "isCorrect": true for exactly ONE option per question
+  - Set "isCorrect": false for the other three options
+  - Make incorrect options believable but clearly wrong
+  - Use precise, unambiguous language in all options
+  - All answer must be different from each other, no same text.
 
-// ==================== API-FUNKTIONEN ====================
+  CRITICAL ANTI-DUPLICATION REQUIREMENTS:
+- ALL 4 options must be completely different in meaning and wording
+- NO two options can be similar, even if slightly different
+- NO options like: "Paris", "Paris, France", "The city of Paris", "Capital Paris"
+- NO number sequences like: "1", "2", "3", "4" or "2020", "2021", "2022", "2023"
+- NO synonyms or near-synonyms: "Big", "Large", "Huge", "Enormous"
+- NO options that are subsets of others: "Spain" vs "Spain and Portugal"
+- Each option must represent a DISTINCT, UNIQUE concept or answer
+- Vary option types: mix names, numbers, concepts, places appropriately
+
+EXAMPLES OF FORBIDDEN DUPLICATES:
+❌ BAD: ["Red", "Blue", "Green", "Yellow"] - too similar category
+❌ BAD: ["1995", "1996", "1997", "1998"] - consecutive numbers
+❌ BAD: ["Madrid", "Madrid, Spain", "Capital Madrid", "City of Madrid"] - same concept
+❌ BAD: ["Cat", "Dog", "Bird", "Fish"] - all animals, too similar
+
+✅ GOOD: ["Paris", "Tokyo", "1889", "Iron"] - completely different concepts
+✅ GOOD: ["Shakespeare", "1969", "Pacific", "Democracy"] - diverse answer types
+  
+  ANSWER DISTRIBUTION:
+  - Distribute correct answers across all options (A, B, C, D)
+  - Target 25% of questions with each option as correct
+  - Never place correct answer in same position more than 2 consecutive times
+  - Example: if questions 1-2 have correct answer A, question 3 must be B, C, or D
+  
+  QUALITY STANDARDS:
+  - No duplicate questions or similar phrasings
+  - Each question must test different knowledge
+  - All answer options within each question must be unique
+  - Use proper UTF-8 encoding for ${currentLanguageName}
+  - Escape JSON special characters: quotes, backslashes, etc.
+  
+  OUTPUT FORMAT:
+  - Return ONLY the JSON structure above
+  - No additional text, explanations, or comments
+  - No markdown formatting or code blocks
+  - Maintain consistent structure across all generations
+  
+  Session ID: ${uniqueId}`;
+  };
+
+// ==================== API FUNCTIONS ==================================================
 const apiKeys = [
-  process.env.EXPO_PUBLIC_GROQ_API_KEY,
+  GROQ_API_KEY,
   process.env.EXPO_PUBLIC_BEAR_KEY_1,
   process.env.EXPO_PUBLIC_BEAR_KEY_2,
   process.env.EXPO_PUBLIC_BEAR_KEY_3,
   process.env.EXPO_PUBLIC_BEAR_KEY_4,
   process.env.EXPO_PUBLIC_BEAR_KEY_5,
 ].filter(Boolean);
-
 
 const callGroqAPI = async (prompt: string) => {
   console.log("Calling GROQ API with fallback keys...");
@@ -130,18 +200,17 @@ const callGroqAPI = async (prompt: string) => {
       const response = await axios.post(
         GROQ_API_URL,
         {
-          model: "llama3-8b-8192",
+          model: "llama-3.1-8b-instant",
           messages: [{ role: "user", content: prompt }],
-          temperature: 0.9,      
-          max_tokens: 4000,    
-          top_p: 0.95,          
-          frequency_penalty: 0, 
-          presence_penalty: 0,  
-          
+          temperature: 0.5,
+          max_tokens: 4000,
+          top_p: 0.3,
+          frequency_penalty: 0,
+          presence_penalty: 0,
         },
         {
           headers: {
-            Authorization: `Bearer ${key} `,
+            Authorization: `Bearer ${key}`,
             "Content-Type": "application/json",
           },
         }
@@ -157,9 +226,10 @@ const callGroqAPI = async (prompt: string) => {
     }
   }
 
-  throw new Error("Alle keys for GROQ API failed. Could not generate questions.");
+  throw new Error(
+    "All keys for GROQ API failed. Could not generate questions."
+  );
 };
-
 
 const callOpenRouterAPI = async (prompt: string) => {
   console.log("Calling OpenRouter API");
@@ -190,8 +260,7 @@ const callOpenRouterAPI = async (prompt: string) => {
   return response.data.choices[0].message.content;
 };
 
-
-// ==================== FALLBACK-SYSTEM ====================================
+// ==================== FALLBACK SYSTEM =================================================
 const requestWithFallback = async (prompt: string): Promise<string> => {
   try {
     return await callGroqAPI(prompt);
@@ -211,13 +280,14 @@ const requestWithFallback = async (prompt: string): Promise<string> => {
   }
 };
 
-// ==================== ANTWORTVERARBEITUNG CORREGIDA ====================
+// ==================== RESPONSE PROCESSING =================================
 const parseQuizResponse = (
   content: string,
   questionCount: number,
   topic: string,
   currentLanguageCode: string
 ): AiQuestions => {
+
   // Clean JSON extraction
   let cleanContent = content.replace(/```json\n?/g, "");
   cleanContent = cleanContent.replace(/```\n?/g, "");
@@ -239,7 +309,7 @@ const parseQuizResponse = (
     parsedData = JSON.parse(cleanJson);
   } catch (parseError) {
     console.error("JSON parsing error:", parseError);
-    console.error("JSON mit extra Text:", cleanJson);
+    console.error("JSON with extra text:", cleanJson);
     throw new Error("Error parsing AI JSON response");
   }
 
@@ -267,15 +337,15 @@ const parseQuizResponse = (
       continue;
     }
 
-    // German text validation
+    // English text validation
     if (
-      typeof questionData.question.de !== "string" ||
-      typeof questionData.optionA.de !== "string" ||
-      typeof questionData.optionB.de !== "string" ||
-      typeof questionData.optionC.de !== "string" ||
-      typeof questionData.optionD.de !== "string"
+      typeof questionData.question.en !== "string" ||
+      typeof questionData.optionA.en !== "string" ||
+      typeof questionData.optionB.en !== "string" ||
+      typeof questionData.optionC.en !== "string" ||
+      typeof questionData.optionD.en !== "string"
     ) {
-      console.warn(`Question ${i + 1} missing German texts`);
+      console.warn(`Question ${i + 1} missing English texts`);
       continue;
     }
 
@@ -308,10 +378,10 @@ const parseQuizResponse = (
 
     // Check for duplicate answers
     const optionTexts = [
-      questionData.optionA.de,
-      questionData.optionB.de,
-      questionData.optionC.de,
-      questionData.optionD.de,
+      questionData.optionA.en,
+      questionData.optionB.en,
+      questionData.optionC.en,
+      questionData.optionD.en,
     ];
 
     // Keep AI response exactly as provided - NO MODIFICATION
@@ -337,6 +407,7 @@ const parseQuizResponse = (
 
     validatedQuestions.push(question);
   }
+  
   if (validatedQuestions.length === 0) {
     throw new Error("No questions could be validated from the response");
   }
@@ -350,7 +421,7 @@ const parseQuizResponse = (
   };
 };
 
-// ==================== HAUPTFUNKTION ====================
+// ==================== MAIN FUNCTION ============================================
 export const generateMultipleQuizQuestions = async (
   topic: string,
   difficulty: Difficulty,
@@ -400,7 +471,7 @@ export const generateMultipleQuizQuestions = async (
   }
 };
 
-// ==================== Kategorizierung ====================
+// ==================== CATEGORIZATION ====================
 const PREDEFINED_CATEGORIES: Category[] = [
   "Science",
   "History",
@@ -452,142 +523,3 @@ Answer with category name only:`;
 };
 
 console.log("QuizAPI with consistent system successfully loaded");
-
-// 2- Originale Funktion zum Generieren einer einzelnen Quizfrage
-/*export const generateQuizQuestion = async (
-category: Category,
-difficulty: Difficulty,
-usedQuestions: Set<string>
-): Promise<AiQuestions> => {
-try {
-const randomSeed = Math.floor(Math.random() * 10000);
-const timestamp = Date.now();
-const questionTypes = [
-"konzeptionell",
-"praktisch",
-"analytisch",
-"anwendungsbezogen",
-];
-const randomType =
-questionTypes[Math.floor(Math.random() * questionTypes.length)];
-
-const prompt = `Du bist ein Generator für Bildungsquiz-Fragen.
-
-SPEZIFISCHE ANWEISUNGEN:
-- Erstelle EINE völlig NEUE UND EINZIGARTIGE Frage über ${category}
-- Schwierigkeitsgrad: ${difficulty}
-- Fragetyp: ${randomType}
-- Referenznummer: ${randomSeed}
-- Zeitstempel: ${timestamp}
-WICHTIG: Jede Frage muss ANDERS sein als alle vorherigen Fragen. Verwende verschiedene Konzepte, Zahlen, Beispiele und Ansätze.
-- Die Frage darf maximal 30 Zeichen lang sein.
-- Die Antwortoptionen müssen klar und eindeutig sein. Weniger als 20 Zeichen pro Option.
-Du musst GENAU in diesem JSON-Format antworten:
-{
-"question": {
-"de": "Deine völlig neue Frage hier auf Deutsch",
-"en": "Your completely new question here in English"
-},
-"optionA": {
-"isCorrect": true,
-"de": "Option A auf Deutsch",
-"en": "Option A in English"
-},
-"optionB": {
-"isCorrect": false,
-"de": "Option B auf Deutsch",
-"en": "Option B in English"
-},
-"optionC": {
-"isCorrect": false,
-"de": "Option C auf Deutsch",
-"en": "Option C in English"
-},
-"optionD": {
-"isCorrect": false,
-"de": "Option D auf Deutsch",
-"en": "Option D in English"
-}
-}
-REGELN:
-- Nur eine Option darf "isCorrect: true" sein
-- Alle Optionen müssen unterschiedlich und plausibel sein
-- Generiere völlig originale und abwechslungsreiche Inhalte
-- Bei Mathematik verwende jedes Mal andere Zahlen
-- Bei Geschichte verwende verschiedene Ereignisse/Personen
-- Antworte NUR mit dem JSON, ohne zusätzlichen Text`;
-
-const response = await axios.post(
-GROQ_API_URL,
-{
-model: "llama3-8b-8192",
-messages: [
-{
-role: "user",
-content: prompt,
-},
-],
-temperature: 0.9,
-max_tokens: 400,
-top_p: 0.9,
-frequency_penalty: 0.5,
-presence_penalty: 0.3,
-},
-{
-headers: {
-Authorization: `Bearer ${(GROQ_API_KEY ?? "").trim()}`,
-"Content-Type": "application/json",
-},
-}
-);
-
-let responseContent = response.data.choices[0].message.content;
-responseContent = responseContent.replace(/```json\n?/g, "");
-responseContent = responseContent.replace(/```\n?/g, "");
-responseContent = responseContent.trim();
-console.log("API Response:", response.data);
-
-const questionData = JSON.parse(responseContent);
-console.log("Parsed Question Data:", questionData);
-
-const questionKey = questionData.question.de.substring(0, 50).toLowerCase();
-if (usedQuestions.has(questionKey)) {
-console.log("Doppelte Frage erkannt, generiere neue...");
-return await generateQuizQuestion(category, difficulty, usedQuestions);
-}
-
-if (
-!questionData.question ||
-typeof questionData.question.de !== "string" ||
-typeof questionData.question.en !== "string" ||
-!questionData.optionA ||
-!questionData.optionB ||
-!questionData.optionC ||
-!questionData.optionD ||
-typeof questionData.optionA.de !== "string" ||
-typeof questionData.optionA.en !== "string" ||
-typeof questionData.optionB.de !== "string" ||
-typeof questionData.optionB.en !== "string" ||
-typeof questionData.optionC.de !== "string" ||
-typeof questionData.optionC.en !== "string" ||
-typeof questionData.optionD.de !== "string" ||
-typeof questionData.optionD.en !== "string"
-) {
-throw new Error("Ungültiges Antwortformat");
-}
-
-return {
-question: questionData.question,
-optionA: questionData.optionA,
-optionB: questionData.optionB,
-optionC: questionData.optionC,
-optionD: questionData.optionD,
-correctAnswer: questionData.correctAnswer || 0,
-};
-} catch (error) {
-console.error("Fehler beim Generieren der Frage:", error);
-throw new Error(
-"Frage konnte nicht generiert werden. Versuche es erneut."
-);
-}
-};*/

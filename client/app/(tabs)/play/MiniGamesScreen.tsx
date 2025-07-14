@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Image,
   useWindowDimensions,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Colors, FontSizes, FontWeights, Gaps, Radius } from "@/styles/theme";
@@ -31,7 +32,7 @@ const GameCard: React.FC<GameCardProps> = ({ title, imageSource, onPress }) => {
 const MiniGamesScreen = () => {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const cardWidth = (width - 64) / 2; // 2 Karten pro Reihe mit Abständen
+  const cardWidth = (width - 64) / 2; // 2 cards per row with spacing
 
   const handleGamePress = (gameName: string) => {
     console.log(`Starting ${gameName}`);
@@ -44,12 +45,16 @@ const MiniGamesScreen = () => {
     } else if (gameName === "Snake") {
       router.push("/(tabs)/play/SnakeScreen");
     }
-    // Hier können später die anderen Spiele gestartet werden
+    // Other games can be started here later
     // router.push(`/games/${gameName.toLowerCase()}`);
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
+    >
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => router.back()}
@@ -57,12 +62,12 @@ const MiniGamesScreen = () => {
       >
         <IconArrowBack />
       </TouchableOpacity>
-      <View style={{ marginBottom: Gaps.g40 }}>
+      <View style={{ marginBottom: Gaps.g32 }}>
         <Logo size="small" />
       </View>
       <Text style={styles.subtitle}>Mini Games</Text>
       <View style={styles.gamesGrid}>
-        {/* Obere Reihe */}
+        {/* Top row */}
         <View style={styles.row}>
           <GameCard
             title="Connect Four"
@@ -77,7 +82,7 @@ const MiniGamesScreen = () => {
           />
         </View>
 
-        {/* Untere Reihe */}
+        {/* Bottom row */}
         <View style={styles.row}>
           <GameCard
             title="Ping Pong"
@@ -99,7 +104,7 @@ const MiniGamesScreen = () => {
           onPress={() => router.push("/(tabs)/play/QuizTypeSelectionScreen")}
         />
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -108,7 +113,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.bgGray,
     marginTop: Gaps.g80,
+  },
+  contentContainer: {
     alignItems: "center",
+    flexGrow: 1,
+    paddingBottom: Gaps.g40,
   },
   backButton: {
     position: "absolute",
@@ -116,20 +125,13 @@ const styles = StyleSheet.create({
     left: 16,
     zIndex: 10,
   },
-  header: {
-    alignItems: "center",
-    marginBottom: Gaps.g4,
-  },
   subtitle: {
-    fontSize: FontSizes.TextMediumFs,
-    fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    fontSize: FontSizes.H2Fs,
     textAlign: "center",
-    marginBottom: Gaps.g4,
+    paddingBottom: Gaps.g32,
   },
   gamesGrid: {
     flex: 1,
-    justifyContent: "center",
     paddingHorizontal: Gaps.g16,
     minHeight: 400,
   },
@@ -140,7 +142,7 @@ const styles = StyleSheet.create({
   },
   gameCard: {
     backgroundColor: Colors.primaryLimo,
-    borderRadius: 16,
+    borderRadius: Gaps.g16,
     padding: Gaps.g16,
     alignItems: "center",
     justifyContent: "center",
@@ -151,18 +153,16 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     marginBottom: Gaps.g8,
-    borderRadius: 8,
+    borderRadius: Gaps.g8,
   },
   gameTitle: {
     fontSize: FontSizes.TextMediumFs,
-    fontWeight: FontWeights.SubtitleFw as any,
-    color: Colors.darkGreen,
+    color: Colors.black,
     textAlign: "center",
   },
   backButtonContainer: {
     marginTop: Gaps.g4,
-    marginBottom: Gaps.g40,
   },
 });
 
-export default MiniGamesScreen; 
+export default MiniGamesScreen;
