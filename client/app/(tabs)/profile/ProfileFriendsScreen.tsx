@@ -28,7 +28,7 @@ import {
 import { useEffect, useState, useContext } from "react";
 import { FriendsState, User } from "@/utilities/friendInterfaces";
 import { UserContext } from "@/providers/UserProvider";
-import { io } from "socket.io-client";
+import socketService from "@/utilities/socketService";
 
 const ProfilFriendsScreen = () => {
   const router = useRouter();
@@ -48,8 +48,6 @@ const ProfilFriendsScreen = () => {
     receivedFriendRequests: { friendRequests: [] },
     sentFriendRequests: { friendRequests: [] },
   });
-
-  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
 
   // =========== Functions ==========
   // Handler Search User
@@ -196,83 +194,107 @@ const ProfilFriendsScreen = () => {
   }, []);
 
   useEffect(() => {
-    socket.on("friendRequestSent", (data) => {
-      console.log("Friend request sent:", data);
+    if (!userData) return;
 
-      // Update the received friend requests list in real time
-      if (userData) {
-        getReceivedFriendRequests(userData.clerkUserId).then((received) => {
-          setFriendsState((prev) => ({
-            ...prev,
-            receivedFriendRequests: received,
-          }));
-        });
-      }
-    });
+    // Function to set up all socket listeners
+    const setupSocketListeners = () => {
+      console.log("Setting up friend event listeners...");
 
-    socket.on("friendRequestAccepted", (data) => {
-      console.log("Friend request accepted:", data);
+      // Clean up existing listeners first to avoid duplicates
+      socketService.off("friendRequestSent");
+      socketService.off("friendRequestAccepted");
+      socketService.off("friendRequestDeclined");
+      socketService.off("friendRemoved");
 
-      if (userData) {
-        const clerkUserId = userData.clerkUserId;
+      // Register new listeners
+      socketService.on("friendRequestSent", (data: any) => {
+        console.log("🔔 Friend request SENT event received:", data);
+        if (userData) {
+          getReceivedFriendRequests(userData.clerkUserId).then((received) => {
+            console.log("Updated received requests:", received);
+            setFriendsState((prev) => ({
+              ...prev,
+              receivedFriendRequests: received,
+            }));
+          });
+        }
+      });
+
+      socketService.on("friendRequestAccepted", (data: any) => {
+        console.log("Friend request accepted:", data);
+
+        if (userData) {
+          const clerkUserId = userData.clerkUserId;
+
+          // Update the friends list
+          getFriends(clerkUserId).then((friends) => {
+            setFriendsState((prev) => ({
+              ...prev,
+              friendList: friends,
+            }));
+          });
+
+          // Update the requests list (remove the accepted one)
+          getSentFriendRequests(clerkUserId).then((sent) => {
+            setFriendsState((prev) => ({
+              ...prev,
+              sentFriendRequests: sent,
+            }));
+          });
+        }
+      });
+
+      socketService.on("friendRequestDeclined", (data: any) => {
+        console.log("Friend request declined:", data);
+
+        // Update the received friend requests list
+        if (userData) {
+          getReceivedFriendRequests(userData.clerkUserId).then((received) => {
+            setFriendsState((prev) => ({
+              ...prev,
+              receivedFriendRequests: received,
+            }));
+          });
+          getSentFriendRequests(userData.clerkUserId).then((sent) => {
+            setFriendsState((prev) => ({
+              ...prev,
+              sentFriendRequests: sent,
+            }));
+          });
+        }
+      });
+
+      socketService.on("friendRemoved", (data: any) => {
+        console.log("Friend removed:", data);
 
         // Update the friends list
-        getFriends(clerkUserId).then((friends) => {
-          setFriendsState((prev) => ({
-            ...prev,
-            friendList: friends,
-          }));
-        });
+        if (userData) {
+          getFriends(userData.clerkUserId).then((friends) => {
+            setFriendsState((prev) => ({
+              ...prev,
+              friendList: friends,
+            }));
+          });
+        }
+      });
+    };
 
-        // Update the requests list (remove the accepted one)
-        getSentFriendRequests(clerkUserId).then((sent) => {
-          setFriendsState((prev) => ({
-            ...prev,
-            sentFriendRequests: sent,
-          }));
-        });
-      }
-    });
+    // Set up listeners initially
+    setupSocketListeners();
 
-    socket.on("friendRequestDeclined", (data) => {
-      console.log("Friend request declined:", data);
-
-      // Update the received friend requests list
-      if (userData) {
-        getReceivedFriendRequests(userData.clerkUserId).then((received) => {
-          setFriendsState((prev) => ({
-            ...prev,
-            receivedFriendRequests: received,
-          }));
-        });
-        getSentFriendRequests(userData.clerkUserId).then((sent) => {
-          setFriendsState((prev) => ({
-            ...prev,
-            sentFriendRequests: sent,
-          }));
-        });
-      }
-    });
-
-    socket.on("friendRemoved", (data) => {
-      console.log("Friend removed:", data);
-
-      // Update the friends list
-      if (userData) {
-        getFriends(userData.clerkUserId).then((friends) => {
-          setFriendsState((prev) => ({
-            ...prev,
-            friendList: friends,
-          }));
-        });
-      }
+    // Re-register listeners when socket connects
+    socketService.on("connect", () => {
+      console.log("Socket reconnected, re-registering listeners");
+      setupSocketListeners();
     });
 
     return () => {
-      socket.off("friendRequestSent");
-      socket.off("friendRequestAccepted");
-      socket.off("friendRequestDeclined");
-      socket.off("friendRemoved");
+      console.log("Cleaning up socket listeners");
+      socketService.off("friendRequestSent");
+      socketService.off("friendRequestAccepted");
+      socketService.off("friendRequestDeclined");
+      socketService.off("friendRemoved");
+      socketService.off("connect");
     };
   }, [userData]);
 
