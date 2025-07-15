@@ -14,7 +14,7 @@ import IconAddFriend from "@/assets/icons/IconAddFriend";
 import { Logo } from "@/components/Logos";
 import { FontSizes, Gaps, Colors } from "@/styles/theme";
 import { useRouter } from "expo-router";
-import { SearchFriendInput } from "@/components/Inputs";
+import { SearchFriendInput } from "@/components/InputsTest";
 import {
   getFriends,
   getReceivedFriendRequests,
@@ -48,6 +48,15 @@ const ProfilFriendsScreen = () => {
     receivedFriendRequests: { friendRequests: [] },
     sentFriendRequests: { friendRequests: [] },
   });
+
+
+  
+
+  useEffect(() => {
+    console.log("🔍 Current userData:", userData);
+    console.log("🔍 ClerkUserId being used:", userData?.clerkUserId);
+  }, [userData]);
+
 
   // =========== Functions ==========
   // Handler Search User
@@ -327,6 +336,7 @@ const ProfilFriendsScreen = () => {
               setSearchState((prev) => ({ ...prev, email: text }));
             }}
             onSearch={(email) => handleSearchUser(email)}
+            clerkUserId={userData?.clerkUserId} // ← AGREGAR ESTA LÍNEA
           />
 
           {/* Fixed space for error message */}
