@@ -25,7 +25,7 @@ import {
 } from "@/utilities/invitationApi";
 import { getFriends, sendFriendRequest } from "@/utilities/friendRequestApi";
 import { FriendsResponse, User } from "@/utilities/friendInterfaces";
-import { SearchFriendInput } from "@/components/InputsTest";
+import { SearchFriendInput } from "@/components/Inputs";
 import IconAddFriend from "@/assets/icons/IconAddFriend";
 import { UserContext } from "@/providers/UserProvider";
 import { Checkbox } from "@/components/Checkbox";
