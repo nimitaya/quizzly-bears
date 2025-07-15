@@ -291,12 +291,13 @@ io.on("connection", (socket) => {
     }
 
     // Check that all players are ready
-    const allReady = room.players.every((p) => p.isReady);
-    console.log(`All players ready: ${allReady}`);
-    if (!allReady) {
-      socket.emit("error", { message: "Not all players are ready" });
-      return;
-    }
+    // IMPORTANT TODO: May be deleted, don't need this currently
+    // const allReady = room.players.every((p) => p.isReady);
+    // console.log(`All players ready: ${allReady}`);
+    // if (!allReady) {
+    //   socket.emit("error", { message: "Not all players are ready" });
+    //   return;
+    // }
 
     room.isStarted = true;
     room.currentQuestion = 0;
