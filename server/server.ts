@@ -237,6 +237,7 @@ io.on("connection", (socket) => {
   // Get current room state
   socket.on("get-room-state", (data: { roomId: string }) => {
     console.log(`Room state request for room ${data.roomId}`);
+    console.log("--------------SONJA TEST in Server", data.roomId);
     const room = quizRooms.get(data.roomId);
 
     if (!room) {

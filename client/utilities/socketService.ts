@@ -380,6 +380,7 @@ class SocketService {
         `[SocketService] Sending room state request for room: ${roomId}`
       );
     }
+    console.log("--------------SONJA TEST", roomId);
     this.emit("get-room-state", { roomId });
   }
 
@@ -401,9 +402,9 @@ class SocketService {
     this.emit("leave-room", { roomId, playerId });
   }
 
-  togglePlayerReady(roomId: string, playerId: string) {
-    this.emit("player-ready", { roomId, playerId });
-  }
+  // togglePlayerReady(roomId: string, playerId: string) {
+  //   this.emit("player-ready", { roomId, playerId });
+  // }
 
   startGame(roomId: string, questions: QuizQuestion[]) {
     this.emit("start-game", { roomId, questions });
