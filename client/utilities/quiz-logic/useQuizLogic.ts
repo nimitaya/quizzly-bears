@@ -20,6 +20,8 @@ import {
   QuestionStructure,
 } from "@/utilities/quiz-logic/data";
 import { useUser } from "@clerk/clerk-expo";
+import { Audio } from "expo-av";
+import { useSound } from "@/providers/SoundProvider";
 
 // ========================================================== START OF HOOK ==========================================================
 export function useQuizLogic() {
@@ -38,6 +40,11 @@ export function useQuizLogic() {
   const currentPointsRef = useRef({ total: 0, chosenCorrect: 0 });
   // Track if a question transition is already scheduled for multiplayer
   const isTransitionScheduled = useRef<boolean>(false);
+  
+  // Audio refs for feedback sounds
+  const correctSound = useRef<Audio.Sound | null>(null);
+  const errorSound = useRef<Audio.Sound | null>(null);
+  const { soundEnabled } = useSound();
 
   // ========================================================== STATE MANAGEMENT ==========================================================
   const [currQuestionsArray, setCurrQuestionsArray] = useState<
@@ -70,6 +77,86 @@ export function useQuizLogic() {
     totalAnswers: 0,
   });
   const [showResult, setShowResult] = useState<boolean>(false);
+
+  // ========================================================== AUDIO FUNCTIONS ==========================================================
+  // Load feedback sounds
+  useEffect(() => {
+    const loadFeedbackSounds = async () => {
+      try {
+        console.log('useQuizLogic: Loading feedback sounds');
+        
+        // Initialize audio mode for mobile devices
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          staysActiveInBackground: false,
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+
+        // Load correct answer sound
+        const { sound: correctSnd } = await Audio.Sound.createAsync(
+          require('@/assets/Sounds/richtig.mp3'),
+          { 
+            volume: 0.8,
+            shouldPlay: false
+          }
+        );
+        correctSound.current = correctSnd;
+
+        // Load error answer sound
+        const { sound: errorSnd } = await Audio.Sound.createAsync(
+          require('@/assets/Sounds/error.mp3'),
+          { 
+            volume: 0.8,
+            shouldPlay: false
+          }
+        );
+        errorSound.current = errorSnd;
+        
+        console.log('useQuizLogic: Feedback sounds loaded successfully');
+      } catch (error) {
+        console.error('useQuizLogic: Error loading feedback sounds:', error);
+        correctSound.current = null;
+        errorSound.current = null;
+      }
+    };
+
+    loadFeedbackSounds();
+
+    // Cleanup function
+    return () => {
+      if (correctSound.current) {
+        correctSound.current.unloadAsync().catch(() => {});
+        correctSound.current = null;
+      }
+      if (errorSound.current) {
+        errorSound.current.unloadAsync().catch(() => {});
+        errorSound.current = null;
+      }
+    };
+  }, []);
+
+  // Play feedback sound based on answer correctness
+  const playFeedbackSound = async (isCorrect: boolean) => {
+    // DEBUG: Always try to play sound regardless of settings (like TimerBar and QuizButton)
+    const soundToPlay = isCorrect ? correctSound.current : errorSound.current;
+    const soundType = isCorrect ? 'richtig' : 'error';
+    
+    if (!soundToPlay) {
+      console.log(`useQuizLogic: Cannot play ${soundType} sound - not loaded`);
+      return;
+    }
+    
+    try {
+      console.log(`useQuizLogic: Playing ${soundType} sound (DEBUG MODE)`);
+      await soundToPlay.setPositionAsync(0);
+      await soundToPlay.playAsync();
+      console.log(`useQuizLogic: ${soundType} sound played successfully`);
+    } catch (error) {
+      console.error(`useQuizLogic: Error playing ${soundType} sound:`, error);
+    }
+  };
 
   // ========================================================== FUNCTIONS ==========================================================
   // ===== FETCHING FROM CACHE =====
@@ -323,6 +410,9 @@ export function useQuizLogic() {
   // ----- Handle ANSWER CHECK -----
   const handleAnswerCheck = (): void => {
     const isCorrect = getIsCorrect();
+
+    // Play feedback sound based on answer correctness
+    playFeedbackSound(isCorrect);
 
     if (isCorrect) {
       const newChosenCorrect = pointsState.chosenCorrect + 1;

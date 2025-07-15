@@ -90,64 +90,62 @@ export interface PlayerTypingStatusData {
 }
 
 // Configuration
-// Platform-specific URLs for React Native development
-const getSocketUrls = () => {
-  // ========== OLD HARDCODED LOGIC - COMMENTED OUT ==========
-  // const teamIPs = [
-  //   "192.168.0.226",  // Natallia IP
-  //   "192.168.178.21", // Sonja current IP
-  // ];
 
-  // ========== NEW UNIVERSAL LOGIC ==========
-  // Priority 1: Platform-specific primary URLs (fastest and most reliable)
-  const primaryUrls = [];
-  if (Platform.OS === "android") {
-    primaryUrls.push("http://10.0.2.2:3000"); // Android emulator
-  } else if (Platform.OS === "ios") {
-    primaryUrls.push("http://localhost:3000"); // iOS simulator
-  } else {
-    primaryUrls.push("http://localhost:3000"); // Web
-  }
+// ========== IMPORTANT not needed anymore ==========
+// Platform-specific URLs for React Native development 
+// const getSocketUrls = () => {
+//   // Priority 1: Platform-specific primary URLs (fastest and most reliable)
+//   const primaryUrls = [];
+//   if (Platform.OS === "android") {
+//     primaryUrls.push("http://10.0.2.2:3000"); // Android emulator
+//   } else if (Platform.OS === "ios") {
+//     primaryUrls.push("http://localhost:3000"); // iOS simulator
+//   } else {
+//     primaryUrls.push("http://localhost:3000"); // Web
+//   }
 
-  // Priority 2: Smart IP detection - try to find the development server
-  // This works by testing common development IP patterns in the current network
-  const smartDetectionUrls: string[] = [];
+//   // Priority 2: Smart IP detection - try to find the development server
+//   // This works by testing common development IP patterns in the current network
+//   const smartDetectionUrls: string[] = [];
 
-  // Try to detect current network range by testing common router IPs
-  const networkRanges = [
-    "192.168.178",
-    "192.168.0",
-    "192.168.1",
-    "192.168.2",
-    "10.0.0",
-    "10.0.1",
-    "172.16.0",
-  ];
+//   // Try to detect current network range by testing common router IPs
+//   const networkRanges = [
+//     "192.168.0",
+//     "192.168.2",
+//     "192.168.178",
+//     "192.168.1",
+//     // "10.0.0",
+//     // "10.0.1",
+//     // "172.16.0",
+//   ];
 
-  // Common development server IPs within each network (most likely first)
-  const commonDevHosts = [21, 226, 100, 101, 1, 10, 20, 50, 102, 200, 250];
+//   // Common development server IPs within each network (most likely first)
+//   const commonDevHosts = [
+//     // Team-specific IPs (most likely)
+//     21, 226, 113, 3, 34,
+//   ];
 
-  // Generate smart detection URLs
-  networkRanges.forEach((range) => {
-    commonDevHosts.forEach((host) => {
-      smartDetectionUrls.push(`http://${range}.${host}:3000`);
-    });
-  });
+//   // Generate smart detection URLs
+//   networkRanges.forEach((range) => {
+//     commonDevHosts.forEach((host) => {
+//       smartDetectionUrls.push(`http://${range}.${host}:3000`);
+//     });
+//   });
 
-  // Priority 3: Try additional common patterns
-  const additionalUrls = ["http://127.0.0.1:3000", "http://0.0.0.0:3000"];
+//   // Priority 3: Try additional common patterns
+//   const additionalUrls = ["http://127.0.0.1:3000", "http://0.0.0.0:3000"];
 
-  // Create final URL list with smart priority
-  const finalUrls = [
-    ...primaryUrls, // Platform-specific (localhost, 10.0.2.2)
-    ...smartDetectionUrls.slice(0, 12), // First 12 most likely IPs
-    ...additionalUrls, // Additional common patterns
-  ];
+//   // Create final URL list with smart priority
+//   const finalUrls = [
+//     ...primaryUrls, // Platform-specific (localhost, 10.0.2.2)
+//     ...smartDetectionUrls.slice(0, 20), // First 20 most likely IPs
+//     ...additionalUrls, // Additional common patterns
+//   ];
+//   return finalUrls;
+// };
 
-  return finalUrls;
-};
-
-const SOCKET_URLS = getSocketUrls();
+// const SOCKET_URLS = getSocketUrls();
+// ========== IMPORTANT not needed anymore ==========
 
 const PRODUCTION_URL =
   process.env.EXPO_PUBLIC_SOCKET_URL || "https://quizzly-bears.onrender.com";
@@ -161,60 +159,62 @@ class SocketService {
 
   connect(): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      if (__DEV__) {
-        const urls = SOCKET_URLS;
-        console.log(`🔌 Platform: ${Platform.OS}`);
-        console.log(`🔌 Trying ${urls.length} auto-generated URLs...`);
+      // ========== IMPORTANT not needed anymore ==========
+      // if (__DEV__) {
+      //   const urls = SOCKET_URLS;
+      //   console.log(`🔌 Platform: ${Platform.OS}`);
+      //   console.log(`🔌 Trying ${urls.length} auto-generated URLs...`);
 
-        // Try priority URLs first (platform-specific + first few smart detection)
-        const priorityUrls = urls.slice(0, 6); // localhost + first 5 smart detection URLs
-        console.log(`Priority URLs: ${JSON.stringify(priorityUrls)}`);
+      //   // Try priority URLs first (platform-specific + first few smart detection)
+      //   const priorityUrls = urls.slice(0, 10); // localhost + first 9 smart detection URLs (увеличено с 6)
+      //   console.log(`Priority URLs: ${JSON.stringify(priorityUrls)}`);
 
-        for (let i = 0; i < priorityUrls.length; i++) {
-          try {
-            console.log(
-              ` Priority ${i + 1}/${priorityUrls.length}: ${priorityUrls[i]}...`
-            );
-            await this.connectToUrl(priorityUrls[i]);
-            console.log(`Connected via priority: ${priorityUrls[i]}`);
-            resolve();
-            return;
-          } catch (error) {
-            console.warn(`Priority failed: ${priorityUrls[i]}`);
-            continue;
-          }
-        }
+      //   for (let i = 0; i < priorityUrls.length; i++) {
+      //     try {
+      //       console.log(
+      //         ` Priority ${i + 1}/${priorityUrls.length}: ${priorityUrls[i]}...`
+      //       );
+      //       await this.connectToUrl(priorityUrls[i]);
+      //       console.log(`Connected via priority: ${priorityUrls[i]}`);
+      //       resolve();
+      //       return;
+      //     } catch (error) {
+      //       console.warn(`Priority failed: ${priorityUrls[i]}`);
+      //       continue;
+      //     }
+      //   }
 
-        // Try remaining URLs if priority fails
-        const remainingUrls = urls.slice(6);
-        console.log(`Trying ${remainingUrls.length} fallback URLs...`);
+      //   // Try remaining URLs if priority fails
+      //   const remainingUrls = urls.slice(10);
+      //   console.log(`Trying ${remainingUrls.length} fallback URLs...`);
 
-        for (let i = 0; i < remainingUrls.length; i++) {
-          try {
-            console.log(
-              `Fallback ${i + 1}/${remainingUrls.length}: ${
-                remainingUrls[i]
-              }...`
-            );
-            await this.connectToUrl(remainingUrls[i]);
-            console.log(`Connected via fallback: ${remainingUrls[i]}`);
-            resolve();
-            return;
-          } catch (error) {
-            console.warn(`Fallback failed: ${remainingUrls[i]}`);
-            continue;
-          }
-        }
+      //   for (let i = 0; i < remainingUrls.length; i++) {
+      //     try {
+      //       console.log(
+      //         `Fallback ${i + 1}/${remainingUrls.length}: ${
+      //           remainingUrls[i]
+      //         }...`
+      //       );
+      //       await this.connectToUrl(remainingUrls[i]);
+      //       console.log(`Connected via fallback: ${remainingUrls[i]}`);
+      //       resolve();
+      //       return;
+      //     } catch (error) {
+      //       console.warn(`Fallback failed: ${remainingUrls[i]}`);
+      //       continue;
+      //     }
+      //   }
 
-        reject(new Error("Could not connect to any Socket.IO server"));
-      } else {
+      //   reject(new Error("Could not connect to any Socket.IO server"));
+      // } else {
+      // ========== IMPORTANT not needed anymore ==========
         try {
           await this.connectToUrl(SOCKET_URL);
           resolve();
         } catch (error) {
           reject(error);
         }
-      }
+      // }
     });
   }
 
@@ -281,7 +281,7 @@ class SocketService {
       this.socket = null;
     }
     this.listeners.clear();
-    
+
     // Clear all room state tracking
     this.lastRoomStateRequest = {};
     this.roomStateGameStarted = {};
@@ -335,44 +335,54 @@ class SocketService {
   // Add method to request current room state with throttling to prevent excessive calls
   private lastRoomStateRequest: Record<string, number> = {};
   private roomStateGameStarted: Record<string, boolean> = {};
-  
+
   requestRoomState(roomId: string) {
     // Debug logging for room state requests in dev mode
     if (__DEV__) {
-      console.log(`[SocketService] Room state request attempted for: ${roomId}`);
-      
+      console.log(
+        `[SocketService] Room state request attempted for: ${roomId}`
+      );
+
       if (this.roomStateGameStarted[roomId]) {
-        console.log(`[SocketService] Blocked room state request - game already started for room: ${roomId}`);
+        console.log(
+          `[SocketService] Blocked room state request - game already started for room: ${roomId}`
+        );
         return;
       }
     }
-    
+
     // Don't make requests for rooms where the game has started
     if (this.roomStateGameStarted[roomId]) {
       return;
     }
-    
+
     const now = Date.now();
     const lastRequest = this.lastRoomStateRequest[roomId] || 0;
-    
+
     // Throttle requests to prevent excessive calls (min 2 seconds between requests)
     if (now - lastRequest < 2000) {
       if (__DEV__) {
-        console.log(`[SocketService] Throttled room state request - too soon (${now - lastRequest}ms since last request)`);
+        console.log(
+          `[SocketService] Throttled room state request - too soon (${
+            now - lastRequest
+          }ms since last request)`
+        );
       }
       return;
     }
-    
+
     // Update last request timestamp
     this.lastRoomStateRequest[roomId] = now;
-    
+
     // Make the actual request
     if (__DEV__) {
-      console.log(`[SocketService] Sending room state request for room: ${roomId}`);
+      console.log(
+        `[SocketService] Sending room state request for room: ${roomId}`
+      );
     }
     this.emit("get-room-state", { roomId });
   }
-  
+
   // Method to mark a room as having started a game (to prevent further state requests)
   markRoomGameStarted(roomId: string) {
     this.roomStateGameStarted[roomId] = true;
@@ -387,7 +397,7 @@ class SocketService {
     // Clean up room state tracking for this room
     delete this.lastRoomStateRequest[roomId];
     delete this.roomStateGameStarted[roomId];
-    
+
     this.emit("leave-room", { roomId, playerId });
   }
 
@@ -545,15 +555,20 @@ class SocketService {
     this.on("host-changed", callback);
   }
 
-  onGameStarted(callback: (data: { room: QuizRoom; questions?: QuizQuestion[] }) => void) {
+  onGameStarted(
+    callback: (data: { room: QuizRoom; questions?: QuizQuestion[] }) => void
+  ) {
     // Create a wrapper that automatically marks the room as started
-    const wrappedCallback = (data: { room: QuizRoom; questions?: QuizQuestion[] }) => {
+    const wrappedCallback = (data: {
+      room: QuizRoom;
+      questions?: QuizQuestion[];
+    }) => {
       if (data.room && data.room.id) {
         this.markRoomGameStarted(data.room.id);
       }
       callback(data);
     };
-    
+
     this.on("game-started", wrappedCallback);
   }
 
