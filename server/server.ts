@@ -237,10 +237,6 @@ io.on("connection", (socket) => {
   // Get current room state
   socket.on("get-room-state", (data: { roomId: string }) => {
     try {
-      // IMPORTANT DEBUG
-      console.log(`Room state request for room ${data.roomId} from socket ${socket.id}`);
-      console.log("--------------SONJA TEST in Server", data.roomId);
-      
       if (!data || !data.roomId) {
         console.error("Invalid data format received:", data);
         socket.emit("error", { message: "Invalid room data" });
@@ -308,15 +304,6 @@ io.on("connection", (socket) => {
       socket.emit("error", { message: "Only host can start game" });
       return;
     }
-
-    // Check that all players are ready
-    // IMPORTANT TODO: May be deleted, don't need this currently
-    // const allReady = room.players.every((p) => p.isReady);
-    // console.log(`All players ready: ${allReady}`);
-    // if (!allReady) {
-    //   socket.emit("error", { message: "Not all players are ready" });
-    //   return;
-    // }
 
     room.isStarted = true;
     room.currentQuestion = 0;
@@ -635,13 +622,6 @@ io.on("connection", (socket) => {
         break;
       }
     }
-  });
-
-  // IMPORTANT DELETE LATER DEBUG
-  // Test event handler for debugging
-  socket.on("test-event", (data) => {
-    console.log(`Test event received from socket ${socket.id}:`, data);
-    socket.emit("test-response", { message: "Server received your test" });
   });
 });
 // =======================

@@ -11,7 +11,7 @@ import { useRouter } from "expo-router";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
 import { Colors, FontSizes, Gaps } from "@/styles/theme";
-import { socketService, Player, QuizRoom, testSocketConnection } from "@/utilities/socketService";
+import { socketService, Player, QuizRoom } from "@/utilities/socketService";
 import {
   loadCacheData,
   saveDataToCache,
@@ -161,8 +161,6 @@ const MultiplayerLobby = () => {
 
   // ====================== UseEffect =====================
   useEffect(() => {
-    // IMPORTANT
-    testSocketConnection(); // Test socket connection on mount
     // Only initialize once
     if (!isRejoining) {
       loadRoomInfo();
