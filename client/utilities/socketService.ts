@@ -115,17 +115,17 @@ const getSocketUrls = () => {
 
   // Try to detect current network range by testing common router IPs
   const networkRanges = [
+    "192.168.178",
     "192.168.0",
     "192.168.1",
     "192.168.2",
-    "192.168.178",
     "10.0.0",
     "10.0.1",
     "172.16.0",
   ];
 
   // Common development server IPs within each network (most likely first)
-  const commonDevHosts = [226, 100, 101, 1, 10, 20, 50, 102, 200, 250];
+  const commonDevHosts = [21, 226, 100, 101, 1, 10, 20, 50, 102, 200, 250];
 
   // Generate smart detection URLs
   networkRanges.forEach((range) => {
