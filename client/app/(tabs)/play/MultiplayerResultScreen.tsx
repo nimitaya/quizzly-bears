@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   closeButton: {
     position: "absolute",
     top: 0,
-    right: 16,
+    right: 0,
     zIndex: 10,
   },
   title: {
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   buttonsContainer: {
     gap: Gaps.g16,
     marginTop: Gaps.g16,
-    paddingBottom: Gaps.g80,
+    paddingBottom: Gaps.g40,
   },
 });
 

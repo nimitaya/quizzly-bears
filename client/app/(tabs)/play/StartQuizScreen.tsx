@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   },
   summaryContainer: {
     marginBottom: Gaps.g48,
-    marginLeft: Gaps.g32,
+    paddingLeft: Gaps.g24,
     maxWidth: 440,
     alignSelf: "center",
     width: "100%",

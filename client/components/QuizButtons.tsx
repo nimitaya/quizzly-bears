@@ -6,7 +6,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { Colors, Radius, FontSizes } from "../styles/theme";
+import { Colors, Radius, FontSizes, Gaps } from "../styles/theme";
 
 type QuizButtonProps = {
   text: string;
@@ -72,5 +72,6 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: FontSizes.TextLargeFs,
+    textAlign: "center",
   },
 });
