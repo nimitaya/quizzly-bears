@@ -236,22 +236,37 @@ io.on("connection", (socket) => {
 
   // Get current room state
   socket.on("get-room-state", (data: { roomId: string }) => {
-    console.log(`Room state request for room ${data.roomId}`);
-    console.log("--------------SONJA TEST in Server", data.roomId);
-    const room = quizRooms.get(data.roomId);
+    try {
+      // IMPORTANT DEBUG
+      console.log(`Room state request for room ${data.roomId} from socket ${socket.id}`);
+      console.log("--------------SONJA TEST in Server", data.roomId);
+      
+      if (!data || !data.roomId) {
+        console.error("Invalid data format received:", data);
+        socket.emit("error", { message: "Invalid room data" });
+        return;
+      }
+      
+      const room = quizRooms.get(data.roomId);
 
-    if (!room) {
-      socket.emit("error", { message: "Room not found" });
-      return;
+      if (!room) {
+        console.log(`Room ${data.roomId} not found. Available rooms: ${[...quizRooms.keys()]}`);
+        socket.emit("error", { message: "Room not found" });
+        return;
+      }
+      
+      console.log(`Sending room state for ${data.roomId} with ${room.players.length} players`);
+      room.players.forEach((p: any, index: number) => {
+        console.log(`Player ${index + 1}: ${p.name}, Language: ${p.language}, ID: ${p.id}`);
+      });
+
+      // Send current room state
+      socket.emit("room-state-updated", { room });
+      console.log(`Room state sent to socket ${socket.id}`);
+    } catch (err) {
+      console.error("Error handling get-room-state event:", err);
+      socket.emit("error", { message: "Server error processing room state" });
     }
-
-    console.log(`Sending room state for ${data.roomId} with ${room.players.length} players`);
-    room.players.forEach((p, index) => {
-      console.log(`Player ${index + 1}: ${p.name}, Language: ${p.language}, ID: ${p.id}`);
-    });
-
-    // Send current room state
-    socket.emit("room-state-updated", { room });
   });
 
   // Player ready status
@@ -621,7 +636,15 @@ io.on("connection", (socket) => {
       }
     }
   });
+
+  // IMPORTANT DELETE LATER DEBUG
+  // Test event handler for debugging
+  socket.on("test-event", (data) => {
+    console.log(`Test event received from socket ${socket.id}:`, data);
+    socket.emit("test-response", { message: "Server received your test" });
+  });
 });
+// =======================
 
 // Helper functions
 function generateRoomId(): string {
