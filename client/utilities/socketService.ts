@@ -380,6 +380,11 @@ class SocketService {
         `[SocketService] Sending room state request for room: ${roomId}`
       );
     }
+    // DEBUG TODO
+    console.log("--------------SONJA TEST CLIENT REQUEST", roomId);
+    console.log(`Socket connected status: ${this.isConnected()}`);
+    console.log(`Socket ID: ${this.getSocketId()}`);
+    console.log(`Socket URL: ${SOCKET_URL}`);
     
     // Add a direct error listener to catch any errors
     const errorListener = (error: any) => {
@@ -645,7 +650,7 @@ class SocketService {
 
   // Quiz settings synchronization
   onQuizSettingsSync(callback: (data: { quizSettings: any }) => void) {
-    this.on("quiz-settings-sync", callback);
+    this.on("sync-quiz-settings", callback);
   }
 
   // Get game results of all players

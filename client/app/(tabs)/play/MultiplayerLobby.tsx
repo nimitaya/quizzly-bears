@@ -843,6 +843,29 @@ const MultiplayerLobby = () => {
     }
   };
 
+  // ----- Sync quiz settings with other players -----
+  const syncQuizSettings = async (roomId: string) => {
+    try {
+      console.log("Syncing quiz settings with other players...");
+      const { loadCacheData } = await import("@/utilities/cacheUtils");
+      const quizSettings = await loadCacheData(CACHE_KEY.quizSettings);
+
+      if (quizSettings && socketService.isConnected()) {
+        socketService.emit("sync-quiz-settings", {
+          roomId: roomId,
+          quizSettings: quizSettings,
+        });
+        console.log("Quiz settings sent to other players");
+      } else {
+        console.warn(
+          "Failed to sync quiz settings: settings not found or socket not connected"
+        );
+      }
+    } catch (error) {
+      console.error("Error syncing quiz settings:", error);
+    }
+  };
+
   // ----- Transform questions to socket format -----
   const transformQuestionsForSocket = (questionsData: any) => {
     return questionsData.questionArray.map((q: any, index: number) => {
@@ -980,20 +1003,6 @@ const MultiplayerLobby = () => {
         handleRemoveAllInvites();
         router.push("/(tabs)/play");
       }
-    }
-  };
-
-  // ----- Sync Quiz Settings -----
-  const syncQuizSettings = async (roomId: string) => {
-    try {
-      const quizSettings = await loadCacheData(CACHE_KEY.quizSettings);
-      if (quizSettings) {
-        // Emit quiz settings to all players in the room
-        socketService.emit("sync-quiz-settings", { roomId, quizSettings });
-        console.log("Quiz settings emitted to all players:", quizSettings);
-      }
-    } catch (error) {
-      console.error("Error syncing quiz settings:", error);
     }
   };
 
