@@ -172,11 +172,24 @@ const MultiplayerLobby = () => {
     // Also listen for cache updates (when admin selects category)
     const interval = setInterval(async () => {
       const updatedRoomInfo = await loadCacheData(CACHE_KEY.currentRoom);
-      if (
-        updatedRoomInfo &&
-        updatedRoomInfo.selectedCategory !== roomInfo?.selectedCategory
-      ) {
-        setRoomInfo(updatedRoomInfo);
+      if (updatedRoomInfo) {
+        // Check if category or topic has changed
+        if (updatedRoomInfo.selectedCategory !== roomInfo?.selectedCategory ||
+            updatedRoomInfo.selectedTopic !== roomInfo?.selectedTopic) {
+          console.log("Category/topic updated from cache:", 
+            updatedRoomInfo.selectedCategory, 
+            updatedRoomInfo.selectedTopic);
+          setRoomInfo(updatedRoomInfo);
+        }
+        
+        // If we're missing category info but the host has already selected it,
+        // request the room state to get the latest info
+        if (!roomInfo?.selectedCategory && 
+            socketService.isConnected() && 
+            roomInfo?.roomId && 
+            !isRejoining) {
+          socketService.requestRoomState(roomInfo.roomId);
+        }
       }
     }, 1000);
 
@@ -221,6 +234,7 @@ const MultiplayerLobby = () => {
       socketService.off("game-started");
       socketService.off("show-start-quiz");
       socketService.off("host-changed");
+      socketService.off("categoryChanged");
     };
   }, [roomInfo?.roomId, isRejoining, gameStarted]);
 
@@ -362,6 +376,25 @@ const MultiplayerLobby = () => {
       }
     });
 
+    // Add a socket listener for category changes
+    socketService.on("categoryChanged", (data: {
+      roomId: string;
+      newCategory: string;
+      newTopic?: string;
+    }) => {
+      console.log("Category changed:", data);
+      if (data.newCategory && roomInfo && data.roomId === roomInfo.roomId) {
+        const updatedRoomInfo = {
+          ...roomInfo,
+          selectedCategory: data.newCategory,
+          selectedTopic: data.newTopic || data.newCategory
+        };
+        setRoomInfo(updatedRoomInfo);
+        saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
+        console.log("Updated room info with selected category:", data.newCategory);
+      }
+    });
+
     socketService.onRoomStateUpdated((data) => {
       // Check if there are actual changes before updating state
       const hasChanges = !currentRoom || 
@@ -381,6 +414,23 @@ const MultiplayerLobby = () => {
           setRoomInfo(updatedRoomInfo);
           saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
         }
+        // ========KI Vorschlag======== IMPORTANT check this
+        // Always update room state to get latest data
+      // setCurrentRoom(data.room);
+      // collectAllLanguages(data.room);
+      
+      // Update room info with latest room data (preserving category info)
+      // if (roomInfo) {
+      //   const updatedRoomInfo = {
+      //     ...roomInfo,
+      //     room: data.room,
+      //     // Preserve existing category information
+      //     selectedCategory: roomInfo.selectedCategory,
+      //     selectedTopic: roomInfo.selectedTopic
+      //   };
+      //   setRoomInfo(updatedRoomInfo);
+      //   saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
+        // ================
       }
     });
 
@@ -388,6 +438,17 @@ const MultiplayerLobby = () => {
       console.log("Player joined:", data.player.name);
       setCurrentRoom(data.room);
       collectAllLanguages(data.room);
+      
+      // If we're the host/admin and have selected a category, share it with the new player
+      if (roomInfo?.isAdmin && roomInfo.selectedCategory && roomInfo.roomId) {
+        console.log("Admin sharing category info with new player");
+        socketService.emit("categoryChanged", {
+          roomId: roomInfo.roomId,
+          newCategory: roomInfo.selectedCategory,
+          newTopic: roomInfo.selectedTopic
+        });
+      }
+      
       // Refresh invites when a player joins to update the filtered list
       fetchInvites();
     });
@@ -396,6 +457,17 @@ const MultiplayerLobby = () => {
       console.log("Player rejoined:", data.player.name);
       setCurrentRoom(data.room);
       collectAllLanguages(data.room);
+      
+      // If we're the host/admin and have selected a category, share it with the rejoined player
+      if (roomInfo?.isAdmin && roomInfo.selectedCategory && roomInfo.roomId) {
+        console.log("Admin sharing category info with rejoined player");
+        socketService.emit("categoryChanged", {
+          roomId: roomInfo.roomId,
+          newCategory: roomInfo.selectedCategory,
+          newTopic: roomInfo.selectedTopic
+        });
+      }
+      
       // Refresh invites when a player rejoins
       fetchInvites();
     });
@@ -525,6 +597,10 @@ const MultiplayerLobby = () => {
 
     socketService.onShowStartQuiz((data) => {
       console.log("Admin selected topic, showing StartQuizScreen");
+      // Check if we already have the category information in roomInfo
+      if (roomInfo?.selectedCategory) {
+        console.log("Already have category information:", roomInfo.selectedCategory);
+      }
       // Go to StartQuizScreen
       router.push("/(tabs)/play/StartQuizScreen");
     });
@@ -636,7 +712,6 @@ const MultiplayerLobby = () => {
 
         // IMPORTANT DONE IN COUNTDOWN Transform questions to socket format
         // const socketQuestions = transformQuestionsForSocket(fetchedQuestions);
-        
         setShowLocalLoader(false);
         setIsGeneratingQuestions(false);
         setGameStarted(true); // Stop room refresh when game starts

@@ -48,6 +48,9 @@ app.get("/", (req, res) => {
 // Room storage (in production, better to use Redis)
 const quizRooms = new Map<string, QuizRoom>();
 
+// Track player answers for each room and question
+const roomAnswerTracking = new Map<string, Map<number, Set<string>>>();
+
 // Socket.IO handlers
 io.on("connection", (socket) => {
   console.log(`User connected: ${socket.id}`);
@@ -656,6 +659,8 @@ function leaveRoom(socket: any, roomId: string, playerId: string) {
   // If room is empty, delete it
   if (room.players.length === 0) {
     quizRooms.delete(roomId);
+    // Clean up answer tracking for this room
+    roomAnswerTracking.delete(roomId);
     console.log(`Room ${roomId} deleted`);
   } else {
     // Notify other players

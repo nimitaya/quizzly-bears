@@ -460,6 +460,11 @@ class SocketService {
     }
   }
 
+  // Notify the server that a player has submitted their answer
+  playerAnswerSubmitted(roomId: string, playerId: string, questionIndex: number) {
+    this.emit("player-answer-submitted", { roomId, playerId, questionIndex });
+  }
+
   on(event: string, callback: Function) {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
