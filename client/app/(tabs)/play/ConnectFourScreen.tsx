@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Modal, ScrollView, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Modal, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors, Gaps, FontSizes, FontWeights } from '@/styles/theme';
 import { Fonts } from '@/styles/fonts';
@@ -32,71 +32,44 @@ const ConnectFourScreen = () => {
   useEffect(() => {
     initializeBoard();
     loadSounds();
+  }, []);
+
+  // Separate cleanup effect for sounds
+  useEffect(() => {
     return () => {
       // Cleanup sounds
       Object.values(sounds).forEach(sound => {
         if (sound) {
-          sound.unloadAsync();
+          sound.stopAsync().catch(() => {});
+          sound.unloadAsync().catch(() => {});
         }
       });
     };
-  }, []);
-
-  // Keyboard controls
-  useEffect(() => {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      if (gameOver) return;
-      
-      switch (event.key) {
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-        case '5':
-        case '6':
-        case '7':
-          const col = parseInt(event.key) - 1;
-          if (col >= 0 && col < COLS && currentPlayer === 'red') {
-            handlePlayerMove(col);
-          }
-          break;
-        case 'ArrowLeft':
-        case 'a':
-        case 'A':
-          // Move left in column selection (if implemented)
-          break;
-        case 'ArrowRight':
-        case 'd':
-        case 'D':
-          // Move right in column selection (if implemented)
-          break;
-        case 'Enter':
-        case ' ':
-          // Drop disc in selected column (if implemented)
-          break;
-      }
-    };
-
-    // Add event listener for web
-    if (typeof window !== 'undefined') {
-      window.addEventListener('keydown', handleKeyPress);
-      return () => window.removeEventListener('keydown', handleKeyPress);
-    }
-  }, [gameOver, currentPlayer, board]);
+  }, [sounds]);
 
   const loadSounds = async () => {
     try {
+      // Initialize audio mode for mobile devices
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        staysActiveInBackground: false,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+
+      // Load sounds from the Sounds directory
       const { sound: circleSound } = await Audio.Sound.createAsync(
-        require('@/assets/MiniGames/viergewinnt (classik)/connect-four/assets/circle.mp3')
+        require('@/assets/Sounds/circle.mp3')
       );
       const { sound: crossSound } = await Audio.Sound.createAsync(
-        require('@/assets/MiniGames/viergewinnt (classik)/connect-four/assets/cross.mp3')
+        require('@/assets/Sounds/cross.mp3')
       );
       const { sound: winSound } = await Audio.Sound.createAsync(
-        require('@/assets/MiniGames/viergewinnt (classik)/connect-four/assets/you-won.mp3')
+        require('@/assets/Sounds/you-won.mp3')
       );
       const { sound: loseSound } = await Audio.Sound.createAsync(
-        require('@/assets/MiniGames/viergewinnt (classik)/connect-four/assets/you-loose.mp3')
+        require('@/assets/Sounds/you-loose.mp3')
       );
 
       setSounds({
@@ -107,6 +80,13 @@ const ConnectFourScreen = () => {
       });
     } catch (error) {
       console.log('Error loading sounds:', error);
+      // Set empty sounds object to prevent further errors
+      setSounds({
+        circle: null,
+        cross: null,
+        win: null,
+        lose: null,
+      });
     }
   };
 
@@ -114,7 +94,12 @@ const ConnectFourScreen = () => {
     if (!soundOn || !sounds[type]) return;
     
     try {
-      await sounds[type]?.replayAsync();
+      const sound = sounds[type];
+      if (sound) {
+        await sound.setPositionAsync(0);
+        await sound.setVolumeAsync(0.5);
+        await sound.playAsync();
+      }
     } catch (error) {
       console.log('Error playing sound:', error);
     }
@@ -558,6 +543,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 80,
     paddingHorizontal: Gaps.g16,
+    marginTop: 50, // Added 50px margin to move game down
   },
   title: {
     fontSize: FontSizes.H1Fs,

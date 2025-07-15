@@ -78,85 +78,43 @@ const SnakeGameScreen = () => {
   };
 
   useEffect(() => {
+    loadSounds();
     loadHighscore();
     init();
-    loadSounds();
     return () => {
-      if (animationRef.current) {
-        clearInterval(animationRef.current);
-      }
       // Cleanup sounds
       if (moveSoundRef.current) moveSoundRef.current.unloadAsync();
       if (eatSoundRef.current) eatSoundRef.current.unloadAsync();
-      if (winSoundRef.current) winSoundRef.current.unloadAsync();
-    };
-  }, []);
-
-  // Keyboard controls
-  useEffect(() => {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      if (!gameState.gameStarted || gameState.gameOver) return;
-      
-      switch (event.key) {
-        case 'ArrowUp':
-        case 'w':
-        case 'W':
-          changeDirection({ x: 0, y: -1 });
-          break;
-        case 'ArrowDown':
-        case 's':
-        case 'S':
-          changeDirection({ x: 0, y: 1 });
-          break;
-        case 'ArrowLeft':
-        case 'a':
-        case 'A':
-          changeDirection({ x: -1, y: 0 });
-          break;
-        case 'ArrowRight':
-        case 'd':
-        case 'D':
-          changeDirection({ x: 1, y: 0 });
-          break;
-        case ' ':
-        case 'p':
-        case 'P':
-          togglePause();
-          break;
-        case 'm':
-        case 'M':
-          toggleSound();
-          break;
-        case 'Enter':
-          if (!gameState.gameStarted) {
-            startGame();
-          }
-          break;
+      if (animationRef.current) {
+        clearInterval(animationRef.current);
       }
     };
-
-    // Add event listener for web
-    if (typeof window !== 'undefined') {
-      window.addEventListener('keydown', handleKeyPress);
-      return () => window.removeEventListener('keydown', handleKeyPress);
-    }
-  }, [gameState.gameStarted, gameState.gameOver, gameState.paused]);
+  }, []);
 
   // Sound functions
   const loadSounds = async () => {
     try {
+      // Initialize audio mode for mobile devices
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        staysActiveInBackground: false,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+
       const { sound: moveSound } = await Audio.Sound.createAsync(
-        require('@/assets/MiniGames/snake/sounds/moove.mp3')
+        require('@/assets/Sounds/moove.mp3')
       );
       moveSoundRef.current = moveSound;
 
       const { sound: eatSound } = await Audio.Sound.createAsync(
-        require('@/assets/MiniGames/snake/sounds/eating-sound-effect.mp3')
+        require('@/assets/Sounds/eating-sound-effect.mp3')
       );
       eatSoundRef.current = eatSound;
 
       const { sound: winSound } = await Audio.Sound.createAsync(
-        require('@/assets/MiniGames/snake/sounds/win.mp3')
+        require('@/assets/Sounds/you-won.mp3')
       );
       winSoundRef.current = winSound;
     } catch (error) {
@@ -471,6 +429,7 @@ const SnakeGameScreen = () => {
 
       <View style={styles.header}>
         <View style={styles.scoreContainer}>
+          <View style={styles.spacer} />
           <Text style={styles.scoreText}>Score: {gameState.score}</Text>
           <Text style={styles.highscoreText}>Length: {gameState.snake.length}</Text>
         </View>
@@ -708,6 +667,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 0,
     marginTop: Gaps.g8, // Kleiner Abstand nach unten
+  },
+  spacer: {
+    width: GAME_WIDTH / 2 - 80, // Adjust as needed to center the score text
   },
 });
 

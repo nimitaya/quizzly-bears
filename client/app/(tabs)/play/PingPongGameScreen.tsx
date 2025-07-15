@@ -76,8 +76,9 @@ const PingPongGameScreen = () => {
     lastAiPaddleY: GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2,
   });
 
-  const [soundEnabled, setSoundEnabled] = useState(soundOn);
+  const [soundEnabled, setSoundEnabled] = useState(false); // Start with false until sounds are loaded
   const [sounds, setSounds] = useState<{[key: string]: Audio.Sound | null}>({});
+  const [soundsLoaded, setSoundsLoaded] = useState(false);
   const [highscore, setHighscore] = useState(0);
 
   // Survival mode specific
@@ -105,61 +106,6 @@ const PingPongGameScreen = () => {
     };
   }, []);
 
-  // Keyboard controls
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (!gameState.gameStarted || gameState.gameOver) return;
-      
-      switch (event.key) {
-        case 'ArrowUp':
-        case 'w':
-        case 'W':
-          setGameState(prev => ({ ...prev, keys: { ...prev.keys, up: true } }));
-          break;
-        case 'ArrowDown':
-        case 's':
-        case 'S':
-          setGameState(prev => ({ ...prev, keys: { ...prev.keys, down: true } }));
-          break;
-        case ' ':
-        case 'p':
-        case 'P':
-          togglePause();
-          break;
-        case 'Enter':
-          if (!gameState.gameStarted) {
-            startGame();
-          }
-          break;
-      }
-    };
-
-    const handleKeyUp = (event: KeyboardEvent) => {
-      switch (event.key) {
-        case 'ArrowUp':
-        case 'w':
-        case 'W':
-          setGameState(prev => ({ ...prev, keys: { ...prev.keys, up: false } }));
-          break;
-        case 'ArrowDown':
-        case 's':
-        case 'S':
-          setGameState(prev => ({ ...prev, keys: { ...prev.keys, down: false } }));
-          break;
-      }
-    };
-
-    // Add event listeners for web
-    if (typeof window !== 'undefined') {
-      window.addEventListener('keydown', handleKeyDown);
-      window.addEventListener('keyup', handleKeyUp);
-      return () => {
-        window.removeEventListener('keydown', handleKeyDown);
-        window.removeEventListener('keyup', handleKeyUp);
-      };
-    }
-  }, [gameState.gameStarted, gameState.gameOver, gameState.paused]);
-
   const loadHighscore = async () => {
     try {
       const highscoreKey = gameSettings.gameMode === 'standard' ? 'pingpong_highscore' : 'pingpong_survival_highscore';
@@ -186,31 +132,47 @@ const PingPongGameScreen = () => {
 
   const loadSounds = async () => {
     try {
-      const { sound: pingSound } = await Audio.Sound.createAsync(
-        require('@/assets/MiniGames/pingpong/assets/ping.mp3'),
-        { volume: 0.5 }
+      // Initialize audio mode for mobile devices
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        staysActiveInBackground: false,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+
+      const { sound: paddleSound } = await Audio.Sound.createAsync(
+        require('@/assets/Sounds/ping.mp3')
+      );
+      const { sound: wallSound } = await Audio.Sound.createAsync(
+        require('@/assets/Sounds/ping.mp3')
+      );
+      const { sound: scoreSound } = await Audio.Sound.createAsync(
+        require('@/assets/Sounds/child-says-yes.mp3')
       );
       const { sound: failSound } = await Audio.Sound.createAsync(
-        require('@/assets/MiniGames/pingpong/assets/fail.mp3'),
-        { volume: 0.5 }
-      );
-      const { sound: successSound } = await Audio.Sound.createAsync(
-        require('@/assets/MiniGames/pingpong/assets/child-says-yes.mp3'),
-        { volume: 0.5 }
+        require('@/assets/Sounds/fail.mp3')
       );
 
       setSounds({
-        ping: pingSound,
+        paddle: paddleSound,
+        wall: wallSound,
+        score: scoreSound,
         fail: failSound,
-        success: successSound,
       });
+      
+      // Now enable sound after loading is complete
+      setSoundsLoaded(true);
+      setSoundEnabled(soundOn);
     } catch (error) {
       console.log('Error loading sounds:', error);
+      setSoundsLoaded(true); // Still mark as loaded to prevent blocking
+      setSoundEnabled(false);
     }
   };
 
   const playSound = async (type: string) => {
-    if (!soundEnabled || !sounds[type]) return;
+    if (!soundEnabled || !sounds[type] || !soundsLoaded) return;
     
     try {
       const sound = sounds[type];
@@ -286,7 +248,7 @@ const PingPongGameScreen = () => {
       const newY = prev.playerPaddle.y;
       let paddleSpeed = 0;
       
-      if (prev.keys['up'] && newY > 0) {
+      if (prev.keys['ArrowUp'] && newY > 0) {
         paddleSpeed = -PADDLE_SPEED;
         return {
           ...prev,
@@ -295,7 +257,7 @@ const PingPongGameScreen = () => {
           lastPlayerPaddleY: newY,
         };
       }
-      if (prev.keys['down'] && newY < GAME_HEIGHT - PADDLE_HEIGHT) {
+      if (prev.keys['ArrowDown'] && newY < GAME_HEIGHT - PADDLE_HEIGHT) {
         paddleSpeed = PADDLE_SPEED;
         return {
           ...prev,
@@ -356,7 +318,7 @@ const PingPongGameScreen = () => {
       // Ball hits top or bottom
       if (newY <= 0 || newY >= GAME_HEIGHT - BALL_SIZE) {
         newDy = -newDy;
-        playSound('ping');
+        playSound('wall');
       }
 
       // Ball hits player paddle
@@ -379,7 +341,7 @@ const PingPongGameScreen = () => {
         newDx = Math.abs(newDx) * speedMultiplier;
         newDy = (verticalDeflection * BALL_SPEED * 0.4) + (paddleSpeedInfluence * BALL_SPEED); // Halbiert von 0.8
         
-        playSound('ping');
+        playSound('paddle');
       }
 
       // Ball hits AI paddle
@@ -402,12 +364,12 @@ const PingPongGameScreen = () => {
         newDx = -Math.abs(newDx) * speedMultiplier;
         newDy = (verticalDeflection * BALL_SPEED * 0.3) + (paddleSpeedInfluence * BALL_SPEED); // Halbiert von 0.6
         
-        playSound('ping');
+        playSound('paddle');
       }
 
       // Ball goes out of bounds
       if (newX < 0) {
-        // AI scores
+        // AI scores - play fail sound
         playSound('fail');
         if (gameSettings.gameMode === 'survival') {
           // In survival mode, player loses a life
@@ -425,7 +387,7 @@ const PingPongGameScreen = () => {
       }
       if (newX > GAME_WIDTH) {
         // Player scores
-        playSound('success');
+        playSound('score');
         // Ball starts near player paddle with random direction
         const randomY = Math.random() * (GAME_HEIGHT - 100) + 50; // Random Y position
         const randomDx = Math.random() < 0.5 ? BALL_SPEED : BALL_SPEED * 0.7; // Always towards AI
@@ -484,14 +446,14 @@ const PingPongGameScreen = () => {
   const handleTouch = (direction: 'up' | 'down') => {
     setGameState(prev => ({
       ...prev,
-      keys: { ...prev.keys, [direction]: true }
+      keys: { ...prev.keys, [direction === 'up' ? 'ArrowUp' : 'ArrowDown']: true }
     }));
   };
 
   const handleTouchEnd = (direction: 'up' | 'down') => {
     setGameState(prev => ({
       ...prev,
-      keys: { ...prev.keys, [direction]: false }
+      keys: { ...prev.keys, [direction === 'up' ? 'ArrowUp' : 'ArrowDown']: false }
     }));
   };
 
@@ -722,6 +684,7 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: Gaps.g16,
+    marginTop: Gaps.g24, // Added margin to avoid overlap with back button
   },
   scoreContainer: {
     flexDirection: 'row',
