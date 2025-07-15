@@ -164,25 +164,32 @@ export const removeFriend = async (
   }
 };
 
+//================================= Search emails for autocomplete ========================================
 
-// ======================================== Search emails for autocomplete ========================================
+
 export const searchEmailsAutocomplete = async (
   query: string,
   clerkUserId: string
 ): Promise<{ users: Array<{ _id: string; email: string }> }> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/friend-request/search-emails`, {
-      params: {
-        query,
-        clerkUserId,
-      },
-    });
+    const response = await fetch(
+      `${process.env.EXPO_PUBLIC_API_URL}/friend-request/search-emails?query=${encodeURIComponent(query)}&clerkUserId=${clerkUserId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-    return response.data;
-  } catch (error: any) {
-    if (error.response?.data?.error) {
-      throw new Error(error.response.data.error);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to search emails");
     }
-    throw new Error("Failed to search emails");
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error searching emails:", error);
+    throw error;
   }
 };

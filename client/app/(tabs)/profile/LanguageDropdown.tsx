@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   },
   nativeName: {
     fontSize: FontSizes.TextLargeFs,
-    color: "gray",
+    color: "bgGray",
   },
 });
 
