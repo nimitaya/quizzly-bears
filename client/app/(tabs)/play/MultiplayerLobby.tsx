@@ -55,8 +55,6 @@ const MultiplayerLobby = () => {
   // ====================== State Variables =====================
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [currentRoom, setCurrentRoom] = useState<QuizRoom | null>(null);
-  // IMPORTANT TODO: May be deleted, don't need this currently
-  // const [isReady, setIsReady] = useState(false);
   const [allLanguages, setAllLanguages] = useState<string[]>([]);
 
   // CustomAlert states
@@ -414,23 +412,6 @@ const MultiplayerLobby = () => {
           setRoomInfo(updatedRoomInfo);
           saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
         }
-        // ========KI Vorschlag======== IMPORTANT check this
-        // Always update room state to get latest data
-      // setCurrentRoom(data.room);
-      // collectAllLanguages(data.room);
-      
-      // Update room info with latest room data (preserving category info)
-      // if (roomInfo) {
-      //   const updatedRoomInfo = {
-      //     ...roomInfo,
-      //     room: data.room,
-      //     // Preserve existing category information
-      //     selectedCategory: roomInfo.selectedCategory,
-      //     selectedTopic: roomInfo.selectedTopic
-      //   };
-      //   setRoomInfo(updatedRoomInfo);
-      //   saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
-        // ================
       }
     });
 
@@ -479,11 +460,6 @@ const MultiplayerLobby = () => {
       // Refresh invites when a player leaves
       fetchInvites();
     });
-
-    // IMPORTANT TODO: May be deleted, don't need this currently
-    // socketService.onPlayerReadyUpdated((data) => {
-    //   setCurrentRoom(data.room);
-    // });
 
     socketService.onGameStarted(async (data) => {
       console.log("Game started!");
@@ -635,20 +611,6 @@ const MultiplayerLobby = () => {
     });
   };
 
-  // ----- Toggle Ready -----
-  // IMPORTANT TODO: May be deleted, don't need this currently
-  // const toggleReady = () => {
-  //   if (roomInfo && currentRoom) {
-  //     const playerId = currentRoom.players.find(
-  //       (p) => p.socketId === socketService.getSocketId()
-  //     )?.id;
-  //     if (playerId) {
-  //       socketService.togglePlayerReady(roomInfo.roomId, playerId);
-  //       setIsReady(!isReady);
-  //     }
-  //   }
-  // };
-
   // ----- Start Game -----
   const startGame = async () => {
     if (
@@ -656,14 +618,6 @@ const MultiplayerLobby = () => {
       currentRoom &&
       roomInfo.selectedCategory
     ) {
-      // Check that all players are ready
-      // IMPORTANT TODO: May be deleted, don't need this currently
-      // const allReady = currentRoom.players.every((p) => p.isReady);
-      // if (!allReady) {
-      //   setShowWarningAlert(true);
-      //   return;
-      // }
-
       try {
         console.log("Starting quiz generation...");
         setIsGeneratingQuestions(true);
@@ -710,8 +664,6 @@ const MultiplayerLobby = () => {
           return;
         }
 
-        // IMPORTANT DONE IN COUNTDOWN Transform questions to socket format
-        // const socketQuestions = transformQuestionsForSocket(fetchedQuestions);
         setShowLocalLoader(false);
         setIsGeneratingQuestions(false);
         setGameStarted(true); // Stop room refresh when game starts
@@ -727,9 +679,8 @@ const MultiplayerLobby = () => {
           }
         }
         
-        // IMPORTANT COUNTDOWN
+        // COUNTDOWN
         setShowCountdown(true);
-        // socketService.startGame(roomInfo.roomId, socketQuestions);
       } catch (error) {
         console.error("Error starting game:", error);
         setErrorMessage("Failed to start the game");
@@ -934,8 +885,6 @@ const MultiplayerLobby = () => {
             type: "player" as const,
             id: player.id,
             name: displayName,
-            // IMPORTANT TODO: May be deleted, don't need this currently
-            // isReady: player.isReady,
             isHost,
             data: player,
           };
@@ -1083,11 +1032,10 @@ const MultiplayerLobby = () => {
         </View>
       </ScrollView>
 
-{/* IMPORTANT TODO: May be deleted, don't need this currently */}
       <View style={styles.buttonContainer}>
         {!roomInfo.isAdmin && (
           <ButtonSecondary
-            text={"Waiting admin bear..."}
+            text={"Waiting for admin bear..."}
             disabled
           />
         )}
@@ -1129,18 +1077,6 @@ const MultiplayerLobby = () => {
         onConfirm={handleErrorAlertClose}
         noInternet={false}
       />
-
-{/* IMPORTANT TODO: May be deleted, don't need this currently */}
-      {/* <CustomAlert
-        visible={showWarningAlert}
-        title="Warning"
-        message="Not all players are ready for the game"
-        onClose={handleWarningAlertClose}
-        cancelText={null}
-        confirmText="OK"
-        onConfirm={handleWarningAlertClose}
-        noInternet={false}
-      /> */}
 
       <CustomAlert
         visible={showCancelRoomAlert}
