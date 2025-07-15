@@ -1,9 +1,10 @@
 import React, { useEffect } from "react";
+import { AppState, AppStateStatus, Text, TextInput, View } from "react-native";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { Slot } from "expo-router";
-import { View, Text, TextInput } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+
 import { Colors } from "@/styles/theme";
 import { useCustomFonts } from "@/hooks/useCustomFonts";
 import NetworkAlertProvider from "@/providers/NetworkAlertProvider";
@@ -15,7 +16,9 @@ import { SoundProvider } from "@/providers/SoundProvider";
 import { OnboardingProvider } from "@/providers/OnboardingProvider";
 import { LanguageProvider } from "@/providers/LanguageContext";
 
-// Override with safe type casting
+import socketService from "@/utilities/socketService";
+
+// ========== Override system fonts globally ==========
 const overrideDefaultFont = () => {
   const textRender = (Text as any).render;
   (Text as any).render = function (...args: any[]) {
@@ -38,15 +41,60 @@ export default function RootLayout() {
   const [fontsLoaded] = useCustomFonts();
 
   useEffect(() => {
-    if (fontsLoaded) {
-      overrideDefaultFont();
-    }
+    if (fontsLoaded) overrideDefaultFont();
   }, [fontsLoaded]);
+
+  useEffect(() => {
+    console.log("Initializing socket connection from layout");
+
+    socketService
+      .initialize()
+      .then(() => {
+        console.log("Socket initialized successfully");
+      })
+      .catch((err) => {
+        console.error("Socket initialization failed:", err);
+      });
+
+    let currentAppState = AppState.currentState;
+
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      if (
+        currentAppState.match(/inactive|background/) &&
+        nextAppState === "active"
+      ) {
+        console.log("🔄 App resumed — reconnecting socket...");
+        await socketService.ensureConnection();
+      }
+
+      if (
+        currentAppState === "active" &&
+        nextAppState.match(/inactive|background/)
+      ) {
+        console.log("📴 App moved to background — disconnecting socket...");
+        socketService.disconnect();
+      }
+
+      currentAppState = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange
+    );
+    return () => {
+      subscription.remove(); // ✅ no error here, remove() exists on subscription object
+      socketService.disconnect(); // cleanup on unmount
+    };
+  }, []);
 
   if (!fontsLoaded) return null;
 
   return (
-    <ClerkProvider tokenCache={tokenCache}>
+    <ClerkProvider
+      publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!}
+      tokenCache={tokenCache}
+    >
       <UserProvider>
         <LanguageProvider>
           <OnboardingProvider>

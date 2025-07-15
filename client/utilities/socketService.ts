@@ -92,7 +92,7 @@ export interface PlayerTypingStatusData {
 // Configuration
 
 // ========== IMPORTANT not needed anymore ==========
-// Platform-specific URLs for React Native development 
+// Platform-specific URLs for React Native development
 // const getSocketUrls = () => {
 //   // Priority 1: Platform-specific primary URLs (fastest and most reliable)
 //   const primaryUrls = [];
@@ -208,12 +208,12 @@ class SocketService {
       //   reject(new Error("Could not connect to any Socket.IO server"));
       // } else {
       // ========== IMPORTANT not needed anymore ==========
-        try {
-          await this.connectToUrl(SOCKET_URL);
-          resolve();
-        } catch (error) {
-          reject(error);
-        }
+      try {
+        await this.connectToUrl(SOCKET_URL);
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
       // }
     });
   }
@@ -461,7 +461,11 @@ class SocketService {
   }
 
   // Notify the server that a player has submitted their answer
-  playerAnswerSubmitted(roomId: string, playerId: string, questionIndex: number) {
+  playerAnswerSubmitted(
+    roomId: string,
+    playerId: string,
+    questionIndex: number
+  ) {
     this.emit("player-answer-submitted", { roomId, playerId, questionIndex });
   }
 
@@ -616,6 +620,42 @@ class SocketService {
   // Get game results of all players
   onGameResults(callback: (data: { finalScores: Player[] }) => void) {
     this.on("game-results", callback);
+  }
+
+  // Add these methods to socketService.ts
+  initialize(): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        if (this.isConnected()) {
+          console.log("Socket already connected");
+          resolve();
+          return;
+        }
+
+        await this.connect();
+
+        // Re-attach all previously registered listeners
+        this.socket?.on("connect", () => {
+          console.log("Socket reconnected, re-attaching listeners");
+          this.reattachListeners();
+        });
+
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  private reattachListeners(): void {
+    if (!this.socket) return;
+
+    this.listeners.forEach((callbacks, event) => {
+      callbacks.forEach((callback) => {
+        console.log(`Re-attaching listener for ${event}`);
+        this.socket?.on(event, callback as any);
+      });
+    });
   }
 }
 
