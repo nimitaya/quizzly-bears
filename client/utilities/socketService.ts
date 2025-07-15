@@ -116,25 +116,18 @@ const getSocketUrls = () => {
   // Try to detect current network range by testing common router IPs
   const networkRanges = [
     "192.168.0",
-    "192.168.1",
     "192.168.2",
     "192.168.178",
-    "10.0.0",
-    "10.0.1",
-    "172.16.0",
+    "192.168.1",
+    // "10.0.0",
+    // "10.0.1",
+    // "172.16.0",
   ];
 
   // Common development server IPs within each network (most likely first)
   const commonDevHosts = [
     // Team-specific IPs (most likely)
-    21, 226, 113, 100, 101, 178,
-    // Router and common IPs
-    1, 2, 10, 20, 50,
-    // Dynamic IP ranges
-    102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 120, 121, 122, 123, 124,
-    125, 126, 127, 128, 129, 130, 132, 133, 134, 135,
-    // Higher ranges
-    150, 151, 152, 153, 154, 155, 200, 201, 202, 203, 250,
+    21, 226, 113, 3, 34,
   ];
 
   // Generate smart detection URLs
@@ -150,7 +143,7 @@ const getSocketUrls = () => {
   // Create final URL list with smart priority
   const finalUrls = [
     ...primaryUrls, // Platform-specific (localhost, 10.0.2.2)
-    ...smartDetectionUrls.slice(0, 20), // First 20 most likely IPs (увеличено с 12)
+    ...smartDetectionUrls.slice(0, 20), // First 20 most likely IPs
     ...additionalUrls, // Additional common patterns
   ];
 
