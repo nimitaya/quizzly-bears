@@ -93,28 +93,28 @@ const generatePrompt = (
     "questionArray": [
       {
         "question": {
-          "en": "English question text",
-          "${currentLanguageCode}": "Native ${currentLanguageName} question text"
+          "en": "English question text"${currentLanguageCode !== 'en' ? `,
+          "${currentLanguageCode}": "Native ${currentLanguageName} question text"` : ''}
         },
         "optionA": {
           "isCorrect": true/false,
-          "en": "English answer",
-          "${currentLanguageCode}": "Native ${currentLanguageName} answer"
+          "en": "English answer"${currentLanguageCode !== 'en' ? `,
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"` : ''}
         },
         "optionB": {
           "isCorrect": true/false,
-          "en": "English answer",
-          "${currentLanguageCode}": "Native ${currentLanguageName} answer"
+          "en": "English answer"${currentLanguageCode !== 'en' ? `,
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"` : ''}
         },
         "optionC": {
           "isCorrect": true/false,
-          "en": "English answer",
-          "${currentLanguageCode}": "Native ${currentLanguageName} answer"
+          "en": "English answer"${currentLanguageCode !== 'en' ? `,
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"` : ''}
         },
         "optionD": {
           "isCorrect": true/false,
-          "en": "English answer",
-          "${currentLanguageCode}": "Native ${currentLanguageName} answer"
+          "en": "English answer"${currentLanguageCode !== 'en' ? `,
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"` : ''}
         }
       }
     ]
@@ -122,7 +122,7 @@ const generatePrompt = (
   
   CONTENT REQUIREMENTS:
   - Create ${questionCount} completely unique questions about different aspects of "${topic}"
-  - Include questions in both English and ${currentLanguageName} (${currentLanguageCode})
+  ${currentLanguageCode !== 'en' ? `- Include questions in both English and ${currentLanguageName} (${currentLanguageCode})` : '- Include questions in English'}
   - Use only factual, verifiable information with specific names, dates, and data
   - Mix question types: factual recall, analysis, comparison, and application
   - IMPORTANt: All questions must match ${difficulty.toUpperCase()} difficulty level: ${difficultySpec}
