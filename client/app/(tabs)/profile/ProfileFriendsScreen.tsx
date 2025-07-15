@@ -14,7 +14,7 @@ import IconAddFriend from "@/assets/icons/IconAddFriend";
 import { Logo } from "@/components/Logos";
 import { FontSizes, Gaps, Colors } from "@/styles/theme";
 import { useRouter } from "expo-router";
-import { SearchFriendInput } from "@/components/InputsTest";
+import { SearchFriendInput } from "@/components/Inputs";
 import {
   getFriends,
   getReceivedFriendRequests,
@@ -336,7 +336,6 @@ const ProfilFriendsScreen = () => {
               setSearchState((prev) => ({ ...prev, email: text }));
             }}
             onSearch={(email) => handleSearchUser(email)}
-            clerkUserId={userData?.clerkUserId} // ← AGREGAR ESTA LÍNEA
           />
 
           {/* Fixed space for error message */}
