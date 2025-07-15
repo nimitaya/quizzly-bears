@@ -45,16 +45,18 @@ export const SearchFriendInputWithAutocomplete: React.FC<
     try {
       setIsLoading(true);
       const result = await searchEmailsAutocomplete(query, clerkUserId);
+      console.log("RESULT", result); // <-- agrega esto para ver la estructura real
+      console.log("clerkUserId", clerkUserId); // <-- agrega esto para verificar el clerkUserId
       setSuggestions(result.users);
       setShowSuggestions(result.users.length > 0);
     } catch (error) {
-      console.error("Error fetching suggestions:", error);
-      setSuggestions([]);
-      setShowSuggestions(false);
+        console.error("Error fetching suggestions:", error);
+        setSuggestions([]);
+        setShowSuggestions(false);
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  };
+};
 
   // Debounce para las búsquedas
   useEffect(() => {

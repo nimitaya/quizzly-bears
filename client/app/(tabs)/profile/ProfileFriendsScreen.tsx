@@ -14,7 +14,7 @@ import IconAddFriend from "@/assets/icons/IconAddFriend";
 import { Logo } from "@/components/Logos";
 import { FontSizes, Gaps, Colors } from "@/styles/theme";
 import { useRouter } from "expo-router";
-import { SearchFriendInput } from "@/components/Inputs";
+import { SearchFriendInputWithAutocomplete } from "@/components/SearchFriendWithAutocomplete"; // Nuevo import
 import {
   getFriends,
   getReceivedFriendRequests,
@@ -28,7 +28,7 @@ import {
 import { useEffect, useState, useContext } from "react";
 import { FriendsState, User } from "@/utilities/friendInterfaces";
 import { UserContext } from "@/providers/UserProvider";
-import socketService from "@/utilities/socketService";
+import { io } from "socket.io-client";
 
 const ProfilFriendsScreen = () => {
   const router = useRouter();
@@ -49,14 +49,7 @@ const ProfilFriendsScreen = () => {
     sentFriendRequests: { friendRequests: [] },
   });
 
-
-  
-
-  useEffect(() => {
-    console.log("🔍 Current userData:", userData);
-    console.log("🔍 ClerkUserId being used:", userData?.clerkUserId);
-  }, [userData]);
-
+  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
 
   // =========== Functions ==========
   // Handler Search User
@@ -203,107 +196,83 @@ const ProfilFriendsScreen = () => {
   }, []);
 
   useEffect(() => {
-    if (!userData) return;
+    socket.on("friendRequestSent", (data) => {
+      console.log("Friend request sent:", data);
 
-    // Function to set up all socket listeners
-    const setupSocketListeners = () => {
-      console.log("Setting up friend event listeners...");
+      // Update the received friend requests list in real time
+      if (userData) {
+        getReceivedFriendRequests(userData.clerkUserId).then((received) => {
+          setFriendsState((prev) => ({
+            ...prev,
+            receivedFriendRequests: received,
+          }));
+        });
+      }
+    });
 
-      // Clean up existing listeners first to avoid duplicates
-      socketService.off("friendRequestSent");
-      socketService.off("friendRequestAccepted");
-      socketService.off("friendRequestDeclined");
-      socketService.off("friendRemoved");
+    socket.on("friendRequestAccepted", (data) => {
+      console.log("Friend request accepted:", data);
 
-      // Register new listeners
-      socketService.on("friendRequestSent", (data: any) => {
-        console.log("🔔 Friend request SENT event received:", data);
-        if (userData) {
-          getReceivedFriendRequests(userData.clerkUserId).then((received) => {
-            console.log("Updated received requests:", received);
-            setFriendsState((prev) => ({
-              ...prev,
-              receivedFriendRequests: received,
-            }));
-          });
-        }
-      });
-
-      socketService.on("friendRequestAccepted", (data: any) => {
-        console.log("Friend request accepted:", data);
-
-        if (userData) {
-          const clerkUserId = userData.clerkUserId;
-
-          // Update the friends list
-          getFriends(clerkUserId).then((friends) => {
-            setFriendsState((prev) => ({
-              ...prev,
-              friendList: friends,
-            }));
-          });
-
-          // Update the requests list (remove the accepted one)
-          getSentFriendRequests(clerkUserId).then((sent) => {
-            setFriendsState((prev) => ({
-              ...prev,
-              sentFriendRequests: sent,
-            }));
-          });
-        }
-      });
-
-      socketService.on("friendRequestDeclined", (data: any) => {
-        console.log("Friend request declined:", data);
-
-        // Update the received friend requests list
-        if (userData) {
-          getReceivedFriendRequests(userData.clerkUserId).then((received) => {
-            setFriendsState((prev) => ({
-              ...prev,
-              receivedFriendRequests: received,
-            }));
-          });
-          getSentFriendRequests(userData.clerkUserId).then((sent) => {
-            setFriendsState((prev) => ({
-              ...prev,
-              sentFriendRequests: sent,
-            }));
-          });
-        }
-      });
-
-      socketService.on("friendRemoved", (data: any) => {
-        console.log("Friend removed:", data);
+      if (userData) {
+        const clerkUserId = userData.clerkUserId;
 
         // Update the friends list
-        if (userData) {
-          getFriends(userData.clerkUserId).then((friends) => {
-            setFriendsState((prev) => ({
-              ...prev,
-              friendList: friends,
-            }));
-          });
-        }
-      });
-    };
+        getFriends(clerkUserId).then((friends) => {
+          setFriendsState((prev) => ({
+            ...prev,
+            friendList: friends,
+          }));
+        });
 
-    // Set up listeners initially
-    setupSocketListeners();
+        // Update the requests list (remove the accepted one)
+        getSentFriendRequests(clerkUserId).then((sent) => {
+          setFriendsState((prev) => ({
+            ...prev,
+            sentFriendRequests: sent,
+          }));
+        });
+      }
+    });
 
-    // Re-register listeners when socket connects
-    socketService.on("connect", () => {
-      console.log("Socket reconnected, re-registering listeners");
-      setupSocketListeners();
+    socket.on("friendRequestDeclined", (data) => {
+      console.log("Friend request declined:", data);
+
+      // Update the received friend requests list
+      if (userData) {
+        getReceivedFriendRequests(userData.clerkUserId).then((received) => {
+          setFriendsState((prev) => ({
+            ...prev,
+            receivedFriendRequests: received,
+          }));
+        });
+        getSentFriendRequests(userData.clerkUserId).then((sent) => {
+          setFriendsState((prev) => ({
+            ...prev,
+            sentFriendRequests: sent,
+          }));
+        });
+      }
+    });
+
+    socket.on("friendRemoved", (data) => {
+      console.log("Friend removed:", data);
+
+      // Update the friends list
+      if (userData) {
+        getFriends(userData.clerkUserId).then((friends) => {
+          setFriendsState((prev) => ({
+            ...prev,
+            friendList: friends,
+          }));
+        });
+      }
     });
 
     return () => {
-      console.log("Cleaning up socket listeners");
-      socketService.off("friendRequestSent");
-      socketService.off("friendRequestAccepted");
-      socketService.off("friendRequestDeclined");
-      socketService.off("friendRemoved");
-      socketService.off("connect");
+      socket.off("friendRequestSent");
+      socket.off("friendRequestAccepted");
+      socket.off("friendRequestDeclined");
+      socket.off("friendRemoved");
     };
   }, [userData]);
 
@@ -327,15 +296,16 @@ const ProfilFriendsScreen = () => {
 
         <Text style={styles.pageTitle}>Friends</Text>
 
-        {/* Search Bar */}
+        {/* Search Bar with Autocomplete */}
         <View style={styles.searchContainer}>
-          <SearchFriendInput
+          <SearchFriendInputWithAutocomplete
             placeholder="e-mail..."
             value={searchState.email}
             onChangeText={(text: string) => {
               setSearchState((prev) => ({ ...prev, email: text }));
             }}
-            onSearch={(email) => handleSearchUser(email)}
+            onSearch={handleSearchUser}
+            clerkUserId={userData?.clerkUserId || ""}
           />
 
           {/* Fixed space for error message */}

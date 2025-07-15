@@ -8,11 +8,13 @@ import {
   removeFriend,
   searchUser,
   sendRequest,
+  searchEmailsAutocomplete
 } from "../controllers/friendRequestController";
 
 const friendRequestRouter = express.Router();
 
 friendRequestRouter.get("/search", searchUser);
+friendRequestRouter.get("/search-emails", searchEmailsAutocomplete); 
 friendRequestRouter.get("/received", getReceivedRequests);
 friendRequestRouter.get("/sent", getSentRequests);
 friendRequestRouter.get("/friends", getFriendList)
