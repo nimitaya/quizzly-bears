@@ -161,8 +161,6 @@ const MultiplayerLobby = () => {
 
   // ====================== UseEffect =====================
   useEffect(() => {
-    // IMPORTANT
-    socketService.testSocketConnection(); // Test socket connection on mount
     // Only initialize once
     if (!isRejoining) {
       loadRoomInfo();
@@ -236,6 +234,8 @@ const MultiplayerLobby = () => {
       socketService.off("show-start-quiz");
       socketService.off("host-changed");
       socketService.off("categoryChanged");
+      socketService.off("loading-state-changed");
+      socketService.off("countdown-state-changed");
     };
   }, [roomInfo?.roomId, isRejoining, gameStarted]);
 
@@ -405,6 +405,35 @@ useEffect(() => {
         setRoomInfo(updatedRoomInfo);
         saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
         console.log("Updated room info with selected category:", data.newCategory);
+      }
+    });
+
+    // Add listeners for loading state and countdown
+    socketService.on("loading-state-changed", (data: {
+      roomId: string;
+      isLoading: boolean;
+    }) => {
+      console.log("Loading state changed:", data);
+      if (roomInfo && data.roomId === roomInfo.roomId && !roomInfo.isHost) {
+        // Only non-host players should react to this event
+        setIsGeneratingQuestions(data.isLoading);
+        setShowLocalLoader(data.isLoading);
+      }
+    });
+
+    socketService.on("countdown-state-changed", (data: {
+      roomId: string;
+      showCountdown: boolean;
+    }) => {
+      console.log("Countdown state changed:", data);
+      if (roomInfo && data.roomId === roomInfo.roomId && !roomInfo.isHost) {
+        // Only non-host players should react to this event
+        setShowCountdown(data.showCountdown);
+        // If countdown is hidden, reset loading state as well
+        if (!data.showCountdown) {
+          setIsGeneratingQuestions(false);
+          setShowLocalLoader(false);
+        }
       }
     });
 
@@ -638,6 +667,14 @@ useEffect(() => {
         setIsGeneratingQuestions(true);
         setShowLocalLoader(true);
         
+        // Emit loading state to all players
+        if (roomInfo.isHost && roomInfo.roomId) {
+          socketService.emit("loading-state-changed", { 
+            roomId: roomInfo.roomId,
+            isLoading: true
+          });
+        }
+        
         // If user is host, sync quiz settings with all players
         if (roomInfo.isHost && roomInfo.roomId) {
           await syncQuizSettings(roomInfo.roomId);
@@ -655,6 +692,13 @@ useEffect(() => {
           setShowErrorAlert(true);
           setShowLocalLoader(false);
           setIsGeneratingQuestions(false);
+          // Update other players that loading is done (with error)
+          if (roomInfo.isHost && roomInfo.roomId) {
+            socketService.emit("loading-state-changed", { 
+              roomId: roomInfo.roomId,
+              isLoading: false
+            });
+          }
           return;
         }
 
@@ -676,6 +720,13 @@ useEffect(() => {
           setShowErrorAlert(true);
           setShowLocalLoader(false);
           setIsGeneratingQuestions(false);
+          // Update other players that loading is done (with error)
+          if (roomInfo.isHost && roomInfo.roomId) {
+            socketService.emit("loading-state-changed", { 
+              roomId: roomInfo.roomId,
+              isLoading: false
+            });
+          }
           return;
         }
 
@@ -696,12 +747,33 @@ useEffect(() => {
         
         // COUNTDOWN
         setShowCountdown(true);
+        
+        // Emit countdown state to all players
+        if (roomInfo.isHost && roomInfo.roomId) {
+          socketService.emit("loading-state-changed", { 
+            roomId: roomInfo.roomId,
+            isLoading: false
+          });
+          
+          socketService.emit("countdown-state-changed", { 
+            roomId: roomInfo.roomId,
+            showCountdown: true
+          });
+        }
       } catch (error) {
         console.error("Error starting game:", error);
         setErrorMessage("Failed to start the game");
         setShowErrorAlert(true);
         setShowLocalLoader(false);
         setIsGeneratingQuestions(false);
+        
+        // Update other players that loading is done (with error)
+        if (roomInfo?.isHost && roomInfo?.roomId) {
+          socketService.emit("loading-state-changed", { 
+            roomId: roomInfo.roomId,
+            isLoading: false
+          });
+        }
       }
     }
   };
@@ -710,6 +782,15 @@ useEffect(() => {
   const handleCountdownComplete = () => {
     setShowCountdown(false);
     setIsGeneratingQuestions(false);
+    
+    // Emit countdown state to all players
+    if (roomInfo?.isHost && roomInfo?.roomId) {
+      socketService.emit("countdown-state-changed", { 
+        roomId: roomInfo.roomId,
+        showCountdown: false
+      });
+    }
+    
     if (roomInfo && roomInfo.roomId && questionsData) {
       // Start the game with the questions
       const socketQuestions = transformQuestionsForSocket(questionsData);

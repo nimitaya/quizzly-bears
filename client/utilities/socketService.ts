@@ -605,6 +605,16 @@ class SocketService {
   onShowStartQuiz(callback: (data: { room: QuizRoom }) => void) {
     this.on("show-start-quiz", callback);
   }
+  
+   // Listen for changes in loading state (when host is generating questions)
+  onLoadingStateChanged(callback: (data: { roomId: string; isLoading: boolean }) => void) {
+    this.on("loading-state-changed", callback);
+  }
+
+  // Listen for changes in countdown state (when host starts the countdown)
+  onCountdownStateChanged(callback: (data: { roomId: string; showCountdown: boolean }) => void) {
+    this.on("countdown-state-changed", callback);
+  }
 
   onQuestion(
     callback: (data: {
