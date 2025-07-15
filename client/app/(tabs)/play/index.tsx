@@ -84,7 +84,7 @@ const PlayScreen = () => {
             <View style={{ gap: Gaps.g4 }}>
               {topPlayers.slice(0, 5).map((player, idx) => {
                 const emailName = player.email
-                  ? player.email.split("@")[0].slice(0, 12)
+                  ? player.email.split("@")[0].slice(0, 10)
                   : "";
                 return (
                   <Text key={idx} style={{ fontSize: FontSizes.TextLargeFs }}>
@@ -96,7 +96,7 @@ const PlayScreen = () => {
             <View style={{ gap: Gaps.g4 }}>
               {topPlayers.slice(5, 10).map((player, idx) => {
                 const emailName = player.email
-                  ? player.email.split("@")[0].slice(0, 12)
+                  ? player.email.split("@")[0].slice(0, 10)
                   : "";
                 return (
                   <Text
@@ -141,5 +141,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: Gaps.g32,
     marginTop: Gaps.g16,
+    paddingHorizontal: Gaps.g16,
+    marginBottom: Gaps.g40,
   },
 });

@@ -6,9 +6,11 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+
 import { Audio } from "expo-av";
-import { Colors, Radius, FontSizes } from "../styles/theme";
+import { Colors, Radius, FontSizes, Gaps } from "../styles/theme";
 import { useSound } from "@/providers/SoundProvider";
+
 
 type QuizButtonProps = {
   text: string;
@@ -145,5 +147,6 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: FontSizes.TextLargeFs,
+    textAlign: "center",
   },
 });
