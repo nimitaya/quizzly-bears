@@ -125,7 +125,17 @@ const getSocketUrls = () => {
   ];
 
   // Common development server IPs within each network (most likely first)
-  const commonDevHosts = [226, 100, 101, 1, 10, 20, 50, 102, 200, 250];
+  const commonDevHosts = [
+    // Team-specific IPs (most likely)
+    21, 226, 113, 100, 101, 178,
+    // Router and common IPs
+    1, 2, 10, 20, 50,
+    // Dynamic IP ranges
+    102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 120, 121, 122, 123, 124,
+    125, 126, 127, 128, 129, 130, 132, 133, 134, 135,
+    // Higher ranges
+    150, 151, 152, 153, 154, 155, 200, 201, 202, 203, 250,
+  ];
 
   // Generate smart detection URLs
   networkRanges.forEach((range) => {
@@ -140,7 +150,7 @@ const getSocketUrls = () => {
   // Create final URL list with smart priority
   const finalUrls = [
     ...primaryUrls, // Platform-specific (localhost, 10.0.2.2)
-    ...smartDetectionUrls.slice(0, 12), // First 12 most likely IPs
+    ...smartDetectionUrls.slice(0, 20), // First 20 most likely IPs (увеличено с 12)
     ...additionalUrls, // Additional common patterns
   ];
 
@@ -167,7 +177,7 @@ class SocketService {
         console.log(`🔌 Trying ${urls.length} auto-generated URLs...`);
 
         // Try priority URLs first (platform-specific + first few smart detection)
-        const priorityUrls = urls.slice(0, 6); // localhost + first 5 smart detection URLs
+        const priorityUrls = urls.slice(0, 10); // localhost + first 9 smart detection URLs (увеличено с 6)
         console.log(`Priority URLs: ${JSON.stringify(priorityUrls)}`);
 
         for (let i = 0; i < priorityUrls.length; i++) {
@@ -186,7 +196,7 @@ class SocketService {
         }
 
         // Try remaining URLs if priority fails
-        const remainingUrls = urls.slice(6);
+        const remainingUrls = urls.slice(10);
         console.log(`Trying ${remainingUrls.length} fallback URLs...`);
 
         for (let i = 0; i < remainingUrls.length; i++) {
@@ -281,7 +291,7 @@ class SocketService {
       this.socket = null;
     }
     this.listeners.clear();
-    
+
     // Clear all room state tracking
     this.lastRoomStateRequest = {};
     this.roomStateGameStarted = {};
@@ -335,44 +345,54 @@ class SocketService {
   // Add method to request current room state with throttling to prevent excessive calls
   private lastRoomStateRequest: Record<string, number> = {};
   private roomStateGameStarted: Record<string, boolean> = {};
-  
+
   requestRoomState(roomId: string) {
     // Debug logging for room state requests in dev mode
     if (__DEV__) {
-      console.log(`[SocketService] Room state request attempted for: ${roomId}`);
-      
+      console.log(
+        `[SocketService] Room state request attempted for: ${roomId}`
+      );
+
       if (this.roomStateGameStarted[roomId]) {
-        console.log(`[SocketService] Blocked room state request - game already started for room: ${roomId}`);
+        console.log(
+          `[SocketService] Blocked room state request - game already started for room: ${roomId}`
+        );
         return;
       }
     }
-    
+
     // Don't make requests for rooms where the game has started
     if (this.roomStateGameStarted[roomId]) {
       return;
     }
-    
+
     const now = Date.now();
     const lastRequest = this.lastRoomStateRequest[roomId] || 0;
-    
+
     // Throttle requests to prevent excessive calls (min 2 seconds between requests)
     if (now - lastRequest < 2000) {
       if (__DEV__) {
-        console.log(`[SocketService] Throttled room state request - too soon (${now - lastRequest}ms since last request)`);
+        console.log(
+          `[SocketService] Throttled room state request - too soon (${
+            now - lastRequest
+          }ms since last request)`
+        );
       }
       return;
     }
-    
+
     // Update last request timestamp
     this.lastRoomStateRequest[roomId] = now;
-    
+
     // Make the actual request
     if (__DEV__) {
-      console.log(`[SocketService] Sending room state request for room: ${roomId}`);
+      console.log(
+        `[SocketService] Sending room state request for room: ${roomId}`
+      );
     }
     this.emit("get-room-state", { roomId });
   }
-  
+
   // Method to mark a room as having started a game (to prevent further state requests)
   markRoomGameStarted(roomId: string) {
     this.roomStateGameStarted[roomId] = true;
@@ -387,7 +407,7 @@ class SocketService {
     // Clean up room state tracking for this room
     delete this.lastRoomStateRequest[roomId];
     delete this.roomStateGameStarted[roomId];
-    
+
     this.emit("leave-room", { roomId, playerId });
   }
 
@@ -540,15 +560,20 @@ class SocketService {
     this.on("host-changed", callback);
   }
 
-  onGameStarted(callback: (data: { room: QuizRoom; questions?: QuizQuestion[] }) => void) {
+  onGameStarted(
+    callback: (data: { room: QuizRoom; questions?: QuizQuestion[] }) => void
+  ) {
     // Create a wrapper that automatically marks the room as started
-    const wrappedCallback = (data: { room: QuizRoom; questions?: QuizQuestion[] }) => {
+    const wrappedCallback = (data: {
+      room: QuizRoom;
+      questions?: QuizQuestion[];
+    }) => {
       if (data.room && data.room.id) {
         this.markRoomGameStarted(data.room.id);
       }
       callback(data);
     };
-    
+
     this.on("game-started", wrappedCallback);
   }
 
