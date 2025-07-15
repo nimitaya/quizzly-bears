@@ -331,17 +331,36 @@ io.on("connection", (socket) => {
   // Sync quiz settings from host to all players
   socket.on("sync-quiz-settings", (data: { roomId: string; quizSettings: any }) => {
     const room = quizRooms.get(data.roomId);
-    if (!room || room.hostSocketId !== socket.id) {
-      console.log(`Unauthorized quiz settings sync attempt from non-host: ${socket.id}`);
-      return;
+    if (room) {
+      io.to(data.roomId).emit("sync-quiz-settings", {
+        roomId: data.roomId,
+        quizSettings: data.quizSettings,
+      });
     }
-    
-    console.log(`Quiz settings synced from host in room ${data.roomId}:`, data.quizSettings);
-    // Send quiz settings to all players in the room
-    io.to(data.roomId).emit("quiz-settings-sync", { quizSettings: data.quizSettings });
   });
 
-  // Send next question
+  // Handle loading state changes
+  socket.on("loading-state-changed", (data: { roomId: string; isLoading: boolean }) => {
+    const room = quizRooms.get(data.roomId);
+    if (room) {
+      io.to(data.roomId).emit("loading-state-changed", {
+        roomId: data.roomId,
+        isLoading: data.isLoading,
+      });
+    }
+  });
+
+  // Handle countdown state changes
+  socket.on("countdown-state-changed", (data: { roomId: string; showCountdown: boolean }) => {
+    const room = quizRooms.get(data.roomId);
+    if (room) {
+      io.to(data.roomId).emit("countdown-state-changed", {
+        roomId: data.roomId,
+        showCountdown: data.showCountdown,
+      });
+    }
+  });
+
   socket.on("next-question", (data: { roomId: string }) => {
     const room = quizRooms.get(data.roomId);
     if (!room) {
