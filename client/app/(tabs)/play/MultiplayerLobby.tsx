@@ -408,9 +408,10 @@ const MultiplayerLobby = () => {
       fetchInvites();
     });
 
-    socketService.onPlayerReadyUpdated((data) => {
-      setCurrentRoom(data.room);
-    });
+    // IMPORTANT TODO: May be deleted, don't need this currently
+    // socketService.onPlayerReadyUpdated((data) => {
+    //   setCurrentRoom(data.room);
+    // });
 
     socketService.onGameStarted(async (data) => {
       console.log("Game started!");
@@ -633,9 +634,8 @@ const MultiplayerLobby = () => {
           return;
         }
 
-        // Transform questions to socket format
-        const socketQuestions = transformQuestionsForSocket(fetchedQuestions);
-        console.log("=====Transformed questions for socket=====:", socketQuestions); // TODO
+        // IMPORTANT DONE IN COUNTDOWN Transform questions to socket format
+        // const socketQuestions = transformQuestionsForSocket(fetchedQuestions);
         
         setShowLocalLoader(false);
         setIsGeneratingQuestions(false);
@@ -652,8 +652,9 @@ const MultiplayerLobby = () => {
           }
         }
         
-        // setShowCountdown(true);
-        socketService.startGame(roomInfo.roomId, socketQuestions);
+        // IMPORTANT COUNTDOWN
+        setShowCountdown(true);
+        // socketService.startGame(roomInfo.roomId, socketQuestions);
       } catch (error) {
         console.error("Error starting game:", error);
         setErrorMessage("Failed to start the game");
@@ -894,7 +895,7 @@ const MultiplayerLobby = () => {
         ) : item.isReady ? (
           <IconAccept />
         ) : (
-          <IconDismiss />
+          <IconAccept />
         )}
       </View>
     </View>
@@ -1054,7 +1055,8 @@ const MultiplayerLobby = () => {
         noInternet={false}
       />
 
-      <CustomAlert
+{/* IMPORTANT TODO: May be deleted, don't need this currently */}
+      {/* <CustomAlert
         visible={showWarningAlert}
         title="Warning"
         message="Not all players are ready for the game"
@@ -1063,7 +1065,7 @@ const MultiplayerLobby = () => {
         confirmText="OK"
         onConfirm={handleWarningAlertClose}
         noInternet={false}
-      />
+      /> */}
 
       <CustomAlert
         visible={showCancelRoomAlert}
