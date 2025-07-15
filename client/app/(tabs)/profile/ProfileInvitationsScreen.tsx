@@ -29,7 +29,6 @@ import {
 } from "@/utilities/cacheUtils";
 import { useLanguage } from "@/providers/LanguageContext";
 import { UserContext } from "@/providers/UserProvider";
-import { io } from "socket.io-client";
 
 const ProfilInvitationsScreen = () => {
   const router = useRouter();
@@ -37,7 +36,6 @@ const ProfilInvitationsScreen = () => {
   const { currentLanguage } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
   const [receivedInvites, setReceivedInvites] = useState<InviteRequest[]>([]);
-  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
   const { userData, receivedInviteRequests, setReceivedInviteRequests } =
     useContext(UserContext);
 
@@ -57,6 +55,15 @@ const ProfilInvitationsScreen = () => {
 
       // Accept the invitation on the backend
       await acceptInviteRequest(clerkUserId, inviteId);
+
+      // ADD THIS CODE: Update badge count after accepting
+      if (typeof setReceivedInviteRequests === "function") {
+        const received = await getReceivedInviteRequests(clerkUserId);
+        const pendingInvites = (received.inviteRequests || []).filter(
+          (invite) => invite.status === "pending"
+        );
+        setReceivedInviteRequests(pendingInvites.length);
+      }
 
       // Connect to socket service if not already connected
       if (!socketService.isConnected()) {
@@ -121,6 +128,15 @@ const ProfilInvitationsScreen = () => {
       // Refresh the invitations list
       const received = await getReceivedInviteRequests(clerkUserId);
       setReceivedInvites(received.inviteRequests || []);
+
+      // Update the global badge count
+      if (typeof setReceivedInviteRequests === "function") {
+        const pendingInvites = (received.inviteRequests || []).filter(
+          (invite) => invite.status === "pending"
+        );
+        setReceivedInviteRequests(pendingInvites.length);
+        console.log("Updated invitation badge count:", pendingInvites.length);
+      }
     } catch (error) {
       console.error("Error declining invitation:", error);
       // maybe TODO: Add user-facing error handling (toast/alert)
@@ -169,31 +185,48 @@ const ProfilInvitationsScreen = () => {
       await fetchInvitations(clerkUserId);
     };
 
-    const socketEventHandlers = {
-      inviteRequestSent: (data: any) => {
+    // Create a named function for registering event handlers
+    const registerSocketListeners = () => {
+      console.log("🔄 Registering invitation socket listeners");
+
+      // Clean up existing listeners first to avoid duplicates
+      socketService.off("inviteRequestSent");
+      socketService.off("inviteRequestAccepted");
+      socketService.off("inviteRequestDeclined");
+
+      // Register the event handlers
+      socketService.on("inviteRequestSent", (data: any) => {
         console.log("📩 Invite request sent:", data);
         fetchAndSetInvites();
-      },
-      inviteRequestAccepted: (data: any) => {
+      });
+
+      socketService.on("inviteRequestAccepted", (data: any) => {
         console.log("✅ Invite request accepted:", data);
         fetchAndSetInvites();
-      },
-      inviteRequestDeclined: (data: any) => {
+      });
+
+      socketService.on("inviteRequestDeclined", (data: any) => {
         console.log("❌ Invite request declined:", data);
         fetchAndSetInvites();
-      },
+      });
     };
 
-    // Register socket event listeners
-    Object.entries(socketEventHandlers).forEach(([event, handler]) => {
-      socket.on(event, handler);
+    // Initial registration
+    registerSocketListeners();
+
+    // Set up listener for reconnection events
+    socketService.on("connect", () => {
+      console.log("Socket reconnected, re-registering invitation listeners");
+      registerSocketListeners();
     });
 
-    // Cleanup socket event listeners on unmount
+    // Cleanup on unmount
     return () => {
-      Object.entries(socketEventHandlers).forEach(([event, handler]) => {
-        socket.off(event, handler);
-      });
+      console.log("Cleaning up invitation socket listeners");
+      socketService.off("inviteRequestSent");
+      socketService.off("inviteRequestAccepted");
+      socketService.off("inviteRequestDeclined");
+      socketService.off("connect"); // Important: Remove the reconnection handler
     };
   }, [user, userData]);
 
@@ -205,12 +238,27 @@ const ProfilInvitationsScreen = () => {
         getReceivedInviteRequests(clerkUserId),
       ]);
 
-      setReceivedInvites(received.inviteRequests || []);
+      const allInvites = received.inviteRequests || [];
+      setReceivedInvites(allInvites);
 
-      console.log("Updated received invites:", received.inviteRequests || []);
+      // ADD THIS CODE: Update the global badge count
+      if (typeof setReceivedInviteRequests === "function") {
+        const pendingInvites = allInvites.filter(
+          (invite) => invite.status === "pending"
+        );
+        setReceivedInviteRequests(pendingInvites.length);
+        console.log("Updated invitation badge count:", pendingInvites.length);
+      }
+
+      console.log("Updated received invites:", allInvites);
     } catch (error) {
       console.error("Error fetching invitations:", error);
       setReceivedInvites([]);
+
+      // Set badge count to 0 on error
+      if (typeof setReceivedInviteRequests === "function") {
+        setReceivedInviteRequests(0);
+      }
     }
   };
 

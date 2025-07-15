@@ -12,16 +12,15 @@ import Loading from "../../Loading";
 import CustomAlert from "@/components/CustomAlert";
 import { useUser } from "@clerk/clerk-expo";
 import ClerkSettings from "@/app/(auth)/ClerkSettings";
-import { io } from "socket.io-client";
+import socketService from "@/utilities/socketService";
 
 const StatisticsScreen = () => {
   const { userData, loading, userRank, totalUsers, refetch } = useStatistics();
   const [showForm, setShowForm] = useState(false);
   const { user } = useUser();
-  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
 
   useEffect(() => {
-    socket.on("pointsUpdated", () => {
+    socketService.on("pointsUpdated", () => {
       console.log("pointsUpdated received - outside");
       refetch &&
         refetch.forEach((fn) => {
@@ -31,8 +30,8 @@ const StatisticsScreen = () => {
     });
 
     return () => {
-      socket.off("pointsUpdated");
-      socket.disconnect();
+      socketService.off("pointsUpdated");
+      socketService.disconnect();
     };
   }, []);
 

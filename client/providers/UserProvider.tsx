@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
 import { useUser } from "@clerk/clerk-expo";
 import { getReceivedInviteRequests } from "@/utilities/invitationApi";
+import { getReceivedFriendRequests } from "@/utilities/friendRequestApi";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
@@ -22,6 +23,8 @@ type UserContextType = {
   setReceivedRequestsCount: React.Dispatch<React.SetStateAction<number>>;
   receivedInviteRequests?: number;
   setReceivedInviteRequests?: React.Dispatch<React.SetStateAction<number>>;
+  refreshFriendRequestCount?: () => Promise<void>;
+  refreshInvitationCount?: () => Promise<void>;
 };
 
 export const UserContext = createContext<UserContextType>({
@@ -38,6 +41,8 @@ export const UserContext = createContext<UserContextType>({
   setReceivedRequestsCount: () => {},
   receivedInviteRequests: 0,
   setReceivedInviteRequests: () => {},
+  refreshFriendRequestCount: async () => {},
+  refreshInvitationCount: async () => {},
 });
 
 type TopPlayer = { username?: string; email: string; totalPoints: number };
@@ -145,6 +150,38 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const refreshFriendRequestCount = async () => {
+    if (!userData?.clerkUserId) return;
+
+    try {
+      const received = await getReceivedFriendRequests(userData.clerkUserId);
+      const pendingRequests = received.friendRequests.filter(
+        (request) => request.status === "pending"
+      );
+      setReceivedRequestsCount(pendingRequests.length);
+      console.log("🔄 Friend request count refreshed:", pendingRequests.length);
+    } catch (error) {
+      console.error("❌ Error refreshing friend requests:", error);
+    }
+  };
+
+  const refreshInvitationCount = async () => {
+    if (!userData?.clerkUserId) return;
+
+    try {
+      const response = await getReceivedInviteRequests(userData.clerkUserId);
+      if (!response?.inviteRequests) return;
+
+      const pendingInvites = response.inviteRequests.filter(
+        (invite) => invite.status === "pending"
+      );
+      setReceivedInviteRequests(pendingInvites.length);
+      console.log("🔄 Invitation count refreshed:", pendingInvites.length);
+    } catch (error) {
+      console.error("❌ Error refreshing invitations:", error);
+    }
+  };
+
   useEffect(() => {
     fetchUserData();
   }, [user]);
@@ -169,6 +206,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         setReceivedRequestsCount,
         receivedInviteRequests,
         setReceivedInviteRequests,
+        refreshFriendRequestCount,
+        refreshInvitationCount,
       }}
     >
       {children}

@@ -9,8 +9,7 @@ import React, { useEffect, useState } from "react";
 import Loading from "../../Loading";
 import CustomAlert from "@/components/CustomAlert";
 import { useUser } from "@clerk/clerk-expo";
-// import { useFocusEffect } from "@react-navigation/native";
-import { io } from "socket.io-client";
+import socketService from "@/utilities/socketService";
 
 const PlayScreen = () => {
   const { topPlayers, loading, totalUsers, userRank, refetch } =
@@ -18,10 +17,9 @@ const PlayScreen = () => {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const { user } = useUser();
-  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
 
   useEffect(() => {
-    socket.on("pointsUpdated", () => {
+    socketService.on("pointsUpdated", () => {
       console.log("🔁 pointsUpdated received - outside");
       refetch &&
         refetch.forEach((fn) => {
@@ -31,8 +29,8 @@ const PlayScreen = () => {
     });
 
     return () => {
-      socket.off("pointsUpdated");
-      socket.disconnect();
+      socketService.off("pointsUpdated");
+      socketService.disconnect();
     };
   }, []);
 

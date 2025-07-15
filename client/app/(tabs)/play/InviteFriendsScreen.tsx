@@ -7,7 +7,7 @@ import {
   FlatList,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
+import { ButtonPrimary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
 import IconArrowBack from "@/assets/icons/IconArrowBack";
 import { Colors, FontSizes, Gaps } from "@/styles/theme";
@@ -31,7 +31,6 @@ import { UserContext } from "@/providers/UserProvider";
 import { Checkbox } from "@/components/Checkbox";
 import { RadioButton } from "@/components/RadioButton";
 import { socketService } from "@/utilities/socketService";
-import { io } from "socket.io-client";
 import { InviteRequest } from "@/utilities/invitationInterfaces";
 
 interface RoomInfo {
@@ -51,7 +50,7 @@ const InviteFriendsScreen = () => {
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [friends, setFriends] = useState<FriendsResponse>({ friends: [] });
-  // New for invites:
+
   const [nonFriends, setNonFriends] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [gameStyle, setGameStyle] = useState<"duel" | "group" | null>(null);
@@ -66,8 +65,6 @@ const InviteFriendsScreen = () => {
   });
 
   const [sentInvites, setSentInvites] = useState<InviteRequest[]>([]);
-
-  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
 
   // =========== Functions ==========
   // ----- Handler Fetch Friendlist -----
@@ -106,7 +103,6 @@ const InviteFriendsScreen = () => {
   const handleInviteDeclined = (data: any) => {
     console.log("Invite request declined:", data);
 
-    // Fetch updated sent invitations
     fetchSentInvites();
   };
   // ----- Handler Search User -----
@@ -353,11 +349,11 @@ const InviteFriendsScreen = () => {
 
   useEffect(() => {
     // Register socket listener for declined invitations
-    socket.on("inviteRequestDeclined", handleInviteDeclined);
+    socketService.on("inviteRequestDeclined", handleInviteDeclined);
 
-    // Cleanup socket listener on unmount
+    // Cleanup socketService listener on unmount
     return () => {
-      socket.off("inviteRequestDeclined", handleInviteDeclined);
+      socketService.off("inviteRequestDeclined", handleInviteDeclined);
     };
   }, [userData]);
 

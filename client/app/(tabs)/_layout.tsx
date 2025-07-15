@@ -10,9 +10,9 @@ import IconProfilTabAktiv from "@/assets/icons/IconProfilTabAktiv";
 import { Colors, Gaps } from "@/styles/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { UserContext } from "@/providers/UserProvider";
-import { io } from "socket.io-client";
 import { getReceivedFriendRequests } from "@/utilities/friendRequestApi";
 import { getReceivedInviteRequests } from "@/utilities/invitationApi";
+import socketService from "@/utilities/socketService";
 
 const TabIcon = ({ focused, Icon, ActiveIcon, title }: any) => (
   <View style={{ alignItems: "center" }}>
@@ -29,8 +29,6 @@ const _Layout = () => {
     setReceivedInviteRequests,
     receivedInviteRequests,
   } = useContext(UserContext);
-
-  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
 
   useEffect(() => {
     if (userData) {
@@ -77,23 +75,94 @@ const _Layout = () => {
           });
       };
 
-      socket.on("friendRequestSent", handleFriendRequestSent);
-      socket.on("friendRequestAccepted", handleFriendRequestSent);
-      socket.on("friendRequestDeclined", handleFriendRequestSent);
-      socket.on("inviteRequestSent", handleInviteRequestSent);
-      socket.on("inviteRequestAccepted", handleInviteRequestSent);
-      socket.on("inviteRequestDeclined", handleInviteRequestSent);
+      // Set up reconnection handler
+      const handleReconnect = () => {
+        console.log("Socket reconnected in tab layout, refreshing counts");
+
+        if (userData?.clerkUserId) {
+          // Refresh friend request count
+          getReceivedFriendRequests(userData.clerkUserId)
+            .then((received) => {
+              const pendingRequests = received.friendRequests.filter(
+                (req) => req.status === "pending"
+              );
+              setReceivedRequestsCount(pendingRequests.length);
+            })
+            .catch((err) =>
+              console.error("Error refreshing friend requests:", err)
+            );
+
+          // Refresh invitation count
+          getReceivedInviteRequests(userData.clerkUserId)
+            .then((response) => {
+              if (!response?.inviteRequests) return;
+
+              const pendingInvites = response.inviteRequests.filter(
+                (invite) => invite.status === "pending"
+              );
+
+              if (typeof setReceivedInviteRequests === "function") {
+                setReceivedInviteRequests(pendingInvites.length);
+              }
+            })
+            .catch((err) =>
+              console.error("Error refreshing invitations:", err)
+            );
+        }
+      };
+
+      socketService.on("friendRequestSent", handleFriendRequestSent);
+      socketService.on("friendRequestAccepted", handleFriendRequestSent);
+      socketService.on("friendRequestDeclined", handleFriendRequestSent);
+      socketService.on("inviteRequestSent", handleInviteRequestSent);
+      socketService.on("inviteRequestAccepted", handleInviteRequestSent);
+      socketService.on("inviteRequestDeclined", handleInviteRequestSent);
+      socketService.on("connect", handleReconnect);
 
       return () => {
-        socket.off("friendRequestSent", handleFriendRequestSent);
-        socket.off("friendRequestAccepted", handleFriendRequestSent);
-        socket.off("friendRequestDeclined", handleFriendRequestSent);
-        socket.off("inviteRequestSent", handleInviteRequestSent);
-        socket.off("inviteRequestAccepted", handleInviteRequestSent);
-        socket.off("inviteRequestDeclined", handleInviteRequestSent);
+        socketService.off("friendRequestSent", handleFriendRequestSent);
+        socketService.off("friendRequestAccepted", handleFriendRequestSent);
+        socketService.off("friendRequestDeclined", handleFriendRequestSent);
+        socketService.off("inviteRequestSent", handleInviteRequestSent);
+        socketService.off("inviteRequestAccepted", handleInviteRequestSent);
+        socketService.off("inviteRequestDeclined", handleInviteRequestSent);
+        socketService.off("connect", handleReconnect);
       };
     }
   }, [userData]);
+
+  useEffect(() => {
+    if (!userData?.clerkUserId) return;
+
+    console.log("🔄 Loading initial counts in tab layout");
+
+    // Load friend request count
+    getReceivedFriendRequests(userData.clerkUserId)
+      .then((received) => {
+        const pendingRequests = received.friendRequests.filter(
+          (req) => req.status === "pending"
+        );
+        setReceivedRequestsCount(pendingRequests.length);
+        console.log("📊 Initial friend requests:", pendingRequests.length);
+      })
+      .catch((err) => console.error("Error loading friend requests:", err));
+
+    // Load invitation count
+    getReceivedInviteRequests(userData.clerkUserId)
+      .then((response) => {
+        if (!response?.inviteRequests) return;
+
+        const pendingInvites = response.inviteRequests.filter(
+          (invite) => invite.status === "pending"
+        );
+
+        if (typeof setReceivedInviteRequests === "function") {
+          setReceivedInviteRequests(pendingInvites.length);
+          console.log("📊 Initial invitations:", pendingInvites.length);
+        }
+      })
+      .catch((err) => console.error("Error loading invitations:", err));
+  }, [userData?.clerkUserId]);
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.bgGray }}>
