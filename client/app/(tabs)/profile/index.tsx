@@ -26,9 +26,9 @@ import { resetOnboarding } from "@/providers/OnboardingProvider";
 import LanguageDropdown from "@/app/(tabs)/profile/LanguageDropdown";
 import { useLanguage } from "@/providers/LanguageContext";
 import { UserContext } from "@/providers/UserProvider";
-import { io } from "socket.io-client";
 import { getReceivedFriendRequests } from "@/utilities/friendRequestApi";
 import { getReceivedInviteRequests } from "@/utilities/invitationApi";
+import socketService from "@/utilities/socketService";
 
 const ProfileScreen = () => {
   const router = useRouter();
@@ -54,8 +54,6 @@ const ProfileScreen = () => {
     receivedInviteRequests,
     setReceivedInviteRequests,
   } = useContext(UserContext);
-
-  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
 
   // Function to test onboarding
   const handleShowOnboarding = async () => {
@@ -174,6 +172,34 @@ const ProfileScreen = () => {
         }
       }, 100);
 
+      // Add this to refresh counts when tab is focused
+      if (userData?.clerkUserId) {
+        console.log("Tab focused - refreshing friend request counts");
+        getReceivedFriendRequests(userData.clerkUserId).then((received) => {
+          const pendingRequests = received.friendRequests.filter(
+            (request) => request.status === "pending"
+          );
+          setReceivedRequestsCount(pendingRequests.length);
+        });
+      }
+
+      // Add this to also refresh invitation counts when tab is focused
+      if (userData?.clerkUserId) {
+        getReceivedInviteRequests(userData.clerkUserId)
+          .then((response) => {
+            if (!response?.inviteRequests) return;
+
+            const pendingInvites = response.inviteRequests.filter(
+              (invite) => invite.status === "pending"
+            );
+
+            if (typeof setReceivedInviteRequests === "function") {
+              setReceivedInviteRequests(pendingInvites.length);
+            }
+          })
+          .catch((error) => console.error("Error refreshing invites:", error));
+      }
+
       return () => clearTimeout(timer);
     }, [])
   );
@@ -183,7 +209,27 @@ const ProfileScreen = () => {
         console.log("Friend request sent:", data);
 
         getReceivedFriendRequests(userData.clerkUserId).then((received) => {
-          setReceivedRequestsCount(received.friendRequests.length);
+          // Debug the structure
+          console.log(
+            "Friend request structure:",
+            received.friendRequests.length > 0
+              ? received.friendRequests[0]
+              : "No requests"
+          );
+
+          // Only count PENDING requests
+          const pendingRequests = received.friendRequests.filter(
+            (request) => request.status === "pending"
+          );
+
+          console.log(
+            "Friend requests - Total:",
+            received.friendRequests.length,
+            "Pending:",
+            pendingRequests.length
+          );
+
+          setReceivedRequestsCount(pendingRequests.length);
         });
       };
 
@@ -223,23 +269,89 @@ const ProfileScreen = () => {
           });
       };
 
-      socket.on("friendRequestSent", handleFriendRequestSent);
-      socket.on("friendRequestAccepted", handleFriendRequestSent);
-      socket.on("friendRequestDeclined", handleFriendRequestSent);
-      socket.on("inviteRequestSent", handleInviteRequestSent);
-      socket.on("inviteRequestAccepted", handleInviteRequestSent);
-      socket.on("inviteRequestDeclined", handleInviteRequestSent);
+      socketService.on("friendRequestSent", handleFriendRequestSent);
+      socketService.on("friendRequestAccepted", handleFriendRequestSent);
+      socketService.on("friendRequestDeclined", handleFriendRequestSent);
+      socketService.on("inviteRequestSent", handleInviteRequestSent);
+      socketService.on("inviteRequestAccepted", handleInviteRequestSent);
+      socketService.on("inviteRequestDeclined", handleInviteRequestSent);
 
       return () => {
-        socket.off("friendRequestSent", handleFriendRequestSent);
-        socket.off("friendRequestAccepted", handleFriendRequestSent);
-        socket.off("friendRequestDeclined", handleFriendRequestSent);
-        socket.off("inviteRequestSent", handleInviteRequestSent);
-        socket.off("inviteRequestAccepted", handleInviteRequestSent);
-        socket.off("inviteRequestDeclined", handleInviteRequestSent);
+        socketService.off("friendRequestSent", handleFriendRequestSent);
+        socketService.off("friendRequestAccepted", handleFriendRequestSent);
+        socketService.off("friendRequestDeclined", handleFriendRequestSent);
+        socketService.off("inviteRequestSent", handleInviteRequestSent);
+        socketService.off("inviteRequestAccepted", handleInviteRequestSent);
+        socketService.off("inviteRequestDeclined", handleInviteRequestSent);
       };
     }
   }, [userData]);
+
+  // Add this useEffect to load initial counts
+  useEffect(() => {
+    if (!userData?.clerkUserId) return;
+
+    console.log("🔄 Loading initial counts...");
+
+    // Load initial friend request count
+    getReceivedFriendRequests(userData.clerkUserId)
+      .then((received) => {
+        if (!received?.friendRequests) {
+          console.warn("⚠️ Invalid response format:", received);
+          return;
+        }
+
+        const pendingRequests = received.friendRequests.filter(
+          (request) => request.status === "pending"
+        );
+
+        console.log(
+          "📊 Initial friend requests - Total:",
+          received.friendRequests.length,
+          "Pending:",
+          pendingRequests.length
+        );
+
+        setReceivedRequestsCount(pendingRequests.length);
+      })
+      .catch((error) => {
+        console.error("❌ Error loading initial friend requests:", error);
+      });
+
+    // ADD THIS CODE - Load initial invitation count
+    console.log("🔄 Loading initial invitation count...");
+    getReceivedInviteRequests(userData.clerkUserId)
+      .then((response) => {
+        if (!response?.inviteRequests) {
+          console.warn("⚠️ Invalid invitation response:", response);
+          return;
+        }
+
+        const pendingInvites = response.inviteRequests.filter(
+          (invite) => invite.status === "pending"
+        );
+
+        console.log(
+          "📊 Initial invitations - Total:",
+          response.inviteRequests.length,
+          "Pending:",
+          pendingInvites.length
+        );
+
+        if (typeof setReceivedInviteRequests === "function") {
+          setReceivedInviteRequests(pendingInvites.length);
+          console.log(
+            "✅ Invitation badge count updated:",
+            pendingInvites.length
+          );
+        } else {
+          console.warn("⚠️ setReceivedInviteRequests is not a function");
+        }
+      })
+      .catch((error) => {
+        console.error("❌ Error loading initial invitations:", error);
+      });
+  }, [userData?.clerkUserId]);
 
   if (isGloballyLoading) {
     return <Loading />;
