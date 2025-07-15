@@ -16,6 +16,7 @@ import {
   loadCacheData,
   saveDataToCache,
   CACHE_KEY,
+  clearCacheData,
 } from "@/utilities/cacheUtils";
 import CustomAlert from "@/components/CustomAlert";
 import { InviteRequest } from "@/utilities/invitationInterfaces";
@@ -55,8 +56,6 @@ const MultiplayerLobby = () => {
   // ====================== State Variables =====================
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [currentRoom, setCurrentRoom] = useState<QuizRoom | null>(null);
-  // IMPORTANT TODO: May be deleted, don't need this currently
-  // const [isReady, setIsReady] = useState(false);
   const [allLanguages, setAllLanguages] = useState<string[]>([]);
 
   // CustomAlert states
@@ -235,6 +234,8 @@ const MultiplayerLobby = () => {
       socketService.off("show-start-quiz");
       socketService.off("host-changed");
       socketService.off("categoryChanged");
+      socketService.off("loading-state-changed");
+      socketService.off("countdown-state-changed");
     };
   }, [roomInfo?.roomId, isRejoining, gameStarted]);
 
@@ -279,6 +280,18 @@ const MultiplayerLobby = () => {
       }
     }
   }, [currentLanguage, roomInfo, currentRoom]);
+
+// Add a dedicated useEffect for category changes
+useEffect(() => {
+  if (roomInfo?.isAdmin && roomInfo.selectedCategory && roomInfo.roomId && socketService.isConnected()) {
+    console.log("Admin broadcasting category change to all players:", roomInfo.selectedCategory);
+    socketService.emit("categoryChanged", {
+      roomId: roomInfo.roomId,
+      newCategory: roomInfo.selectedCategory,
+      newTopic: roomInfo.selectedTopic || roomInfo.selectedCategory
+    });
+  }
+}, [roomInfo?.selectedCategory, roomInfo?.selectedTopic]);
 
   // ========================== Socket Functions ==========================
   // ----- Load Room Info -----
@@ -395,6 +408,35 @@ const MultiplayerLobby = () => {
       }
     });
 
+    // Add listeners for loading state and countdown
+    socketService.on("loading-state-changed", (data: {
+      roomId: string;
+      isLoading: boolean;
+    }) => {
+      console.log("Loading state changed:", data);
+      if (roomInfo && data.roomId === roomInfo.roomId && !roomInfo.isHost) {
+        // Only non-host players should react to this event
+        setIsGeneratingQuestions(data.isLoading);
+        setShowLocalLoader(data.isLoading);
+      }
+    });
+
+    socketService.on("countdown-state-changed", (data: {
+      roomId: string;
+      showCountdown: boolean;
+    }) => {
+      console.log("Countdown state changed:", data);
+      if (roomInfo && data.roomId === roomInfo.roomId && !roomInfo.isHost) {
+        // Only non-host players should react to this event
+        setShowCountdown(data.showCountdown);
+        // If countdown is hidden, reset loading state as well
+        if (!data.showCountdown) {
+          setIsGeneratingQuestions(false);
+          setShowLocalLoader(false);
+        }
+      }
+    });
+
     socketService.onRoomStateUpdated((data) => {
       // Check if there are actual changes before updating state
       const hasChanges = !currentRoom || 
@@ -414,23 +456,6 @@ const MultiplayerLobby = () => {
           setRoomInfo(updatedRoomInfo);
           saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
         }
-        // ========KI Vorschlag======== IMPORTANT check this
-        // Always update room state to get latest data
-      // setCurrentRoom(data.room);
-      // collectAllLanguages(data.room);
-      
-      // Update room info with latest room data (preserving category info)
-      // if (roomInfo) {
-      //   const updatedRoomInfo = {
-      //     ...roomInfo,
-      //     room: data.room,
-      //     // Preserve existing category information
-      //     selectedCategory: roomInfo.selectedCategory,
-      //     selectedTopic: roomInfo.selectedTopic
-      //   };
-      //   setRoomInfo(updatedRoomInfo);
-      //   saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
-        // ================
       }
     });
 
@@ -479,11 +504,6 @@ const MultiplayerLobby = () => {
       // Refresh invites when a player leaves
       fetchInvites();
     });
-
-    // IMPORTANT TODO: May be deleted, don't need this currently
-    // socketService.onPlayerReadyUpdated((data) => {
-    //   setCurrentRoom(data.room);
-    // });
 
     socketService.onGameStarted(async (data) => {
       console.log("Game started!");
@@ -635,20 +655,6 @@ const MultiplayerLobby = () => {
     });
   };
 
-  // ----- Toggle Ready -----
-  // IMPORTANT TODO: May be deleted, don't need this currently
-  // const toggleReady = () => {
-  //   if (roomInfo && currentRoom) {
-  //     const playerId = currentRoom.players.find(
-  //       (p) => p.socketId === socketService.getSocketId()
-  //     )?.id;
-  //     if (playerId) {
-  //       socketService.togglePlayerReady(roomInfo.roomId, playerId);
-  //       setIsReady(!isReady);
-  //     }
-  //   }
-  // };
-
   // ----- Start Game -----
   const startGame = async () => {
     if (
@@ -656,18 +662,18 @@ const MultiplayerLobby = () => {
       currentRoom &&
       roomInfo.selectedCategory
     ) {
-      // Check that all players are ready
-      // IMPORTANT TODO: May be deleted, don't need this currently
-      // const allReady = currentRoom.players.every((p) => p.isReady);
-      // if (!allReady) {
-      //   setShowWarningAlert(true);
-      //   return;
-      // }
-
       try {
         console.log("Starting quiz generation...");
         setIsGeneratingQuestions(true);
         setShowLocalLoader(true);
+        
+        // Emit loading state to all players
+        if (roomInfo.isHost && roomInfo.roomId) {
+          socketService.emit("loading-state-changed", { 
+            roomId: roomInfo.roomId,
+            isLoading: true
+          });
+        }
         
         // If user is host, sync quiz settings with all players
         if (roomInfo.isHost && roomInfo.roomId) {
@@ -686,6 +692,13 @@ const MultiplayerLobby = () => {
           setShowErrorAlert(true);
           setShowLocalLoader(false);
           setIsGeneratingQuestions(false);
+          // Update other players that loading is done (with error)
+          if (roomInfo.isHost && roomInfo.roomId) {
+            socketService.emit("loading-state-changed", { 
+              roomId: roomInfo.roomId,
+              isLoading: false
+            });
+          }
           return;
         }
 
@@ -707,11 +720,16 @@ const MultiplayerLobby = () => {
           setShowErrorAlert(true);
           setShowLocalLoader(false);
           setIsGeneratingQuestions(false);
+          // Update other players that loading is done (with error)
+          if (roomInfo.isHost && roomInfo.roomId) {
+            socketService.emit("loading-state-changed", { 
+              roomId: roomInfo.roomId,
+              isLoading: false
+            });
+          }
           return;
         }
 
-        // IMPORTANT DONE IN COUNTDOWN Transform questions to socket format
-        // const socketQuestions = transformQuestionsForSocket(fetchedQuestions);
         setShowLocalLoader(false);
         setIsGeneratingQuestions(false);
         setGameStarted(true); // Stop room refresh when game starts
@@ -727,15 +745,35 @@ const MultiplayerLobby = () => {
           }
         }
         
-        // IMPORTANT COUNTDOWN
+        // COUNTDOWN
         setShowCountdown(true);
-        // socketService.startGame(roomInfo.roomId, socketQuestions);
+        
+        // Emit countdown state to all players
+        if (roomInfo.isHost && roomInfo.roomId) {
+          socketService.emit("loading-state-changed", { 
+            roomId: roomInfo.roomId,
+            isLoading: false
+          });
+          
+          socketService.emit("countdown-state-changed", { 
+            roomId: roomInfo.roomId,
+            showCountdown: true
+          });
+        }
       } catch (error) {
         console.error("Error starting game:", error);
         setErrorMessage("Failed to start the game");
         setShowErrorAlert(true);
         setShowLocalLoader(false);
         setIsGeneratingQuestions(false);
+        
+        // Update other players that loading is done (with error)
+        if (roomInfo?.isHost && roomInfo?.roomId) {
+          socketService.emit("loading-state-changed", { 
+            roomId: roomInfo.roomId,
+            isLoading: false
+          });
+        }
       }
     }
   };
@@ -744,6 +782,15 @@ const MultiplayerLobby = () => {
   const handleCountdownComplete = () => {
     setShowCountdown(false);
     setIsGeneratingQuestions(false);
+    
+    // Emit countdown state to all players
+    if (roomInfo?.isHost && roomInfo?.roomId) {
+      socketService.emit("countdown-state-changed", { 
+        roomId: roomInfo.roomId,
+        showCountdown: false
+      });
+    }
+    
     if (roomInfo && roomInfo.roomId && questionsData) {
       // Start the game with the questions
       const socketQuestions = transformQuestionsForSocket(questionsData);
@@ -883,6 +930,7 @@ const MultiplayerLobby = () => {
         socketService.disconnect();
         // Clear cache for current room
         saveDataToCache(CACHE_KEY.currentRoom, null);
+        clearCacheData(CACHE_KEY.quizSettings)
         // Remove all sent invitations
         handleRemoveAllInvites();
         router.push("/(tabs)/play");
@@ -934,8 +982,6 @@ const MultiplayerLobby = () => {
             type: "player" as const,
             id: player.id,
             name: displayName,
-            // IMPORTANT TODO: May be deleted, don't need this currently
-            // isReady: player.isReady,
             isHost,
             data: player,
           };
@@ -1083,11 +1129,10 @@ const MultiplayerLobby = () => {
         </View>
       </ScrollView>
 
-{/* IMPORTANT TODO: May be deleted, don't need this currently */}
       <View style={styles.buttonContainer}>
         {!roomInfo.isAdmin && (
           <ButtonSecondary
-            text={"Waiting admin bear..."}
+            text={"Waiting for admin bear..."}
             disabled
           />
         )}
@@ -1129,18 +1174,6 @@ const MultiplayerLobby = () => {
         onConfirm={handleErrorAlertClose}
         noInternet={false}
       />
-
-{/* IMPORTANT TODO: May be deleted, don't need this currently */}
-      {/* <CustomAlert
-        visible={showWarningAlert}
-        title="Warning"
-        message="Not all players are ready for the game"
-        onClose={handleWarningAlertClose}
-        cancelText={null}
-        confirmText="OK"
-        onConfirm={handleWarningAlertClose}
-        noInternet={false}
-      /> */}
 
       <CustomAlert
         visible={showCancelRoomAlert}
@@ -1200,9 +1233,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: Gaps.g16,
   },
-  // playersList: {
-  //   maxHeight: 200,
-  // },
   playerItem: {
     flexDirection: "row",
     justifyContent: "space-between",

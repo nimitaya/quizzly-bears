@@ -380,7 +380,26 @@ class SocketService {
         `[SocketService] Sending room state request for room: ${roomId}`
       );
     }
+    // DEBUG TODO
+    console.log("--------------SONJA TEST CLIENT REQUEST", roomId);
+    console.log(`Socket connected status: ${this.isConnected()}`);
+    console.log(`Socket ID: ${this.getSocketId()}`);
+    console.log(`Socket URL: ${SOCKET_URL}`);
+    
+    // Add a direct error listener to catch any errors
+    const errorListener = (error: any) => {
+      console.error("Socket error during room state request:", error);
+      this.off("error", errorListener);
+    };
+    this.on("error", errorListener);
+    
     this.emit("get-room-state", { roomId });
+    
+    // Debug: check if the response is received
+    const debugTimeout = setTimeout(() => {
+      console.log(`No room state response received for roomId: ${roomId} after 3 seconds`);
+      this.off("error", errorListener);
+    }, 3000);
   }
 
   // Method to mark a room as having started a game (to prevent further state requests)
@@ -401,9 +420,9 @@ class SocketService {
     this.emit("leave-room", { roomId, playerId });
   }
 
-  togglePlayerReady(roomId: string, playerId: string) {
-    this.emit("player-ready", { roomId, playerId });
-  }
+  // togglePlayerReady(roomId: string, playerId: string) {
+  //   this.emit("player-ready", { roomId, playerId });
+  // }
 
   startGame(roomId: string, questions: QuizQuestion[]) {
     this.emit("start-game", { roomId, questions });
@@ -456,7 +475,10 @@ class SocketService {
   // Universal methods for working with events
   emit(event: string, data?: any) {
     if (this.socket) {
+      console.log(`Emitting event: ${event}`, data);
       this.socket.emit(event, data);
+    } else {
+      console.error(`Cannot emit ${event} - socket is null`);
     }
   }
 
@@ -521,7 +543,11 @@ class SocketService {
   }
 
   onRoomStateUpdated(callback: (data: { room: QuizRoom }) => void) {
-    this.on("room-state-updated", callback);
+    const wrappedCallback = (data: { room: QuizRoom }) => {
+      console.log("--------------SONJA TEST CLIENT RESPONSE", data.room?.id);
+      callback(data);
+    };
+    this.on("room-state-updated", wrappedCallback);
   }
 
   onPlayerLeft(
@@ -578,6 +604,16 @@ class SocketService {
 
   onShowStartQuiz(callback: (data: { room: QuizRoom }) => void) {
     this.on("show-start-quiz", callback);
+  }
+  
+   // Listen for changes in loading state (when host is generating questions)
+  onLoadingStateChanged(callback: (data: { roomId: string; isLoading: boolean }) => void) {
+    this.on("loading-state-changed", callback);
+  }
+
+  // Listen for changes in countdown state (when host starts the countdown)
+  onCountdownStateChanged(callback: (data: { roomId: string; showCountdown: boolean }) => void) {
+    this.on("countdown-state-changed", callback);
   }
 
   onQuestion(
@@ -658,6 +694,7 @@ class SocketService {
     });
   }
 
+
   // Notify server that user is online
   setUserOnline(userId: string, clerkUserId: string): void {
     if (this.socket?.connected) {
@@ -685,6 +722,26 @@ class SocketService {
     callback: (data: { friendId: string; isOnline: boolean }) => void
   ): void {
     this.on("friend-status-changed", callback);
+
+  // IMPORTANT Test method to debug socket connection
+  testSocketConnection(): void {
+    console.log("Testing socket connection...");
+    console.log(`Socket connected: ${this.isConnected()}`);
+    console.log(`Socket ID: ${this.getSocketId()}`);
+    
+    // Set up a one-time listener for the test response
+    this.socket?.once("test-response", (data) => {
+      console.log("Test response received from server:", data);
+    });
+    
+    // Emit test event
+    this.emit("test-event", { message: "This is a test" });
+    
+    // Check for response after a short delay
+    setTimeout(() => {
+      console.log("Checking if test response was received...");
+    }, 1000);
+
   }
 }
 

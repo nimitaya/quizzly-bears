@@ -236,21 +236,33 @@ io.on("connection", (socket) => {
 
   // Get current room state
   socket.on("get-room-state", (data: { roomId: string }) => {
-    console.log(`Room state request for room ${data.roomId}`);
-    const room = quizRooms.get(data.roomId);
+    try {
+      if (!data || !data.roomId) {
+        console.error("Invalid data format received:", data);
+        socket.emit("error", { message: "Invalid room data" });
+        return;
+      }
+      
+      const room = quizRooms.get(data.roomId);
 
-    if (!room) {
-      socket.emit("error", { message: "Room not found" });
-      return;
+      if (!room) {
+        console.log(`Room ${data.roomId} not found. Available rooms: ${[...quizRooms.keys()]}`);
+        socket.emit("error", { message: "Room not found" });
+        return;
+      }
+      
+      console.log(`Sending room state for ${data.roomId} with ${room.players.length} players`);
+      room.players.forEach((p: any, index: number) => {
+        console.log(`Player ${index + 1}: ${p.name}, Language: ${p.language}, ID: ${p.id}`);
+      });
+
+      // Send current room state
+      socket.emit("room-state-updated", { room });
+      console.log(`Room state sent to socket ${socket.id}`);
+    } catch (err) {
+      console.error("Error handling get-room-state event:", err);
+      socket.emit("error", { message: "Server error processing room state" });
     }
-
-    console.log(`Sending room state for ${data.roomId} with ${room.players.length} players`);
-    room.players.forEach((p, index) => {
-      console.log(`Player ${index + 1}: ${p.name}, Language: ${p.language}, ID: ${p.id}`);
-    });
-
-    // Send current room state
-    socket.emit("room-state-updated", { room });
   });
 
   // Player ready status
@@ -293,15 +305,6 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // Check that all players are ready
-    // IMPORTANT TODO: May be deleted, don't need this currently
-    // const allReady = room.players.every((p) => p.isReady);
-    // console.log(`All players ready: ${allReady}`);
-    // if (!allReady) {
-    //   socket.emit("error", { message: "Not all players are ready" });
-    //   return;
-    // }
-
     room.isStarted = true;
     room.currentQuestion = 0;
     room.questions = data.questions;
@@ -328,17 +331,36 @@ io.on("connection", (socket) => {
   // Sync quiz settings from host to all players
   socket.on("sync-quiz-settings", (data: { roomId: string; quizSettings: any }) => {
     const room = quizRooms.get(data.roomId);
-    if (!room || room.hostSocketId !== socket.id) {
-      console.log(`Unauthorized quiz settings sync attempt from non-host: ${socket.id}`);
-      return;
+    if (room) {
+      io.to(data.roomId).emit("sync-quiz-settings", {
+        roomId: data.roomId,
+        quizSettings: data.quizSettings,
+      });
     }
-    
-    console.log(`Quiz settings synced from host in room ${data.roomId}:`, data.quizSettings);
-    // Send quiz settings to all players in the room
-    io.to(data.roomId).emit("quiz-settings-sync", { quizSettings: data.quizSettings });
   });
 
-  // Send next question
+  // Handle loading state changes
+  socket.on("loading-state-changed", (data: { roomId: string; isLoading: boolean }) => {
+    const room = quizRooms.get(data.roomId);
+    if (room) {
+      io.to(data.roomId).emit("loading-state-changed", {
+        roomId: data.roomId,
+        isLoading: data.isLoading,
+      });
+    }
+  });
+
+  // Handle countdown state changes
+  socket.on("countdown-state-changed", (data: { roomId: string; showCountdown: boolean }) => {
+    const room = quizRooms.get(data.roomId);
+    if (room) {
+      io.to(data.roomId).emit("countdown-state-changed", {
+        roomId: data.roomId,
+        showCountdown: data.showCountdown,
+      });
+    }
+  });
+
   socket.on("next-question", (data: { roomId: string }) => {
     const room = quizRooms.get(data.roomId);
     if (!room) {
@@ -621,6 +643,7 @@ io.on("connection", (socket) => {
     }
   });
 });
+// =======================
 
 // Helper functions
 function generateRoomId(): string {
