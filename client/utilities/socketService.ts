@@ -657,6 +657,35 @@ class SocketService {
       });
     });
   }
+
+  // Notify server that user is online
+  setUserOnline(userId: string, clerkUserId: string): void {
+    if (this.socket?.connected) {
+      this.socket.emit("user-online", { userId, clerkUserId });
+      console.log("Emitted user-online event");
+    } else {
+      console.warn("Socket not connected, can't set user online");
+    }
+  }
+
+  // Get online status of friends
+  getFriendsStatus(userId: string, friendIds: string[]): void {
+    if (this.socket?.connected) {
+      this.socket.emit("get-friends-status", { userId, friendIds });
+    }
+  }
+
+  // Listen for friends status
+  onFriendsStatus(callback: (data: { onlineFriends: string[] }) => void): void {
+    this.on("friends-status", callback);
+  }
+
+  // Listen for friend status changes
+  onFriendStatusChanged(
+    callback: (data: { friendId: string; isOnline: boolean }) => void
+  ): void {
+    this.on("friend-status-changed", callback);
+  }
 }
 
 // Export singleton
