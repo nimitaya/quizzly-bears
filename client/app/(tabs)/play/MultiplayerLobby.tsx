@@ -967,7 +967,7 @@ const MultiplayerLobby = () => {
       if (playerId) {
         socketService.leaveRoom(roomInfo.roomId, playerId);
       }
-      socketService.disconnect();
+      // socketService.disconnect();
       // Clear cache for current room
       saveDataToCache(CACHE_KEY.currentRoom, null);
       // Remove all sent invitations
@@ -995,7 +995,7 @@ const MultiplayerLobby = () => {
         setGameStarted(true);
 
         socketService.leaveRoom(roomInfo.roomId, playerId);
-        socketService.disconnect();
+        // socketService.disconnect();
         // Clear cache for current room
         saveDataToCache(CACHE_KEY.currentRoom, null);
         clearCacheData(CACHE_KEY.quizSettings);
