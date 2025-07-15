@@ -16,6 +16,7 @@ import {
   loadCacheData,
   saveDataToCache,
   CACHE_KEY,
+  clearCacheData,
 } from "@/utilities/cacheUtils";
 import CustomAlert from "@/components/CustomAlert";
 import { InviteRequest } from "@/utilities/invitationInterfaces";
@@ -277,6 +278,18 @@ const MultiplayerLobby = () => {
       }
     }
   }, [currentLanguage, roomInfo, currentRoom]);
+
+// Add a dedicated useEffect for category changes
+useEffect(() => {
+  if (roomInfo?.isAdmin && roomInfo.selectedCategory && roomInfo.roomId && socketService.isConnected()) {
+    console.log("Admin broadcasting category change to all players:", roomInfo.selectedCategory);
+    socketService.emit("categoryChanged", {
+      roomId: roomInfo.roomId,
+      newCategory: roomInfo.selectedCategory,
+      newTopic: roomInfo.selectedTopic || roomInfo.selectedCategory
+    });
+  }
+}, [roomInfo?.selectedCategory, roomInfo?.selectedTopic]);
 
   // ========================== Socket Functions ==========================
   // ----- Load Room Info -----
@@ -834,6 +847,7 @@ const MultiplayerLobby = () => {
         socketService.disconnect();
         // Clear cache for current room
         saveDataToCache(CACHE_KEY.currentRoom, null);
+        clearCacheData(CACHE_KEY.quizSettings)
         // Remove all sent invitations
         handleRemoveAllInvites();
         router.push("/(tabs)/play");
@@ -1136,9 +1150,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: Gaps.g16,
   },
-  // playersList: {
-  //   maxHeight: 200,
-  // },
   playerItem: {
     flexDirection: "row",
     justifyContent: "space-between",
