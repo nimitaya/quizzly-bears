@@ -380,11 +380,6 @@ class SocketService {
         `[SocketService] Sending room state request for room: ${roomId}`
       );
     }
-    // DEBUG TODO
-    console.log("--------------SONJA TEST CLIENT REQUEST", roomId);
-    console.log(`Socket connected status: ${this.isConnected()}`);
-    console.log(`Socket ID: ${this.getSocketId()}`);
-    console.log(`Socket URL: ${SOCKET_URL}`);
     
     // Add a direct error listener to catch any errors
     const errorListener = (error: any) => {
@@ -692,56 +687,6 @@ class SocketService {
         this.socket?.on(event, callback as any);
       });
     });
-  }
-
-
-  // Notify server that user is online
-  setUserOnline(userId: string, clerkUserId: string): void {
-    if (this.socket?.connected) {
-      this.socket.emit("user-online", { userId, clerkUserId });
-      console.log("Emitted user-online event");
-    } else {
-      console.warn("Socket not connected, can't set user online");
-    }
-  }
-
-  // Get online status of friends
-  getFriendsStatus(userId: string, friendIds: string[]): void {
-    if (this.socket?.connected) {
-      this.socket.emit("get-friends-status", { userId, friendIds });
-    }
-  }
-
-  // Listen for friends status
-  onFriendsStatus(callback: (data: { onlineFriends: string[] }) => void): void {
-    this.on("friends-status", callback);
-  }
-
-  // Listen for friend status changes
-  onFriendStatusChanged(
-    callback: (data: { friendId: string; isOnline: boolean }) => void
-  ): void {
-    this.on("friend-status-changed", callback);
-
-  // IMPORTANT Test method to debug socket connection
-  testSocketConnection(): void {
-    console.log("Testing socket connection...");
-    console.log(`Socket connected: ${this.isConnected()}`);
-    console.log(`Socket ID: ${this.getSocketId()}`);
-    
-    // Set up a one-time listener for the test response
-    this.socket?.once("test-response", (data) => {
-      console.log("Test response received from server:", data);
-    });
-    
-    // Emit test event
-    this.emit("test-event", { message: "This is a test" });
-    
-    // Check for response after a short delay
-    setTimeout(() => {
-      console.log("Checking if test response was received...");
-    }, 1000);
-
   }
 }
 

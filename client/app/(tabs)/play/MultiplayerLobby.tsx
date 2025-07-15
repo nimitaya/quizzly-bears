@@ -38,7 +38,7 @@ import QuizLoader from "@/components/QuizLoader";
 interface RoomInfo {
   roomId: string;
   room: QuizRoom;
-  languages: string[]
+  languages: string[];
   questions?: any[];
   isHost: boolean;
   isAdmin?: boolean;
@@ -78,10 +78,10 @@ const MultiplayerLobby = () => {
 
   // Questions data
   const [questionsData, setQuestionsData] = useState<any>(null);
-  
+
   // Rejoin state to prevent loops
   const [isRejoining, setIsRejoining] = useState(false);
-  
+
   // Game state to control refresh
   const [gameStarted, setGameStarted] = useState(false);
 
@@ -89,24 +89,27 @@ const MultiplayerLobby = () => {
   // ----- Collect all unique languages from players -----
   const collectAllLanguages = (room: QuizRoom) => {
     const languages = room.players
-      .map(player => player.language)
+      .map((player) => player.language)
       .filter((lang): lang is string => lang !== undefined && lang !== null)
       .filter((lang, index, arr) => arr.indexOf(lang) === index); // Remove duplicates
-    
+
     setAllLanguages(languages);
-    
+
     // Update roomInfo with the collected languages
-    if (roomInfo && (!roomInfo.languages || !arraysEqual(roomInfo.languages, languages))) {
+    if (
+      roomInfo &&
+      (!roomInfo.languages || !arraysEqual(roomInfo.languages, languages))
+    ) {
       const updatedRoomInfo = {
         ...roomInfo,
-        languages: languages
+        languages: languages,
       };
       setRoomInfo(updatedRoomInfo);
       // Save to cache
       saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
     }
   };
-  
+
   // Helper function to compare arrays for equality
   const arraysEqual = (a: string[], b: string[]) => {
     if (a.length !== b.length) return false;
@@ -173,20 +176,26 @@ const MultiplayerLobby = () => {
       const updatedRoomInfo = await loadCacheData(CACHE_KEY.currentRoom);
       if (updatedRoomInfo) {
         // Check if category or topic has changed
-        if (updatedRoomInfo.selectedCategory !== roomInfo?.selectedCategory ||
-            updatedRoomInfo.selectedTopic !== roomInfo?.selectedTopic) {
-          console.log("Category/topic updated from cache:", 
-            updatedRoomInfo.selectedCategory, 
-            updatedRoomInfo.selectedTopic);
+        if (
+          updatedRoomInfo.selectedCategory !== roomInfo?.selectedCategory ||
+          updatedRoomInfo.selectedTopic !== roomInfo?.selectedTopic
+        ) {
+          console.log(
+            "Category/topic updated from cache:",
+            updatedRoomInfo.selectedCategory,
+            updatedRoomInfo.selectedTopic
+          );
           setRoomInfo(updatedRoomInfo);
         }
-        
+
         // If we're missing category info but the host has already selected it,
         // request the room state to get the latest info
-        if (!roomInfo?.selectedCategory && 
-            socketService.isConnected() && 
-            roomInfo?.roomId && 
-            !isRejoining) {
+        if (
+          !roomInfo?.selectedCategory &&
+          socketService.isConnected() &&
+          roomInfo?.roomId &&
+          !isRejoining
+        ) {
           socketService.requestRoomState(roomInfo.roomId);
         }
       }
@@ -196,19 +205,19 @@ const MultiplayerLobby = () => {
     if (!roomRefreshIntervalRef.current) {
       roomRefreshIntervalRef.current = setInterval(() => {
         // Only request room state if not in game and connected
-        if (roomInfo?.roomId && 
-            socketService.isConnected() && 
-            !isRejoining && 
-            !gameStarted && 
-            !socketService.isRoomGameStarted(roomInfo.roomId)) {
-          
-          // Debugging
-          console.log("[MultiplayerLobby] Requesting room state for:", roomInfo.roomId);
-          
+        if (
+          roomInfo?.roomId &&
+          socketService.isConnected() &&
+          !isRejoining &&
+          !gameStarted &&
+          !socketService.isRoomGameStarted(roomInfo.roomId)
+        ) {
           socketService.requestRoomState(roomInfo.roomId);
-        } else if (roomInfo?.roomId && (gameStarted || socketService.isRoomGameStarted(roomInfo.roomId))) {
+        } else if (
+          roomInfo?.roomId &&
+          (gameStarted || socketService.isRoomGameStarted(roomInfo.roomId))
+        ) {
           // If game has started, clear the interval
-          console.log("[MultiplayerLobby] Game detected as started, clearing refresh interval");
           if (roomRefreshIntervalRef.current) {
             clearInterval(roomRefreshIntervalRef.current);
             roomRefreshIntervalRef.current = null;
@@ -241,9 +250,17 @@ const MultiplayerLobby = () => {
 
   // Watch for userData changes and attempt to rejoin if needed
   useEffect(() => {
-    if (userData && roomInfo && !currentRoom && !socketService.isConnected() && !isRejoining) {
+    if (
+      userData &&
+      roomInfo &&
+      !currentRoom &&
+      !socketService.isConnected() &&
+      !isRejoining
+    ) {
       // Only rejoin if socket is not connected, we don't have current room data, and we're not already rejoining
-      console.log("UserData available, socket disconnected, attempting to rejoin room");
+      console.log(
+        "UserData available, socket disconnected, attempting to rejoin room"
+      );
       loadRoomInfo();
     }
   }, [userData, isRejoining]);
@@ -253,7 +270,7 @@ const MultiplayerLobby = () => {
     if (roomInfo && allLanguages.length > 0) {
       const updatedRoomInfo = {
         ...roomInfo,
-        languages: allLanguages
+        languages: allLanguages,
       };
       setRoomInfo(updatedRoomInfo);
       saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
@@ -267,31 +284,38 @@ const MultiplayerLobby = () => {
       const currentPlayer = currentRoom.players.find(
         (p) => p.socketId === socketService.getSocketId()
       );
-      
+
       if (currentPlayer && currentPlayer.language !== currentLanguage.code) {
         // Emit language update to server through rejoin-room event
         socketService.rejoinRoom(
-          roomInfo.roomId, 
-          userData?.clerkUserId || currentPlayer.id, 
-          userData?.username || currentPlayer.name, 
+          roomInfo.roomId,
+          userData?.clerkUserId || currentPlayer.id,
+          userData?.username || currentPlayer.name,
           currentLanguage.code
         );
-        console.log(`Player ${currentPlayer.name} language changed to ${currentLanguage.code}`);
       }
     }
   }, [currentLanguage, roomInfo, currentRoom]);
 
-// Add a dedicated useEffect for category changes
-useEffect(() => {
-  if (roomInfo?.isAdmin && roomInfo.selectedCategory && roomInfo.roomId && socketService.isConnected()) {
-    console.log("Admin broadcasting category change to all players:", roomInfo.selectedCategory);
-    socketService.emit("categoryChanged", {
-      roomId: roomInfo.roomId,
-      newCategory: roomInfo.selectedCategory,
-      newTopic: roomInfo.selectedTopic || roomInfo.selectedCategory
-    });
-  }
-}, [roomInfo?.selectedCategory, roomInfo?.selectedTopic]);
+  // Add a dedicated useEffect for category changes
+  useEffect(() => {
+    if (
+      roomInfo?.isAdmin &&
+      roomInfo.selectedCategory &&
+      roomInfo.roomId &&
+      socketService.isConnected()
+    ) {
+      console.log(
+        "Admin broadcasting category change to all players:",
+        roomInfo.selectedCategory
+      );
+      socketService.emit("categoryChanged", {
+        roomId: roomInfo.roomId,
+        newCategory: roomInfo.selectedCategory,
+        newTopic: roomInfo.selectedTopic || roomInfo.selectedCategory,
+      });
+    }
+  }, [roomInfo?.selectedCategory, roomInfo?.selectedTopic]);
 
   // ========================== Socket Functions ==========================
   // ----- Load Room Info -----
@@ -300,29 +324,36 @@ useEffect(() => {
       const cachedRoomInfo = await loadCacheData(CACHE_KEY.currentRoom);
       if (cachedRoomInfo) {
         setRoomInfo(cachedRoomInfo);
-        
+
         // Check if we need to rejoin or if we can use cached data
         const shouldRejoin = userData && cachedRoomInfo.roomId && !isRejoining;
-        
+
         if (shouldRejoin) {
           const playerId = userData.clerkUserId;
           const playerName = userData.username || userData.email.split("@")[0];
           const language = currentLanguage?.code;
-          
+
           // Check if we're already connected and have current room data
-          if (socketService.isConnected() && cachedRoomInfo.room && cachedRoomInfo.room.players) {
+          if (
+            socketService.isConnected() &&
+            cachedRoomInfo.room &&
+            cachedRoomInfo.room.players
+          ) {
             const currentPlayer = cachedRoomInfo.room.players.find(
               (p: Player) => p.id === playerId
             );
-            if (currentPlayer && currentPlayer.socketId === socketService.getSocketId()) {
+            if (
+              currentPlayer &&
+              currentPlayer.socketId === socketService.getSocketId()
+            ) {
               setCurrentRoom(cachedRoomInfo.room);
               collectAllLanguages(cachedRoomInfo.room);
               return;
             }
           }
-          
+
           setIsRejoining(true);
-          
+
           // Set a timeout to reset rejoin state if no response
           const rejoinTimeout = setTimeout(() => {
             setIsRejoining(false);
@@ -331,10 +362,10 @@ useEffect(() => {
               collectAllLanguages(cachedRoomInfo.room);
             }
           }, 5000); // 5 second timeout
-          
+
           // Store timeout ID so we can clear it if rejoin succeeds
           (window as any).rejoinTimeout = rejoinTimeout;
-          
+
           // Ensure socket is connected before rejoining
           if (!socketService.isConnected()) {
             try {
@@ -347,8 +378,13 @@ useEffect(() => {
               return;
             }
           }
-          
-          socketService.rejoinRoom(cachedRoomInfo.roomId, playerId, playerName, language);
+
+          socketService.rejoinRoom(
+            cachedRoomInfo.roomId,
+            playerId,
+            playerName,
+            language
+          );
         } else {
           // No need to rejoin, use cached data
           setCurrentRoom(cachedRoomInfo.room);
@@ -367,22 +403,22 @@ useEffect(() => {
   const setupSocketListeners = () => {
     socketService.onRoomJoined((data) => {
       console.log("Room joined/rejoined successfully");
-      
+
       // Clear rejoin timeout if it exists
       if ((window as any).rejoinTimeout) {
         clearTimeout((window as any).rejoinTimeout);
         (window as any).rejoinTimeout = null;
       }
-      
+
       setCurrentRoom(data.room);
       collectAllLanguages(data.room);
       setIsRejoining(false); // Reset rejoin flag
-      
+
       // Update room info with latest room data
       if (roomInfo) {
         const updatedRoomInfo = {
           ...roomInfo,
-          room: data.room
+          room: data.room,
         };
         setRoomInfo(updatedRoomInfo);
         saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
@@ -390,68 +426,72 @@ useEffect(() => {
     });
 
     // Add a socket listener for category changes
-    socketService.on("categoryChanged", (data: {
-      roomId: string;
-      newCategory: string;
-      newTopic?: string;
-    }) => {
-      console.log("Category changed:", data);
-      if (data.newCategory && roomInfo && data.roomId === roomInfo.roomId) {
-        const updatedRoomInfo = {
-          ...roomInfo,
-          selectedCategory: data.newCategory,
-          selectedTopic: data.newTopic || data.newCategory
-        };
-        setRoomInfo(updatedRoomInfo);
-        saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
-        console.log("Updated room info with selected category:", data.newCategory);
-      }
-    });
-
-    // Add listeners for loading state and countdown
-    socketService.on("loading-state-changed", (data: {
-      roomId: string;
-      isLoading: boolean;
-    }) => {
-      console.log("Loading state changed:", data);
-      if (roomInfo && data.roomId === roomInfo.roomId && !roomInfo.isHost) {
-        // Only non-host players should react to this event
-        setIsGeneratingQuestions(data.isLoading);
-        setShowLocalLoader(data.isLoading);
-      }
-    });
-
-    socketService.on("countdown-state-changed", (data: {
-      roomId: string;
-      showCountdown: boolean;
-    }) => {
-      console.log("Countdown state changed:", data);
-      if (roomInfo && data.roomId === roomInfo.roomId && !roomInfo.isHost) {
-        // Only non-host players should react to this event
-        setShowCountdown(data.showCountdown);
-        // If countdown is hidden, reset loading state as well
-        if (!data.showCountdown) {
-          setIsGeneratingQuestions(false);
-          setShowLocalLoader(false);
+    socketService.on(
+      "categoryChanged",
+      (data: { roomId: string; newCategory: string; newTopic?: string }) => {
+        console.log("Category changed:", data);
+        if (data.newCategory && roomInfo && data.roomId === roomInfo.roomId) {
+          const updatedRoomInfo = {
+            ...roomInfo,
+            selectedCategory: data.newCategory,
+            selectedTopic: data.newTopic || data.newCategory,
+          };
+          setRoomInfo(updatedRoomInfo);
+          saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
+          console.log(
+            "Updated room info with selected category:",
+            data.newCategory
+          );
         }
       }
-    });
+    );
+
+    // Add listeners for loading state and countdown
+    socketService.on(
+      "loading-state-changed",
+      (data: { roomId: string; isLoading: boolean }) => {
+        console.log("Loading state changed:", data);
+        if (roomInfo && data.roomId === roomInfo.roomId && !roomInfo.isHost) {
+          // Only non-host players should react to this event
+          setIsGeneratingQuestions(data.isLoading);
+          setShowLocalLoader(data.isLoading);
+        }
+      }
+    );
+
+    socketService.on(
+      "countdown-state-changed",
+      (data: { roomId: string; showCountdown: boolean }) => {
+        console.log("Countdown state changed:", data);
+        if (roomInfo && data.roomId === roomInfo.roomId && !roomInfo.isHost) {
+          // Only non-host players should react to this event
+          setShowCountdown(data.showCountdown);
+          // If countdown is hidden, reset loading state as well
+          if (!data.showCountdown) {
+            setIsGeneratingQuestions(false);
+            setShowLocalLoader(false);
+          }
+        }
+      }
+    );
 
     socketService.onRoomStateUpdated((data) => {
       // Check if there are actual changes before updating state
-      const hasChanges = !currentRoom || 
+      const hasChanges =
+        !currentRoom ||
         currentRoom.players.length !== data.room.players.length ||
-        JSON.stringify(currentRoom.players) !== JSON.stringify(data.room.players);
-      
+        JSON.stringify(currentRoom.players) !==
+          JSON.stringify(data.room.players);
+
       if (hasChanges) {
         setCurrentRoom(data.room);
         collectAllLanguages(data.room);
-        
+
         // Update room info with latest room data
         if (roomInfo) {
           const updatedRoomInfo = {
             ...roomInfo,
-            room: data.room
+            room: data.room,
           };
           setRoomInfo(updatedRoomInfo);
           saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
@@ -463,17 +503,17 @@ useEffect(() => {
       console.log("Player joined:", data.player.name);
       setCurrentRoom(data.room);
       collectAllLanguages(data.room);
-      
+
       // If we're the host/admin and have selected a category, share it with the new player
       if (roomInfo?.isAdmin && roomInfo.selectedCategory && roomInfo.roomId) {
         console.log("Admin sharing category info with new player");
         socketService.emit("categoryChanged", {
           roomId: roomInfo.roomId,
           newCategory: roomInfo.selectedCategory,
-          newTopic: roomInfo.selectedTopic
+          newTopic: roomInfo.selectedTopic,
         });
       }
-      
+
       // Refresh invites when a player joins to update the filtered list
       fetchInvites();
     });
@@ -482,17 +522,17 @@ useEffect(() => {
       console.log("Player rejoined:", data.player.name);
       setCurrentRoom(data.room);
       collectAllLanguages(data.room);
-      
+
       // If we're the host/admin and have selected a category, share it with the rejoined player
       if (roomInfo?.isAdmin && roomInfo.selectedCategory && roomInfo.roomId) {
         console.log("Admin sharing category info with rejoined player");
         socketService.emit("categoryChanged", {
           roomId: roomInfo.roomId,
           newCategory: roomInfo.selectedCategory,
-          newTopic: roomInfo.selectedTopic
+          newTopic: roomInfo.selectedTopic,
         });
       }
-      
+
       // Refresh invites when a player rejoins
       fetchInvites();
     });
@@ -508,7 +548,7 @@ useEffect(() => {
     socketService.onGameStarted(async (data) => {
       console.log("Game started!");
       setGameStarted(true); // Stop room refresh when game starts
-      
+
       // Mark the room as started in the socket service to prevent further room state requests
       if (roomInfo?.roomId) {
         socketService.markRoomGameStarted(roomInfo.roomId);
@@ -517,34 +557,34 @@ useEffect(() => {
       // If we received questions from the server, cache them locally
       if (data.questions && data.questions.length > 0) {
         // Determine available languages from the room data if available
-        let availableLanguages: string[] = ['en']; // Always include English as default
-        
+        let availableLanguages: string[] = ["en"]; // Always include English as default
+
         // Extract languages from the room data if available
         if (data.room && data.room.players) {
           const languagesFromRoom = data.room.players
-            .map(player => player.language)
+            .map((player) => player.language)
             .filter((lang): lang is string => !!lang)
             .filter((lang, index, arr) => arr.indexOf(lang) === index); // Remove duplicates
-          
+
           if (languagesFromRoom.length > 0) {
             // Add any languages from the room that aren't already in our array
-            languagesFromRoom.forEach(lang => {
+            languagesFromRoom.forEach((lang) => {
               if (!availableLanguages.includes(lang)) {
                 availableLanguages.push(lang);
               }
             });
           }
         }
-        
+
         // Create a function to generate language-specific fields dynamically
         const createLanguageFields = (content: string) => {
           const fields: Record<string, string> = {};
-          
+
           // Add all detected languages with the content
-          availableLanguages.forEach(lang => {
+          availableLanguages.forEach((lang) => {
             fields[lang] = content; // Using the same content for all languages as fallback
           });
-          
+
           return fields;
         };
 
@@ -552,11 +592,12 @@ useEffect(() => {
         const transformedQuestions = {
           questionArray: data.questions.map((q: any) => {
             // Check if we have the new format (with multilingual support) TODO
-            const hasNewFormat = q.options && 
-                             q.options[0] && 
-                             typeof q.options[0] === 'object' && 
-                             q.options[0].content !== undefined;
-            
+            const hasNewFormat =
+              q.options &&
+              q.options[0] &&
+              typeof q.options[0] === "object" &&
+              q.options[0].content !== undefined;
+
             if (hasNewFormat) {
               // New format with multilingual support
               return {
@@ -619,7 +660,10 @@ useEffect(() => {
       console.log("Admin selected topic, showing StartQuizScreen");
       // Check if we already have the category information in roomInfo
       if (roomInfo?.selectedCategory) {
-        console.log("Already have category information:", roomInfo.selectedCategory);
+        console.log(
+          "Already have category information:",
+          roomInfo.selectedCategory
+        );
       }
       // Go to StartQuizScreen
       router.push("/(tabs)/play/StartQuizScreen");
@@ -635,13 +679,13 @@ useEffect(() => {
       console.error("Socket error:", error);
       setErrorMessage(error.message);
       setShowErrorAlert(true);
-      
+
       // Clear rejoin timeout if it exists
       if ((window as any).rejoinTimeout) {
         clearTimeout((window as any).rejoinTimeout);
         (window as any).rejoinTimeout = null;
       }
-      
+
       setIsRejoining(false); // Reset rejoin flag on error
     });
 
@@ -657,34 +701,30 @@ useEffect(() => {
 
   // ----- Start Game -----
   const startGame = async () => {
-    if (
-      roomInfo &&
-      currentRoom &&
-      roomInfo.selectedCategory
-    ) {
+    if (roomInfo && currentRoom && roomInfo.selectedCategory) {
       try {
         console.log("Starting quiz generation...");
         setIsGeneratingQuestions(true);
         setShowLocalLoader(true);
-        
+
         // Emit loading state to all players
         if (roomInfo.isHost && roomInfo.roomId) {
-          socketService.emit("loading-state-changed", { 
+          socketService.emit("loading-state-changed", {
             roomId: roomInfo.roomId,
-            isLoading: true
+            isLoading: true,
           });
         }
-        
+
         // If user is host, sync quiz settings with all players
         if (roomInfo.isHost && roomInfo.roomId) {
           await syncQuizSettings(roomInfo.roomId);
         }
-        
+
         // Load questions based on selected category
         const { loadCacheData } = await import("@/utilities/cacheUtils");
         const { generateMultiplayerQuestions } = await import(
           "@/utilities/api/quizApiGroup"
-        )
+        );
 
         const cachedQuizSpecs = await loadCacheData(CACHE_KEY.quizSettings);
         if (!cachedQuizSpecs) {
@@ -694,9 +734,9 @@ useEffect(() => {
           setIsGeneratingQuestions(false);
           // Update other players that loading is done (with error)
           if (roomInfo.isHost && roomInfo.roomId) {
-            socketService.emit("loading-state-changed", { 
+            socketService.emit("loading-state-changed", {
               roomId: roomInfo.roomId,
-              isLoading: false
+              isLoading: false,
             });
           }
           return;
@@ -712,7 +752,8 @@ useEffect(() => {
         setQuestionsData(fetchedQuestions);
         saveDataToCache(CACHE_KEY.aiQuestions, fetchedQuestions);
 
-        if (!fetchedQuestions ||
+        if (
+          !fetchedQuestions ||
           !fetchedQuestions.questionArray ||
           fetchedQuestions.questionArray.length === 0
         ) {
@@ -722,9 +763,9 @@ useEffect(() => {
           setIsGeneratingQuestions(false);
           // Update other players that loading is done (with error)
           if (roomInfo.isHost && roomInfo.roomId) {
-            socketService.emit("loading-state-changed", { 
+            socketService.emit("loading-state-changed", {
               roomId: roomInfo.roomId,
-              isLoading: false
+              isLoading: false,
             });
           }
           return;
@@ -733,31 +774,31 @@ useEffect(() => {
         setShowLocalLoader(false);
         setIsGeneratingQuestions(false);
         setGameStarted(true); // Stop room refresh when game starts
-        
+
         // Mark the room as started in the socket service to prevent further room state requests
         if (roomInfo?.roomId) {
           socketService.markRoomGameStarted(roomInfo.roomId);
-          
+
           // Clear any existing room refresh interval
           if (roomRefreshIntervalRef.current) {
             clearInterval(roomRefreshIntervalRef.current);
             roomRefreshIntervalRef.current = null;
           }
         }
-        
+
         // COUNTDOWN
         setShowCountdown(true);
-        
+
         // Emit countdown state to all players
         if (roomInfo.isHost && roomInfo.roomId) {
-          socketService.emit("loading-state-changed", { 
+          socketService.emit("loading-state-changed", {
             roomId: roomInfo.roomId,
-            isLoading: false
+            isLoading: false,
           });
-          
-          socketService.emit("countdown-state-changed", { 
+
+          socketService.emit("countdown-state-changed", {
             roomId: roomInfo.roomId,
-            showCountdown: true
+            showCountdown: true,
           });
         }
       } catch (error) {
@@ -766,12 +807,12 @@ useEffect(() => {
         setShowErrorAlert(true);
         setShowLocalLoader(false);
         setIsGeneratingQuestions(false);
-        
+
         // Update other players that loading is done (with error)
         if (roomInfo?.isHost && roomInfo?.roomId) {
-          socketService.emit("loading-state-changed", { 
+          socketService.emit("loading-state-changed", {
             roomId: roomInfo.roomId,
-            isLoading: false
+            isLoading: false,
           });
         }
       }
@@ -782,15 +823,15 @@ useEffect(() => {
   const handleCountdownComplete = () => {
     setShowCountdown(false);
     setIsGeneratingQuestions(false);
-    
+
     // Emit countdown state to all players
     if (roomInfo?.isHost && roomInfo?.roomId) {
-      socketService.emit("countdown-state-changed", { 
+      socketService.emit("countdown-state-changed", {
         roomId: roomInfo.roomId,
-        showCountdown: false
+        showCountdown: false,
       });
     }
-    
+
     if (roomInfo && roomInfo.roomId && questionsData) {
       // Start the game with the questions
       const socketQuestions = transformQuestionsForSocket(questionsData);
@@ -804,59 +845,63 @@ useEffect(() => {
 
   // ----- Transform questions to socket format -----
   const transformQuestionsForSocket = (questionsData: any) => {
-    return questionsData.questionArray.map(
-      (q: any, index: number) => {
-        // Find the correct answer by checking which option has isCorrect: true
-        const correctOption = [
-          q.optionA,
-          q.optionB,
-          q.optionC,
-          q.optionD,
-        ].find((option) => option.isCorrect);
-        
-        // Prepare localized questions with all available languages
-        // Extract isCorrect property and convert options to full localized format
-        const optionA = { ...q.optionA };
-        const optionB = { ...q.optionB };
-        const optionC = { ...q.optionC };
-        const optionD = { ...q.optionD };
-        
-        // Extract isCorrect from options for socket format
-        const isCorrectA = optionA.isCorrect || false;
-        const isCorrectB = optionB.isCorrect || false;
-        const isCorrectC = optionC.isCorrect || false;
-        const isCorrectD = optionD.isCorrect || false;
-        delete optionA.isCorrect;
-        delete optionB.isCorrect;
-        delete optionC.isCorrect;
-        delete optionD.isCorrect;
-        
-        // Get English versions for correctAnswer identification
-        const optionAEn = optionA.en || (typeof optionA === 'string' ? optionA : '');
-        const optionBEn = optionB.en || (typeof optionB === 'string' ? optionB : '');
-        const optionCEn = optionC.en || (typeof optionC === 'string' ? optionC : '');
-        const optionDEn = optionD.en || (typeof optionD === 'string' ? optionD : '');
+    return questionsData.questionArray.map((q: any, index: number) => {
+      // Find the correct answer by checking which option has isCorrect: true
+      const correctOption = [q.optionA, q.optionB, q.optionC, q.optionD].find(
+        (option) => option.isCorrect
+      );
 
-        return {
-          id: index.toString(),
-          question: q.question, // Send full localized question object
-          options: [
-            { content: optionA, isCorrect: isCorrectA },
-            { content: optionB, isCorrect: isCorrectB },
-            { content: optionC, isCorrect: isCorrectC },
-            { content: optionD, isCorrect: isCorrectD }
-          ],
-          // Keep English version for backward compatibility
-          correctAnswer: isCorrectA ? optionAEn : 
-                         isCorrectB ? optionBEn : 
-                         isCorrectC ? optionCEn : 
-                         isCorrectD ? optionDEn : "",
-          category: q.category || "general",
-          difficulty: "medium" as const,
-          timeLimit: 30,
-        };
-      }
-    );
+      // Prepare localized questions with all available languages
+      // Extract isCorrect property and convert options to full localized format
+      const optionA = { ...q.optionA };
+      const optionB = { ...q.optionB };
+      const optionC = { ...q.optionC };
+      const optionD = { ...q.optionD };
+
+      // Extract isCorrect from options for socket format
+      const isCorrectA = optionA.isCorrect || false;
+      const isCorrectB = optionB.isCorrect || false;
+      const isCorrectC = optionC.isCorrect || false;
+      const isCorrectD = optionD.isCorrect || false;
+      delete optionA.isCorrect;
+      delete optionB.isCorrect;
+      delete optionC.isCorrect;
+      delete optionD.isCorrect;
+
+      // Get English versions for correctAnswer identification
+      const optionAEn =
+        optionA.en || (typeof optionA === "string" ? optionA : "");
+      const optionBEn =
+        optionB.en || (typeof optionB === "string" ? optionB : "");
+      const optionCEn =
+        optionC.en || (typeof optionC === "string" ? optionC : "");
+      const optionDEn =
+        optionD.en || (typeof optionD === "string" ? optionD : "");
+
+      return {
+        id: index.toString(),
+        question: q.question, // Send full localized question object
+        options: [
+          { content: optionA, isCorrect: isCorrectA },
+          { content: optionB, isCorrect: isCorrectB },
+          { content: optionC, isCorrect: isCorrectC },
+          { content: optionD, isCorrect: isCorrectD },
+        ],
+        // Keep English version for backward compatibility
+        correctAnswer: isCorrectA
+          ? optionAEn
+          : isCorrectB
+          ? optionBEn
+          : isCorrectC
+          ? optionCEn
+          : isCorrectD
+          ? optionDEn
+          : "",
+        category: q.category || "general",
+        difficulty: "medium" as const,
+        timeLimit: 30,
+      };
+    });
   };
 
   // ----- Admin goes to select category/topic -----
@@ -886,16 +931,16 @@ useEffect(() => {
       const playerId = currentRoom.players.find(
         (p) => p.socketId === socketService.getSocketId()
       )?.id;
-      
+
       // Clear the room refresh interval to prevent further requests
       if (roomRefreshIntervalRef.current) {
         clearInterval(roomRefreshIntervalRef.current);
         roomRefreshIntervalRef.current = null;
       }
-      
+
       // Set gameStarted to true to prevent any new requestRoomState calls
       setGameStarted(true);
-      
+
       if (playerId) {
         socketService.leaveRoom(roomInfo.roomId, playerId);
       }
@@ -922,15 +967,15 @@ useEffect(() => {
           clearInterval(roomRefreshIntervalRef.current);
           roomRefreshIntervalRef.current = null;
         }
-        
+
         // Set gameStarted to true to prevent any new requestRoomState calls
         setGameStarted(true);
-        
+
         socketService.leaveRoom(roomInfo.roomId, playerId);
         socketService.disconnect();
         // Clear cache for current room
         saveDataToCache(CACHE_KEY.currentRoom, null);
-        clearCacheData(CACHE_KEY.quizSettings)
+        clearCacheData(CACHE_KEY.quizSettings);
         // Remove all sent invitations
         handleRemoveAllInvites();
         router.push("/(tabs)/play");
@@ -1109,7 +1154,7 @@ useEffect(() => {
         <Text style={styles.roomTitle}>{currentRoom.name}</Text>
         <Text style={styles.roomId}>Room ID: {roomInfo.roomId}</Text>
 
-{/* TODO SHOW after choosing topic. Needs to update with socket */}
+        {/* TODO SHOW after choosing topic. Needs to update with socket */}
         {roomInfo.selectedCategory && (
           <Text style={styles.selectedCategory}>
             Selected Topic:{" "}
@@ -1131,10 +1176,7 @@ useEffect(() => {
 
       <View style={styles.buttonContainer}>
         {!roomInfo.isAdmin && (
-          <ButtonSecondary
-            text={"Waiting for admin bear..."}
-            disabled
-          />
+          <ButtonSecondary text={"Waiting for admin bear..."} disabled />
         )}
 
         {roomInfo.isAdmin && !roomInfo.selectedCategory && (
@@ -1259,7 +1301,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: FontSizes.TextLargeFs,
     color: "#666",
-  }
+  },
 });
 
 export default MultiplayerLobby;
