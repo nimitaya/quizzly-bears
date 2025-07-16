@@ -49,14 +49,23 @@ const ProfilFriendsScreen = () => {
     sentFriendRequests: { friendRequests: [] },
   });
 
-
-  
+  useEffect(() => {
+    console.log("ProfileFriendsScreen mounted");
+    return () => console.log("ProfileFriendsScreen unmounted");
+  }, []);
 
   useEffect(() => {
-    console.log("🔍 Current userData:", userData);
-    console.log("🔍 ClerkUserId being used:", userData?.clerkUserId);
+    console.log(
+      "userData changed:",
+      userData
+        ? {
+            id: userData._id,
+            clerkId: userData.clerkUserId,
+            email: userData.email,
+          }
+        : "No userData"
+    );
   }, [userData]);
-
 
   // =========== Functions ==========
   // Handler Search User
@@ -178,12 +187,19 @@ const ProfilFriendsScreen = () => {
   }, [searchState.error]);
 
   useEffect(() => {
-    if (!userData) {
+    if (!userData?.clerkUserId) {
       return;
     }
-    // Fetch friends when the component mounts
+
+    console.log(
+      "Fetching friends data with clerkUserId:",
+      userData.clerkUserId
+    );
+
+    // Fetch friends when userData becomes available
     const fetchFriends = async () => {
       try {
+        setIsLoading(true); // Add loading state
         const clerkUserId = userData.clerkUserId;
 
         const friends = await getFriends(clerkUserId);
@@ -195,12 +211,20 @@ const ProfilFriendsScreen = () => {
           receivedFriendRequests: received,
           sentFriendRequests: sent,
         });
+        console.log("Friends data loaded:", {
+          friendCount: friends.friends.length,
+          receivedCount: received.friendRequests.length,
+          sentCount: sent.friendRequests.length,
+        });
       } catch (error) {
         console.error("Error fetching friends:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
+
     fetchFriends();
-  }, []);
+  }, [userData?.clerkUserId]); // Add userData as dependency
 
   useEffect(() => {
     if (!userData) return;
@@ -426,6 +450,40 @@ const ProfilFriendsScreen = () => {
               <Text style={styles.emptyText}>Invite someone over.</Text>
             </View>
           )}
+
+        {/* Refresh Button - Added manually */}
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={() => {
+            console.log("Manual refresh triggered");
+            if (userData?.clerkUserId) {
+              const fetchFriends = async () => {
+                try {
+                  setIsLoading(true);
+                  const clerkUserId = userData.clerkUserId;
+
+                  const friends = await getFriends(clerkUserId);
+                  const received = await getReceivedFriendRequests(clerkUserId);
+                  const sent = await getSentFriendRequests(clerkUserId);
+
+                  setFriendsState({
+                    friendList: friends,
+                    receivedFriendRequests: received,
+                    sentFriendRequests: sent,
+                  });
+                  console.log("Friends data refreshed manually");
+                } catch (error) {
+                  console.error("Error refreshing friends:", error);
+                } finally {
+                  setIsLoading(false);
+                }
+              };
+              fetchFriends();
+            }
+          }}
+        >
+          <Text style={styles.refreshButtonText}>Refresh Friends</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -500,5 +558,16 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FontSizes.TextLargeFs,
     textAlign: "center",
+  },
+  refreshButton: {
+    backgroundColor: Colors.black,
+    padding: Gaps.g8,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: Gaps.g24,
+  },
+  refreshButtonText: {
+    color: "white",
+    fontSize: FontSizes.TextMediumFs,
   },
 });
