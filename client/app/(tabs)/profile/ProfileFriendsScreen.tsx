@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.bgGray,
     paddingTop: Gaps.g80,
-    maxWidth: 440,
+    //maxWidth: 440,
     alignSelf: "center",
     width: "100%",
   },

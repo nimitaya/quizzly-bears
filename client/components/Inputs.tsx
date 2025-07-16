@@ -52,6 +52,9 @@ export function SearchFriendInput({
   onChangeText,
   ...props
 }: SearchFriendInputProps) {
+
+  const { width } = useWindowDimensions();
+  const inputWidth = Math.max(348, width - 48);
   const inputRef = useRef<string>(value || "");
 
   const handleChangeText = (text: string) => {
@@ -64,9 +67,14 @@ export function SearchFriendInput({
   };
 
   return (
-    <View style={styles.containerSearchFriend}>
+    <View
+      style={[
+        styles.containerSearchFriend,
+        { width: inputWidth, marginHorizontal: 16 },
+      ]}
+    >
       <TextInput
-        style={styles.inputSearchFriend}
+        style={[styles.inputSearchFriend, { flex: 1 }]}
         placeholderTextColor={Colors.disable}
         autoComplete="email"
         keyboardType="email-address"
@@ -137,12 +145,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   containerSearchFriend: {
-    width: "100%",
     alignSelf: "center",
     position: "relative",
     flexDirection: "row",
     alignItems: "center",
-    maxWidth: 348,
   },
   inputSearchFriend: {
     height: 56,
