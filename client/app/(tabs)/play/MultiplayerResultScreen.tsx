@@ -18,6 +18,7 @@ import {
   CACHE_KEY,
 } from "@/utilities/cacheUtils";
 import socketService, { Player } from "@/utilities/socketService";
+import { sendMedal } from "@/utilities/quiz-logic/medalsApi";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
 import IconClose from "@/assets/icons/IconClose";
 import IconMedal1PlaceWebp from "@/assets/icons-webp/IconMedal1PlaceWebp";
@@ -73,15 +74,43 @@ const MultiplayerResultScreen = () => {
   // ========== Functions ==========
   const handlePlayAgain = async () => {
     if (roomInfo && userData) {
+      //
+      try {
+        for (let i = 0; i < 3 && i < players.length; i++) {
+          const player = players[i];
+          await sendMedal({
+            clerkUserId: player.id,
+            place: i + 1,
+            roomId: roomInfo.roomId,
+          });
+        }
+      } catch (err) {
+        console.error("Error sending medals:", err);
+      }
       // Clear cache data except for the current room
       clearCacheData(CACHE_KEY.aiQuestions);
       // Signal readiness for another game
-      socketService.togglePlayerReady(roomInfo.roomId, userData.clerkUserId);
+      //socketService.togglePlayerReady(roomInfo.roomId, userData.clerkUserId);
       router.push("./MultiplayerLobby");
     }
   };
 
   const handleHome = async () => {
+    // Send medals for 1st, 2nd, 3rd place
+    if (roomInfo && players.length > 0) {
+      try {
+        for (let i = 0; i < 3 && i < players.length; i++) {
+          const player = players[i];
+          await sendMedal({
+            clerkUserId: player.id,
+            place: i + 1,
+            roomId: roomInfo.roomId,
+          });
+        }
+      } catch (err) {
+        console.error("Error sending medals:", err);
+      }
+    }
     // Clear all cache data
     clearCacheData(CACHE_KEY.aiQuestions);
     clearCacheData(CACHE_KEY.gameData);
