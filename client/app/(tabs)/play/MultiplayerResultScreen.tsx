@@ -18,6 +18,7 @@ import {
   CACHE_KEY,
 } from "@/utilities/cacheUtils";
 import socketService, { Player } from "@/utilities/socketService";
+import { sendMedal } from "@/utilities/quiz-logic/medalsApi";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
 import IconClose from "@/assets/icons/IconClose";
 import IconMedal1PlaceWebp from "@/assets/icons-webp/IconMedal1PlaceWebp";
@@ -71,32 +72,77 @@ const MultiplayerResultScreen = () => {
   }, []);
 
   // ========== Functions ==========
+
+  const [medalsSent, setMedalsSent] = useState(false);
+
+  const sendMedalsOnce = async () => {
+    // Medals sent only if room type is "group"
+    if (
+      !medalsSent &&
+      roomInfo &&
+      players.length > 0 &&
+      roomInfo.type === "group"
+    ) {
+      setMedalsSent(true);
+      try {
+        const awarded = new Set();
+        for (let i = 0; i < 3 && i < players.length; i++) {
+          const player = players[i];
+          if (!awarded.has(player.id)) {
+            await sendMedal({
+              clerkUserId: player.id,
+              place: i + 1,
+              roomId: roomInfo.roomId,
+            });
+            awarded.add(player.id);
+          }
+        }
+      } catch (err) {
+        console.error("Error sending medals:", err);
+      }
+    }
+    // OLD code
+    // if (!medalsSent && roomInfo && players.length > 0) {
+    //   setMedalsSent(true);
+    //   try {
+    //     const awarded = new Set();
+    //     for (let i = 0; i < 3 && i < players.length; i++) {
+    //       const player = players[i];
+    //       if (!awarded.has(player.id)) {
+    //         await sendMedal({
+    //           clerkUserId: player.id,
+    //           place: i + 1,
+    //           roomId: roomInfo.roomId,
+    //         });
+    //         awarded.add(player.id);
+    //       }
+    //     }
+    //   } catch (err) {
+    //     console.error("Error sending medals:", err);
+    //   }
+    // }
+  };
+
   const handlePlayAgain = async () => {
+    await sendMedalsOnce();
     if (roomInfo && userData) {
-      // Clear cache data except for the current room
       clearCacheData(CACHE_KEY.aiQuestions);
-      // Signal readiness for another game
-      socketService.togglePlayerReady(roomInfo.roomId, userData.clerkUserId);
       router.push("./MultiplayerLobby");
     }
   };
 
   const handleHome = async () => {
-    // Clear all cache data
+    await sendMedalsOnce();
     clearCacheData(CACHE_KEY.aiQuestions);
     clearCacheData(CACHE_KEY.gameData);
     clearCacheData(CACHE_KEY.quizSettings);
 
-    // Leave the socket room and wait for acknowledgment before navigating
     if (roomInfo && userData) {
-      // Add an event listener for room deletion confirmation
       const onRoomLeft = () => {
-        // Once we receive confirmation, navigate and clean up
         clearCacheData(CACHE_KEY.currentRoom);
         router.push("./");
       };
 
-      // Listen for error events that might occur when accessing a deleted room
       socketService.on("error", (data: { message: string }) => {
         if (data.message === "Room not found") {
           clearCacheData(CACHE_KEY.currentRoom);
@@ -104,25 +150,22 @@ const MultiplayerResultScreen = () => {
         }
       });
 
-      // First leave the room
       socketService.leaveRoom(roomInfo.roomId, userData.clerkUserId);
 
-      // Clean up listeners and navigate after a short delay
-      // This ensures server has time to process the leave-room event
       setTimeout(() => {
         socketService.off("error");
         clearCacheData(CACHE_KEY.currentRoom);
         router.push("./");
       }, 300);
     } else {
-      // If no room info, just navigate home
       router.push("./");
     }
   };
 
   // Render the trophy icon for top players (1st, 2nd, 3rd place)
-  //  ============================= IMPORTANT TODO Hier MARTINS Medallien einfügen!!!! ========================================
+  //Medals should be sent only for group rooms
   const renderTrophy = (index: number) => {
+    if (roomInfo?.type !== "group") return null;
     if (index === 0) {
       return <IconMedal1PlaceWebp />;
     } else if (index === 1) {
@@ -132,6 +175,17 @@ const MultiplayerResultScreen = () => {
     }
     return null;
   };
+  // OLD code for rendering trophies
+  // const renderTrophy = (index: number) => {
+  //   if (index === 0) {
+  //     return <IconMedal1PlaceWebp />;
+  //   } else if (index === 1) {
+  //     return <IconMedal2PlaceWebp />;
+  //   } else if (index === 2) {
+  //     return <IconMedal3PlaceWebp />;
+  //   }
+  //   return null;
+  // };
 
   return (
     <ScrollView
@@ -152,7 +206,9 @@ const MultiplayerResultScreen = () => {
 
       <Logo size="small" />
       <View style={styles.resultsContainer}>
-        <Text style={styles.title}>Quizzly Leaderboard</Text>
+        <Text style={styles.title}>
+          Cool! {players.length > 0 ? players[0].name : ""} win!
+        </Text>
 
         {isLoading ? (
           <Text style={styles.loadingText}>Loading results...</Text>
@@ -236,7 +292,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: FontSizes.H1Fs,
-    fontWeight: "bold",
     textAlign: "center",
     marginBottom: Gaps.g16,
   },
@@ -255,7 +310,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: Gaps.g24,
     padding: Gaps.g16,
-    marginBottom: Gaps.g16,
+    marginBottom: Gaps.g8,
   },
   playerRankRow: {
     flexDirection: "row",
@@ -284,7 +339,7 @@ const styles = StyleSheet.create({
 
   buttonsContainer: {
     gap: Gaps.g16,
-    marginTop: Gaps.g16,
+    marginTop: Gaps.g8,
     paddingBottom: Gaps.g40,
   },
 });

@@ -14,7 +14,7 @@ import IconAddFriend from "@/assets/icons/IconAddFriend";
 import { Logo } from "@/components/Logos";
 import { FontSizes, Gaps, Colors, Radius } from "@/styles/theme";
 import { useRouter } from "expo-router";
-import { SearchFriendInput } from "@/components/InputsTest";
+import { SearchFriendInput } from "@/components/Inputs";
 import {
   getFriends,
   getReceivedFriendRequests,
@@ -368,58 +368,59 @@ const ProfilFriendsScreen = () => {
         <IconArrowBack />
       </TouchableOpacity>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.logoContainer}>
-          <Logo size="small" />
-        </View>
+      <View style={styles.logoContainer}>
+        <Logo size="small" />
+      </View>
 
-        <Text style={styles.pageTitle}>Friends</Text>
+      <Text style={styles.pageTitle}>Friends</Text>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <SearchFriendInput
-            placeholder="e-mail..."
-            value={searchState.email}
-            onChangeText={(text: string) => {
-              setSearchState((prev) => ({ ...prev, email: text }));
-            }}
-            onSearch={(email) => handleSearchUser(email)}
-            clerkUserId={userData?.clerkUserId}
-          />
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <SearchFriendInput
+          placeholder="e-mail..."
+          value={searchState.email}
+          onChangeText={(text: string) => {
+            setSearchState((prev) => ({ ...prev, email: text }));
+          }}
+          onSearch={(email) => handleSearchUser(email)}
+          clerkUserId={userData?.clerkUserId}
+        />
 
-          {/* Fixed space for error message */}
-          <View style={styles.errorContainer}>
-            {searchState.error ? (
-              <Text style={styles.errorText}>{searchState.error}</Text>
-            ) : null}
-          </View>
-
-          {/* Search Result */}
-          {searchState.result ? (
-            <View style={styles.friendRow}>
-              <Text style={styles.friendName}>{searchState.result.email}</Text>
-              <View style={styles.actionButtons}>
-                <TouchableOpacity
-                  onPress={() =>
-                    searchState.result &&
-                    handleSendFriendRequest(searchState.result._id)
-                  }
-                  disabled={isLoading}
-                  style={styles.iconButton}
-                >
-                  <IconAddFriend />
-                </TouchableOpacity>
-              </View>
-            </View>
+        {/* Fixed space for error message */}
+        <View style={styles.errorContainer}>
+          {searchState.error ? (
+            <Text style={styles.errorText}>{searchState.error}</Text>
           ) : null}
         </View>
 
+        {/* Search Result */}
+        {searchState.result ? (
+          <View style={styles.friendRow}>
+            <Text style={styles.friendName}>{searchState.result.email}</Text>
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                onPress={() =>
+                  searchState.result &&
+                  handleSendFriendRequest(searchState.result._id)
+                }
+                disabled={isLoading}
+                style={styles.iconButton}
+              >
+                <IconAddFriend />
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        style={[{ zIndex: 1 }]}
+      >
         {/* Friend Requests (incoming) */}
         {friendsState.receivedFriendRequests.friendRequests.map((item) => (
-          <View key={item._id} style={styles.friendRow}>
+          <View key={item._id} style={[styles.friendRow]}>
             <Text style={styles.friendName}>{item.from.email}</Text>
             <View style={styles.actionButtons}>
               <TouchableOpacity
@@ -440,7 +441,7 @@ const ProfilFriendsScreen = () => {
 
         {/* Sent Requests (pending) */}
         {friendsState.sentFriendRequests.friendRequests.map((item) => (
-          <View key={item._id} style={styles.friendRow}>
+          <View key={item._id} style={[styles.friendRow]}>
             <Text style={styles.friendName}>{item.to.email}</Text>
             <View style={styles.actionButtons}>
               <TouchableOpacity style={styles.iconButton}>
@@ -452,6 +453,7 @@ const ProfilFriendsScreen = () => {
 
         {/* Friends List */}
         {friendsState.friendList.friends.map((item) => (
+
           <View key={item._id} style={styles.friendRow}>
             {/* Add this status indicator */}
             <View
@@ -464,6 +466,7 @@ const ProfilFriendsScreen = () => {
                 },
               ]}
             />
+
 
             <Text style={styles.friendName}>
               {item.email || item.username || "Friend"}

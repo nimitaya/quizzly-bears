@@ -10,6 +10,7 @@ import quizRoomsRouter, { setRoomsReference } from "./routes/QuizRooms";
 import userRoutes from "./routes/UserStats";
 import pointsRouter from "./routes/PointsRoutes";
 import invitationsRouter from "./routes/InvitationsRoutes";
+import medalsRouter from "./routes/MedalsRoutes";
 import {
   ChatMessage,
   SendChatMessageData,
@@ -41,6 +42,7 @@ app.use("/api/invite-request", invitationsRouter);
 app.use("/api/quiz", quizRoomsRouter);
 app.use("/api", userRoutes);
 app.use("/api/points", pointsRouter);
+app.use("/api/medals", medalsRouter);
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
