@@ -33,6 +33,7 @@ const MultiplayerResultScreen = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [roomInfo, setRoomInfo] = useState<any>(null);
+  const [quizSettings, setQuizSettings] = useState<any>(null);
 
   // ========== useEffect ==========
 
@@ -58,6 +59,9 @@ const MultiplayerResultScreen = () => {
           console.error("No room information found");
           setIsLoading(false);
         }
+        // Load quiz settings from cache
+        const settings = await loadCacheData(CACHE_KEY.quizSettings);
+        setQuizSettings(settings);
       } catch (error) {
         console.error("Error loading room information:", error);
         setIsLoading(false);
@@ -81,7 +85,7 @@ const MultiplayerResultScreen = () => {
       !medalsSent &&
       roomInfo &&
       players.length > 0 &&
-      roomInfo.type === "group"
+      quizSettings?.quizPlayStyle === "group"
     ) {
       setMedalsSent(true);
       try {
@@ -165,7 +169,7 @@ const MultiplayerResultScreen = () => {
   // Render the trophy icon for top players (1st, 2nd, 3rd place)
   //Medals should be sent only for group rooms
   const renderTrophy = (index: number) => {
-    if (roomInfo?.type !== "group") return null;
+    if (quizSettings?.quizPlayStyle !== "group") return null;
     if (index === 0) {
       return <IconMedal1PlaceWebp />;
     } else if (index === 1) {
@@ -175,6 +179,18 @@ const MultiplayerResultScreen = () => {
     }
     return null;
   };
+  // OLD code for rendering trophies
+  // const renderTrophy = (index: number) => {
+  //   if (roomInfo?.type !== "group") return null;
+  //   if (index === 0) {
+  //     return <IconMedal1PlaceWebp />;
+  //   } else if (index === 1) {
+  //     return <IconMedal2PlaceWebp />;
+  //   } else if (index === 2) {
+  //     return <IconMedal3PlaceWebp />;
+  //   }
+  //   return null;
+  // };
   // OLD code for rendering trophies
   // const renderTrophy = (index: number) => {
   //   if (index === 0) {
