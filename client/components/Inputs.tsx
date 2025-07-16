@@ -189,6 +189,8 @@ export function SearchFriendInput({
             style={styles.suggestionsList}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
+            removeClippedSubviews={false} 
+  disableVirtualization={true}
           />
         </View>
       )}
@@ -255,7 +257,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     position: "relative",
     maxWidth: 348,
-    zIndex: 1002,
+    zIndex: 9999,
   },
   containerSearchFriend: {
     width: "100%",
@@ -308,9 +310,9 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.15,
     shadowRadius: 8,
-    elevation: 5,
+    elevation: 10,
     maxHeight: 200,
-    zIndex: 1001,
+    zIndex: 10000,
   },
   suggestionsList: {
     flexGrow: 0,
