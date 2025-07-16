@@ -11,61 +11,55 @@ import { Logo } from "@/components/Logos";
 import { FontSizes, Gaps, Colors } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import { useState, useRef } from "react";
+import { useTranslation } from "@/hooks/useTranslation";
+import { TranslationKeys } from "@/utilities/translations";
 
 // FAQ data
-const faqData = [
+const getFaqData = (t: (key: keyof TranslationKeys) => string) => [
   {
     id: 1,
-    question: "How does the game work?",
-    answer:
-      "Each game round consists of 10 questions, with 30 seconds to answer each. The total round lasts about 5 minutes, plus a short time to read each question before the timer starts.",
+    question: t("faqHowDoesGameWork"),
+    answer: t("faqHowDoesGameWorkAnswer"),
   },
   {
     id: 2,
-    question: "What game modes are available?",
-    answer:
-      "We offer three types of games:\n• Solo Mode - Play on your own, continue as soon as you answer.\n• Duel (1 vs 1) - Play against another user in 4 rounds of 10 questions each.\n• Group Mode - Each player plays one 10-question round. Up to 7-8 participants.",
+    question: t("faqGameModes"),
+    answer: t("faqGameModesAnswer"),
   },
   {
     id: 3,
-    question: "How does timing and answering work?",
-    answer:
-      "First, the question is shown with a few seconds to read. Then, the answer options appear. Only after that does the 30-second timer start. In solo mode, you continue immediately after answering. In multiplayer modes, everyone answers at the same time (synchronous play). During waiting times, you'll see a cute bear loading animation.",
+    question: t("faqTimingAndAnswering"),
+    answer: t("faqTimingAndAnsweringAnswer"),
   },
   {
     id: 4,
-    question: "How are points awarded?",
-    answer:
-      "You earn points based on the difficulty of the question and how fast you answer:\n\nCorrect Answers:\n• Easy: 5 QP\n• Medium: 10 QP\n• Hard: 15 QP\n\nTime Bonus:\n• Answer under 5 sec: +5 QP\n• Answer under 10 sec: +3 QP\n• Answer under 20 sec: +1 QP\n\nPerfect Round Bonus:\n• All 10 questions correct: +50 QP",
+    question: t("faqPoints"),
+    answer: t("faqPointsAnswer"),
   },
   {
     id: 5,
-    question: "Are there any rewards?",
-    answer:
-      "Yes! We reward performance:\n\nTop 3 of the week: Receive medals (bronze, silver, gold) shown on your profile. Each comes with a Quizzly Bear trophy!\n\nTop accuracy (e.g. top 10% or 20%): Get a paw icon Medalen next to your username. Displayed in all games and rankings. Paw disappears if you fall below the threshold in the next week.",
+    question: t("faqRewards"),
+    answer: t("faqRewardsAnswer"),
   },
   {
     id: 6,
-    question: "Can I track my stats?",
-    answer:
-      "Yes! Your profile shows:\n• Total points\n• Accuracy\n• Weekly rankings\n• Medals and rewards\n\nAlways up to date!",
+    question: t("faqStats"),
+    answer: t("faqStatsAnswer"),
   },
   {
     id: 7,
-    question: "Are there any special challenges?",
-    answer:
-      "Top 10 players of the week might unlock an extra-hard quiz as a personal challenge! This is an optional feature we're currently testing.",
+    question: t("faqChallenges"),
+    answer: t("faqChallengesAnswer"),
   },
   {
     id: 8,
-    question: "How can I add friends?",
-    answer:
-      "• Search for friends by username or email address.\n• Send a friend request - the other user must accept.\n• If your friend doesn't have the app yet, you can send an invitation via email.",
+    question: t("faqFriends"),
+    answer: t("faqFriendsAnswer"),
   },
 ];
 
 // FAQ Item Component
-const FaqItem = ({ item }: { item: (typeof faqData)[0] }) => {
+const FaqItem = ({ item }: { item: { id: number; question: string; answer: string } }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const animatedHeight = useRef(new Animated.Value(0)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -131,6 +125,8 @@ const FaqItem = ({ item }: { item: (typeof faqData)[0] }) => {
 
 const FaqScreen = () => {
   const router = useRouter();
+  const { t } = useTranslation();
+  const faqData = getFaqData(t);
 
   return (
     <View style={styles.container}>
@@ -148,7 +144,7 @@ const FaqScreen = () => {
         <View style={{ marginBottom: Gaps.g16 }}>
           <Logo size="small" />
         </View>
-        <Text style={styles.title}>FAQ</Text>
+        <Text style={styles.title}>{t("frequentlyAskedQuestions")}</Text>
 
         <View style={styles.faqList}>
           {faqData.map((item) => (

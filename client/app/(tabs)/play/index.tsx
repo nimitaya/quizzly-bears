@@ -10,6 +10,7 @@ import Loading from "../../Loading";
 import CustomAlert from "@/components/CustomAlert";
 import { useUser } from "@clerk/clerk-expo";
 import socketService from "@/utilities/socketService";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const PlayScreen = () => {
   const { topPlayers, loading, totalUsers, userRank, refetch } =
@@ -17,6 +18,7 @@ const PlayScreen = () => {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const { user } = useUser();
+  const { t } = useTranslation();
 
   useEffect(() => {
     socketService.on("pointsUpdated", () => {
@@ -46,7 +48,7 @@ const PlayScreen = () => {
       <CustomAlert
         visible={showForm}
         onClose={() => setShowForm(false)}
-        message="Such user isn't registered yet. Please try again later."
+        message={t("userNotRegistered")}
         cancelText={null}
         confirmText="OK"
         noInternet={false}
@@ -65,17 +67,17 @@ const PlayScreen = () => {
         </View>
         <View style={{ marginBottom: Gaps.g24 }}>
           <ButtonPrimary
-            text="Go Play"
+            translationKey="goPlay"
             onPress={() => router.push("/(tabs)/play/QuizTypeSelectionScreen")}
           />
         </View>
         <View style={styles.myRankBlock}>
           <Text style={{ fontSize: FontSizes.H2Fs }}>
-            My Rank: {user ? userRank ?? "-" : "-"} from {totalUsers ?? "-"}
+            {t("myRank")}: {user ? userRank ?? "-" : "-"} {t("from")} {totalUsers ?? "-"}
           </Text>
         </View>
         <View style={styles.topPlayersBlock}>
-          <Text style={{ fontSize: FontSizes.H2Fs }}>Top 10 Players</Text>
+          <Text style={{ fontSize: FontSizes.H2Fs }}>{t("topPlayers")}</Text>
 
           {/* ============ List of top players ============= */}
           <View style={styles.listTopPlayers}>

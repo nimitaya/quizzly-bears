@@ -13,11 +13,14 @@ import CustomAlert from "@/components/CustomAlert";
 import { useUser } from "@clerk/clerk-expo";
 import ClerkSettings from "@/app/(auth)/ClerkSettings";
 import socketService from "@/utilities/socketService";
+import { useTranslation } from "@/hooks/useTranslation";
+import { TranslationKeys } from "@/utilities/translations";
 
 const StatisticsScreen = () => {
   const { userData, loading, userRank, totalUsers, refetch } = useStatistics();
   const [showForm, setShowForm] = useState(false);
   const { user } = useUser();
+  const { t } = useTranslation();
 
   useEffect(() => {
     socketService.on("pointsUpdated", () => {
@@ -50,7 +53,7 @@ const StatisticsScreen = () => {
       <View style={styles.container}>
         <ClerkSettings refreshKey={0} />
         <Text style={{ fontSize: FontSizes.TextMediumFs, marginTop: Gaps.g16 }}>
-          Please log in to see your statistics.
+          {t("pleaseLogin")}
         </Text>
       </View>
     );
@@ -62,7 +65,7 @@ const StatisticsScreen = () => {
       <CustomAlert
         visible={showForm}
         onClose={() => setShowForm(false)}
-        message="Such user isn't registered yet. Please try again later."
+        message={t("userNotRegistered")}
         cancelText={null}
         confirmText="OK"
         noInternet={false}
@@ -102,6 +105,22 @@ const StatisticsScreen = () => {
     return acc;
   }, {} as Record<string, number>);
 
+  // Function to translate category names
+  const translateCategoryName = (categoryName: string): string => {
+    const categoryMap: Record<string, keyof TranslationKeys> = {
+      'Science': 'science',
+      'History': 'history',
+      'Geography': 'geography',
+      'Sports': 'sports',
+      'Media': 'media',
+      'Culture': 'culture',
+      'Daily Life': 'dailyLife',
+    };
+    
+    const translationKey = categoryMap[categoryName];
+    return translationKey ? t(translationKey) : categoryName;
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -111,13 +130,13 @@ const StatisticsScreen = () => {
         <View style={{ marginBottom: Gaps.g16 }}>
           <Logo size="small" />
         </View>
-        <Text style={{ fontSize: FontSizes.H2Fs }}>My statistics</Text>
+        <Text style={{ fontSize: FontSizes.H2Fs }}>{t("myStatistics")}</Text>
         <View style={styles.allPointsMedalenBlock}>
           <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-            Quizzly Points: {points.totalPoints}
+            {t("quizzlyPoints")}: {points.totalPoints}
           </Text>
           <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-            My rank: {userRank ?? "-"}/{totalUsers ?? "-"}
+            {t("myRank")}: {userRank ?? "-"}/{totalUsers ?? "-"}
           </Text>
           <View style={styles.allMedalenBlock}>
             <View style={styles.MedalenBlock}>
@@ -142,7 +161,10 @@ const StatisticsScreen = () => {
         </View>
         <View style={styles.accuracyBlock}>
           <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-            {points.correctAnswers}/{points.totalAnswers} correct answers
+            {t("accuracy")}
+          </Text>
+          <Text style={{ fontSize: FontSizes.TextLargeFs }}>
+            {points.correctAnswers}/{points.totalAnswers} {t("correctAnswers")}
           </Text>
           <CircularProgress
             percentage={accuracy}
@@ -155,17 +177,17 @@ const StatisticsScreen = () => {
 
         <View style={styles.CategoryPerformanceContainer}>
           <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-            Category performance
+            {t("categoryPerformance")}
           </Text>
           {Object.entries(categoryPerformance).map(([name, progress]) => (
-            <CategoryProgressBar key={name} text={name} progress={progress} />
+            <CategoryProgressBar key={name} text={translateCategoryName(name)} progress={progress} />
           ))}
         </View>
       </ScrollView>
       <CustomAlert
         visible={showForm}
         onClose={() => setShowForm(false)}
-        message="Such user isn't registered yet. Please try again later."
+        message={t("userNotRegistered")}
         cancelText={null}
         confirmText="OK"
         noInternet={false}

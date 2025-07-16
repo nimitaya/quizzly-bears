@@ -12,6 +12,7 @@ import { FontSizes, Gaps, Colors } from "@/styles/theme";
 import SingleFlag from "@/utilities/flags";
 import { LANGUAGES } from "@/utilities/languages";
 import { useLanguage } from "@/providers/LanguageContext";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface Language {
   code: string;
@@ -27,6 +28,7 @@ interface LanguageDropdownProps {
 const LanguageDropdown = ({ onLanguageChange }: LanguageDropdownProps) => {
   const { currentLanguage, changeLanguage } = useLanguage();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const { t } = useTranslation();
 
   const handleLanguageSelect = async (language: Language) => {
     try {
@@ -66,7 +68,7 @@ const LanguageDropdown = ({ onLanguageChange }: LanguageDropdownProps) => {
         style={styles.selector}
         onPress={() => setIsDropdownOpen(true)}
       >
-        <Text style={styles.languageText}>Language </Text>
+        <Text style={styles.languageText}>{t("language")} </Text>
         <View style={styles.flagContainer}>
           <SingleFlag id={currentLanguage.flagId} size={0.2} />
         </View>
@@ -84,7 +86,7 @@ const LanguageDropdown = ({ onLanguageChange }: LanguageDropdownProps) => {
         >
           <View style={styles.dropdownContainer}>
             <View style={styles.dropdownHeader}>
-              <Text style={styles.dropdownTitle}>Select Language</Text>
+              <Text style={styles.dropdownTitle}>{t("selectLanguage")}</Text>
               <TouchableOpacity
                 onPress={() => setIsDropdownOpen(false)}
                 style={styles.closeButton}

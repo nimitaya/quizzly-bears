@@ -99,8 +99,14 @@ export const LANGUAGES = [
       nativeName: "Chamoru",
       flagId: "GU", // Guam
     },
-  
-  
+    {
+      code: "zh",
+      name: "Chinese",
+      nativeName: "中文",
+      flagId: "CN", // China
+    },
+
+
     {
       code: "cs",
       name: "Czech",

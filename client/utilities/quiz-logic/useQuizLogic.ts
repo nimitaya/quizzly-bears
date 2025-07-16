@@ -40,7 +40,7 @@ export function useQuizLogic() {
   const currentPointsRef = useRef({ total: 0, chosenCorrect: 0 });
   // Track if a question transition is already scheduled for multiplayer
   const isTransitionScheduled = useRef<boolean>(false);
-  
+
   // Audio refs for feedback sounds
   const correctSound = useRef<Audio.Sound | null>(null);
   const errorSound = useRef<Audio.Sound | null>(null);
@@ -115,7 +115,7 @@ export function useQuizLogic() {
         errorSound.current = errorSnd;
         
         console.log('useQuizLogic: Feedback sounds loaded successfully');
-      } catch (error) {
+    } catch (error) {
         console.error('useQuizLogic: Error loading feedback sounds:', error);
         correctSound.current = null;
         errorSound.current = null;

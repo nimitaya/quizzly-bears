@@ -8,6 +8,8 @@ import {
 } from "react-native";
 import { Colors, Radius, FontSizes, Gaps } from "../styles/theme";
 import IconSearchFriend from "@/assets/icons/IconSearchFriend";
+import { useTranslation } from "@/hooks/useTranslation";
+import { TranslationKeys } from "@/utilities/translations";
 
 // Constants for button sizing
 const BUTTON_CONSTANTS = {
@@ -23,47 +25,72 @@ const useButtonWidth = (maxWidth: number, margin: number) => {
   return Math.min(maxWidth, width - margin);
 };
 
+// Helper function to get button text
+const useButtonText = (text?: string, translationKey?: keyof TranslationKeys) => {
+  const { t } = useTranslation();
+  
+  if (translationKey) {
+    return t(translationKey);
+  }
+  
+  return text || "";
+};
+
 export function ButtonPrimary({
   text,
+  translationKey,
   ...props
-}: PressableProps & { text: string }) {
+}: PressableProps & { 
+  text?: string; 
+  translationKey?: keyof TranslationKeys;
+}) {
   const buttonWidth = useButtonWidth(
     BUTTON_CONSTANTS.LARGE_MAX_WIDTH,
     BUTTON_CONSTANTS.LARGE_MARGIN
   );
+  const buttonText = useButtonText(text, translationKey);
 
   return (
     <Pressable {...props}>
       <View style={[styles.buttonPrimary, { width: buttonWidth }]}>
-        <Text style={styles.textPrimaryButton}>{text}</Text>
+        <Text style={styles.textPrimaryButton}>{buttonText}</Text>
       </View>
     </Pressable>
   );
 }
+
 export function ButtonPrimaryDisabled({
   text,
+  translationKey,
   ...props
-}: PressableProps & { text: string }) {
+}: PressableProps & { 
+  text?: string; 
+  translationKey?: keyof TranslationKeys;
+}) {
   const buttonWidth = useButtonWidth(
     BUTTON_CONSTANTS.LARGE_MAX_WIDTH,
     BUTTON_CONSTANTS.LARGE_MARGIN
   );
+  const buttonText = useButtonText(text, translationKey);
 
   return (
     <Pressable {...props}>
       <View style={[styles.buttonPrimaryDisabled, { width: buttonWidth }]}>
-        <Text style={styles.textPrimaryButtonDisabled}>{text}</Text>
+        <Text style={styles.textPrimaryButtonDisabled}>{buttonText}</Text>
       </View>
     </Pressable>
   );
 }
+
 export function ButtonSecondary({
   text,
+  translationKey,
   icon,
   showBadge = false,
   ...props
 }: PressableProps & {
-  text: string;
+  text?: string;
+  translationKey?: keyof TranslationKeys;
   icon?: React.ReactNode;
   showBadge?: boolean;
 }) {
@@ -71,13 +98,14 @@ export function ButtonSecondary({
     BUTTON_CONSTANTS.LARGE_MAX_WIDTH,
     BUTTON_CONSTANTS.LARGE_MARGIN
   );
+  const buttonText = useButtonText(text, translationKey);
 
   return (
     <Pressable {...props}>
       <View style={[styles.buttonSecondary, { width: buttonWidth }]}>
         {icon && <View style={{ marginRight: 8 }}>{icon}</View>}
         <View style={styles.textWithBadgeContainer}>
-          <Text style={styles.textSecondaryButton}>{text}</Text>
+          <Text style={styles.textSecondaryButton}>{buttonText}</Text>
           {showBadge && <View style={styles.notificationBadge} />}
         </View>
       </View>
@@ -87,19 +115,25 @@ export function ButtonSecondary({
 
 export function ButtonSecondaryDisabled({
   text,
+  translationKey,
   icon,
   ...props
-}: PressableProps & { text: string; icon?: React.ReactNode }) {
+}: PressableProps & { 
+  text?: string; 
+  translationKey?: keyof TranslationKeys;
+  icon?: React.ReactNode;
+}) {
   const buttonWidth = useButtonWidth(
     BUTTON_CONSTANTS.LARGE_MAX_WIDTH,
     BUTTON_CONSTANTS.LARGE_MARGIN
   );
+  const buttonText = useButtonText(text, translationKey);
 
   return (
     <Pressable disabled={true} {...props}>
       <View style={[styles.buttonSecondary, { width: buttonWidth }]}>
         {icon && <View style={{ marginRight: 8 }}>{icon}</View>}
-        <Text style={styles.textPrimaryButtonDisabled}>{text}</Text>
+        <Text style={styles.textPrimaryButtonDisabled}>{buttonText}</Text>
       </View>
     </Pressable>
   );
@@ -107,55 +141,73 @@ export function ButtonSecondaryDisabled({
 
 export function ButtonSkip({
   text,
+  translationKey,
   ...props
-}: PressableProps & { text: string }) {
+}: PressableProps & { 
+  text?: string; 
+  translationKey?: keyof TranslationKeys;
+}) {
   const buttonWidth = useButtonWidth(
     BUTTON_CONSTANTS.LARGE_MAX_WIDTH,
     BUTTON_CONSTANTS.LARGE_MARGIN
   );
+  const buttonText = useButtonText(text, translationKey);
 
   return (
     <Pressable {...props}>
       <View style={[styles.buttonSkip, { width: buttonWidth }]}>
-        <Text style={styles.textSkipButton}>{text}</Text>
+        <Text style={styles.textSkipButton}>{buttonText}</Text>
       </View>
     </Pressable>
   );
 }
+
 export function ButtonSmallPrimary({
   text,
+  translationKey,
   ...props
-}: PressableProps & { text: string }) {
+}: PressableProps & { 
+  text?: string; 
+  translationKey?: keyof TranslationKeys;
+}) {
   const buttonWidth = useButtonWidth(
     BUTTON_CONSTANTS.SMALL_MAX_WIDTH,
     BUTTON_CONSTANTS.SMALL_MARGIN
   );
+  const buttonText = useButtonText(text, translationKey);
 
   return (
     <Pressable {...props}>
       <View style={[styles.buttonSmallPrimary, { width: buttonWidth }]}>
-        <Text style={styles.textSmallPrimaryButton}>{text}</Text>
+        <Text style={styles.textSmallPrimaryButton}>{buttonText}</Text>
       </View>
     </Pressable>
   );
 }
+
 export function ButtonSmallSecondary({
   text,
+  translationKey,
   ...props
-}: PressableProps & { text: string }) {
+}: PressableProps & { 
+  text?: string; 
+  translationKey?: keyof TranslationKeys;
+}) {
   const buttonWidth = useButtonWidth(
     BUTTON_CONSTANTS.SMALL_MAX_WIDTH,
     BUTTON_CONSTANTS.SMALL_MARGIN
   );
+  const buttonText = useButtonText(text, translationKey);
 
   return (
     <Pressable {...props}>
       <View style={[styles.buttonSmallSecondary, { width: buttonWidth }]}>
-        <Text style={styles.textSmallSecondaryButton}>{text}</Text>
+        <Text style={styles.textSmallSecondaryButton}>{buttonText}</Text>
       </View>
     </Pressable>
   );
 }
+
 export function ButtonSearchFriend({ ...props }: PressableProps) {
   return (
     <Pressable {...props}>

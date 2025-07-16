@@ -2,10 +2,12 @@ import { useClerk } from "@clerk/clerk-expo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useState } from "react";
 import { ButtonSecondary } from "@/components/Buttons";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const SignOutButton = () => {
   const { signOut } = useClerk();
   const [isProcessing, setIsProcessing] = useState(false);
+  const { t } = useTranslation();
 
   const handleSignOut = async () => {
     if (isProcessing) return; // Prevent multiple clicks
@@ -39,7 +41,7 @@ const SignOutButton = () => {
 
   return (
     <ButtonSecondary
-      text={isProcessing ? "Signing out..." : "Log out"}
+      text={isProcessing ? t("signingOut") : t("logOut")}
       onPress={handleSignOut}
       disabled={isProcessing}
     />

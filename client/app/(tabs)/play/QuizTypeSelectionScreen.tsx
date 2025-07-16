@@ -14,6 +14,7 @@ import { socketService } from "@/utilities/socketService";
 import { useUser } from "@clerk/clerk-expo";
 import { useLanguage } from "@/providers/LanguageContext";
 import { useSound } from "@/providers/SoundProvider";
+import { useTranslation } from "@/hooks/useTranslation";
 
 // Use the cache key for quiz settings
 const cacheKey = CACHE_KEY.quizSettings;
@@ -24,6 +25,7 @@ const QuizTypeSelectionScreen = () => {
   const { user } = useUser();
   const { currentLanguage } = useLanguage();
   const { soundEnabled } = useSound();
+  const { t } = useTranslation();
 
   // ---------- FUNCTIONS ----------
   // send selected Playstyle to cache
@@ -130,19 +132,19 @@ const QuizTypeSelectionScreen = () => {
       </View>
       <View style={styles.buttonContainer}>
         <ButtonPrimary
-          text="Play alone"
+          translationKey="playAlone"
           onPress={() => handlePlayStyleChoice("solo")}
         />
         <ButtonPrimary
-          text="Play a duel"
+          translationKey="playDuel"
           onPress={() => handlePlayStyleChoice("duel")}
         />
         <ButtonPrimary
-          text="Play in group"
+          translationKey="playGroup"
           onPress={() => handlePlayStyleChoice("group")}
         />
         <ButtonSecondary
-          text="Mini games"
+          translationKey="miniGames"
           onPress={() => router.push("/(tabs)/play/MiniGamesScreen")}
         />
         {/* <ButtonSecondary

@@ -29,12 +29,14 @@ import { UserContext } from "@/providers/UserProvider";
 import { getReceivedFriendRequests } from "@/utilities/friendRequestApi";
 import { getReceivedInviteRequests } from "@/utilities/invitationApi";
 import socketService from "@/utilities/socketService";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const ProfileScreen = () => {
   const router = useRouter();
   const { isAuthenticated, refreshGlobalState, isGloballyLoading } =
     useGlobalLoading();
   const { changeLanguage } = useLanguage();
+  const { t } = useTranslation();
   const isMounted = useRef(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const hasFocusedRef = useRef(false);
@@ -368,39 +370,39 @@ const ProfileScreen = () => {
       </View>
       <GreetingsScreen ref={clerkSettingsRef} refreshKey={refreshKey} />
       <View style={styles.toggleBox}>
-        <Toggle label="Sound" onToggle={toggleSound} enabled={soundEnabled} />
-        <Toggle label="Music" enabled={musicEnabled} onToggle={toggleMusic} />
+        <Toggle label={t("sound")} onToggle={toggleSound} enabled={soundEnabled} />
+        <Toggle label={t("music")} enabled={musicEnabled} onToggle={toggleMusic} />
         <LanguageDropdown onLanguageChange={handleLanguageChange} />
       </View>
       <View style={styles.buttonsBox}>
         <ButtonSecondary
-          text="Invitations"
+          translationKey="invitations"
           showBadge={(receivedInviteRequests ?? 0) > 0}
           onPress={() => router.push("/profile/ProfileInvitationsScreen")}
         />
         {user ? (
           <ButtonSecondary
-            text="Friends"
+            translationKey="friends"
             showBadge={(receivedRequestsCount ?? 0) > 0}
             onPress={() => router.push("/profile/ProfileFriendsScreen")}
           />
         ) : (
-          <ButtonSecondaryDisabled text="Friends" />
+          <ButtonSecondaryDisabled translationKey="friends" />
         )}
 
         <ButtonSecondary
-          text="Account"
+          translationKey="account"
           onPress={() => router.push("/profile/AccountScreen")}
         />
         <ButtonSecondary
-          text="FAQ"
+          translationKey="faq"
           onPress={() => {
             playSound("custom");
             router.push("/profile/FaqScreen");
           }}
         />
         <ButtonSecondary
-          text="Show Onboarding"
+          translationKey="showOnboarding"
           onPress={handleShowOnboarding}
         />
       </View>

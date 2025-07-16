@@ -15,6 +15,7 @@ import { Logo } from "@/components/Logos";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
 import { useOnboarding } from "@/providers/OnboardingProvider";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const ONBOARDING_COMPLETED_KEY = "@onboarding_completed";
 
@@ -23,6 +24,7 @@ export default function OnboardingScreen() {
   const { markOnboardingCompleted } = useOnboarding();
   const { shouldShowLoading } = useGlobalLoading();
   const { width } = useWindowDimensions();
+  const { t } = useTranslation();
 
   const handleFinish = async () => {
     try {
@@ -52,42 +54,41 @@ export default function OnboardingScreen() {
           </View>
           <View style={styles.descriptionContainer}>
             <View style={styles.textBox}>
-              <Text style={styles.title}>Quizzly Bears Guide</Text>
+              <Text style={styles.title}>{t("quizzlyBearsGuide")}</Text>
               <View>
                 <View style={styles.iconRow}>
                   <IconCheckbox />
                   <View>
-                    <Text style={styles.pointsText}>AI-Generated</Text>
+                    <Text style={styles.pointsText}>{t("aiGenerated")}</Text>
                     <Text style={styles.pointsTextTwo}>
-                      Get unique quizzes created by AI
+                      {t("getUniqueQuizzes")}
                     </Text>
                   </View>
                 </View>
                 <View style={styles.iconRow}>
                   <IconCheckbox />
                   <View>
-                    <Text style={styles.pointsText}>Custom Topics</Text>
+                    <Text style={styles.pointsText}>{t("customTopics")}</Text>
                     <Text style={styles.pointsTextTwo}>
-                      Choose from our topics or enter your own (any language)
+                      {t("chooseTopicsOrOwn")}
                     </Text>
                   </View>
                 </View>
                 <View style={styles.iconRow}>
                   <IconCheckbox />
                   <View>
-                    <Text style={styles.pointsText}>Play Your Way</Text>
+                    <Text style={styles.pointsText}>{t("playYourWay")}</Text>
                     <Text style={styles.pointsTextTwo}>
-                      Solo or with friends
+                      {t("soloOrWithFriends")}
                     </Text>
                   </View>
                 </View>
                 <View style={styles.iconRow}>
                   <IconCheckbox />
                   <View>
-                    <Text style={styles.pointsText}>Compete & Win</Text>
+                    <Text style={styles.pointsText}>{t("competeAndWin")}</Text>
                     <Text style={styles.pointsTextTwo}>
-                      Score points, connect with friends, and become the weekly
-                      best
+                      {t("scorePointsConnectFriends")}
                     </Text>
                   </View>
                 </View>
@@ -100,7 +101,7 @@ export default function OnboardingScreen() {
           style={[styles.customButton, { width: buttonWidth }]}
           onPress={handleFinish}
         >
-          <Text style={styles.customButtonText}>Get Started</Text>
+          <Text style={styles.customButtonText}>{t("getStarted")}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

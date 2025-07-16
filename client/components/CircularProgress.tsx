@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { View, Text, Animated, StyleSheet } from "react-native";
 import { Colors, FontSizes } from "@/styles/theme";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface CircularProgressProps {
   percentage: number;
@@ -25,6 +26,7 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
 }) => {
   const animatedValue = useRef(new Animated.Value(0)).current;
   const scaleAnimation = useRef(new Animated.Value(0)).current;
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (animated) {
@@ -126,7 +128,7 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
         <Animated.Text style={[styles.percentageText]}>
           {Math.round(percentage)}%
         </Animated.Text>
-        <Text style={[styles.accuracyText]}>accuracy</Text>
+        <Text style={[styles.accuracyText]}>{t("accuracy")}</Text>
       </View>
     </Animated.View>
   );

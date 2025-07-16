@@ -7,10 +7,12 @@ import CustomAlert from "@/components/CustomAlert";
 import { Colors, Gaps, FontSizes } from "@/styles/theme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useClerk } from "@clerk/clerk-expo";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const ChangePassword = () => {
   const { user } = useUser();
   const { signOut } = useClerk();
+  const { t } = useTranslation();
   const [showForm, setShowForm] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -73,13 +75,13 @@ const ChangePassword = () => {
     return (
       <>
         <ButtonSecondary
-          text="Change Password"
+          translationKey="changePassword"
           onPress={() => setShowForm(true)}
         />
         <CustomAlert
           visible={success}
           onClose={() => setSuccess(false)}
-          message="Your password has been changed."
+          message={t("passwordChanged")}
           cancelText={null}
           confirmText="OK"
           noInternet={false}
@@ -117,36 +119,36 @@ const ChangePassword = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Change Password</Text>
+      <Text style={styles.title}>{t("changePasswordTitle")}</Text>
       <PasswordInput
         value={currentPassword}
         onChangeText={setCurrentPassword}
-        placeholder="current password"
+        placeholder={t("currentPassword")}
       />
       <PasswordInput
         value={newPassword}
         onChangeText={setNewPassword}
-        placeholder="new password"
+        placeholder={t("newPassword")}
       />
       <PasswordInput
         value={repeatPassword}
         onChangeText={setRepeatPassword}
-        placeholder="repeat new password"
+        placeholder={t("repeatNewPassword")}
       />
       {error !== "" && <Text style={styles.errorText}>{error}</Text>}
       <View style={styles.buttonBox}>
         <ButtonPrimary
-          text={isProcessing ? "Changing..." : "Change password"}
+          text={isProcessing ? t("changing") : t("changePassword")}
           onPress={handleChangePassword}
           disabled={isProcessing}
         />
-        <ButtonSecondary text="Cancel" onPress={handleCancel} />
+        <ButtonSecondary translationKey="cancel" onPress={handleCancel} />
       </View>
 
       <CustomAlert
         visible={!!(user && !user.passwordEnabled)}
         onClose={() => setShowForm(false)}
-        message="You signed up with Google or Facebook. You can't change your password."
+        message={t("googleFacebookPassword")}
         cancelText={null}
         confirmText="OK"
         noInternet={false}
@@ -154,10 +156,10 @@ const ChangePassword = () => {
       <CustomAlert
         visible={reLogIn}
         onClose={() => setReLogIn(false)}
-        title="Re-login Required"
-        message="For security, please log in again to delete your account."
-        cancelText="Cancel"
-        confirmText="Re-login"
+        title={t("reLoginRequired")}
+        message={t("reLoginMessage")}
+        cancelText={t("cancel")}
+        confirmText={t("reLogin")}
         onConfirm={() => {
           setReLogIn(false);
           handleSignOut();

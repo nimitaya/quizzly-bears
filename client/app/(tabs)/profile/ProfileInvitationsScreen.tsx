@@ -29,11 +29,13 @@ import {
 } from "@/utilities/cacheUtils";
 import { useLanguage } from "@/providers/LanguageContext";
 import { UserContext } from "@/providers/UserProvider";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const ProfilInvitationsScreen = () => {
   const router = useRouter();
   const { user } = useUser();
   const { currentLanguage } = useLanguage();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [receivedInvites, setReceivedInvites] = useState<InviteRequest[]>([]);
   const { userData, receivedInviteRequests, setReceivedInviteRequests } =
@@ -283,13 +285,13 @@ const ProfilInvitationsScreen = () => {
           // if there are no invitations yet
           <View style={styles.textBox}>
             <Text style={{ fontSize: FontSizes.H3Fs }}>
-              No invitations right now.
+              {t("noInvitations")}
             </Text>
             <Text style={{ fontSize: FontSizes.H3Fs }}>
-              You can start a game yourself!
+              {t("startGameYourself")}
             </Text>
             <ButtonPrimary
-              text="Play"
+              translationKey="play"
               onPress={() => router.push("../play/QuizTypeSelectionScreen")}
               style={{ marginTop: Gaps.g40 }}
             />
@@ -297,7 +299,7 @@ const ProfilInvitationsScreen = () => {
         ) : (
           // if there are invitations
           <View style={styles.invitationsContainer}>
-            <Text style={styles.invitationsTitle}>Game Invitations:</Text>
+            <Text style={styles.invitationsTitle}>{t("gameInvitations")}:</Text>
             {receivedInvites.map((invite, index) => (
               <View key={invite._id || index} style={styles.inviteRow}>
                 <Text style={{ fontSize: FontSizes.TextLargeFs }}>

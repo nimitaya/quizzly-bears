@@ -16,12 +16,8 @@ import {
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { CACHE_KEY } from "@/utilities/cacheUtils";
 import { categorizeTopic } from "@/utilities/api/quizApi";
+import { useTranslation } from "@/hooks/useTranslation";
 
-const LEVELS = [
-  { label: "Easy: Cub Curious", value: "easy" },
-  { label: "Medium: Bearly Brainy", value: "medium" },
-  { label: "Hard: Grizzly Guru", value: "hard" },
-];
 const PREDEFINED_CATEGORIES = [
   "History",
   "Science",
@@ -42,6 +38,14 @@ const CategoryScreen = () => {
   const [suggestedCategory, setSuggestedCategory] = useState<string>("");
   const [isMultiplayerMode, setIsMultiplayerMode] = useState(false);
   const [roomInfo, setRoomInfo] = useState<any>(null);
+  const { t } = useTranslation();
+
+  // Create LEVELS with translations
+  const LEVELS = [
+    { label: t("easyCubCurious"), value: "easy" },
+    { label: t("mediumBearlyBrainy"), value: "medium" },
+    { label: t("hardGrizzlyGuru"), value: "hard" },
+  ];
 
   // ---------- FUNCTIONS ----------
   const sendInformationToCache = async (category: string, topic?: string) => {
@@ -171,47 +175,47 @@ const CategoryScreen = () => {
         </View>
         <View style={styles.searchToticBlock}>
           <SearchInput
-            placeholder="your topic ..."
+            placeholder={t("yourTopic")}
             value={selectedTopic}
             onChangeText={(text: string) => setSelectedTopic(text)}
           />
           <ButtonPrimary
-            text="Search"
+            translationKey="search"
             onPress={() => handleChosenCategory(selectedTopic)}
           />
         </View>
         <View style={{ marginVertical: Gaps.g32 }}>
           <Text style={{ fontSize: FontSizes.TextLargeFs }}>
-            Or pick a prepared category
+            {t("orPickPreparedCategory")}
           </Text>
         </View>
         <View style={styles.preparedToticContainer}>
           <ButtonSecondary
-            text="History"
+            translationKey="history"
             onPress={() => handleChosenCategory("History")}
           />
           <ButtonSecondary
-            text="Science"
+            translationKey="science"
             onPress={() => handleChosenCategory("Science")}
           />
           <ButtonSecondary
-            text="Sports"
+            translationKey="sports"
             onPress={() => handleChosenCategory("Sports")}
           />
           <ButtonSecondary
-            text="Geography"
+            translationKey="geography"
             onPress={() => handleChosenCategory("Geography")}
           />
           <ButtonSecondary
-            text="Media"
+            translationKey="media"
             onPress={() => handleChosenCategory("Media")}
           />
           <ButtonSecondary
-            text="Culture"
+            translationKey="culture"
             onPress={() => handleChosenCategory("Culture")}
           />
           <ButtonSecondary
-            text="Daily life"
+            translationKey="dailyLife"
             onPress={() => handleChosenCategory("Daily life")}
           />
         </View>

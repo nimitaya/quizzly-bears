@@ -15,11 +15,13 @@ import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import Countdown from "@/components/Countdown";
 import QuizLoader from "@/components/QuizLoader";
 import CustomAlert from "@/components/CustomAlert";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const StartQuizScreen = () => {
   const router = useRouter();
   const cacheKey = CACHE_KEY.quizSettings;
   const cacheAi = CACHE_KEY.aiQuestions;
+  const { t } = useTranslation();
   const [level, setLevel] = useState<Difficulty>("medium");
   const [topic, setTopic] = useState<string>("");
   const [category, setCategory] = useState<string>("");
@@ -178,10 +180,10 @@ const StartQuizScreen = () => {
       <CustomAlert
         visible={showErrorAlert}
         onClose={handleErrorAlertClose}
-        title="Generation Failed"
+        title={t("error")}
         message={errorMessage}
-        cancelText="Back"
-        confirmText="Try Again"
+        cancelText={t("back")}
+        confirmText={t("tryAgain")}
         onConfirm={() => {
           handleErrorAlertConfirm();
           handleStartQuiz(topic, level, rounds);
@@ -197,28 +199,28 @@ const StartQuizScreen = () => {
       </View>
       {/* Summary Container */}
       <View style={styles.summaryContainer}>
-        <Text style={{ fontSize: FontSizes.H1Fs }}>That's the great!</Text>
+        <Text style={{ fontSize: FontSizes.H1Fs }}>{t("thatsGreat")}</Text>
         <View style={{ marginTop: Gaps.g16, gap: Gaps.g16 }}>
           <View style={styles.pointsRow}>
             <IconCheckbox />
-            <Text style={styles.pointsText}>Chosen topic: {topic}</Text>
+            <Text style={styles.pointsText}>{t("chosenTopic")}: {topic}</Text>
           </View>
           {category !== topic && (
             <View style={styles.pointsRow}>
               <IconCheckbox />
               <Text style={styles.pointsText}>
-                Assigned category: {category}
+                {t("assignedCategory")}: {category}
               </Text>
             </View>
           )}
           <View style={styles.pointsRow}>
             <IconCheckbox />
-            <Text style={styles.pointsText}>Chosen level: {level}</Text>
+            <Text style={styles.pointsText}>{t("chosenLevel")}: {level}</Text>
           </View>
           <View style={styles.pointsRow}>
             <IconCheckbox />
             <Text style={styles.pointsText}>
-              10 questions, max 30 seconds each
+              {t("questionsCount")}
             </Text>
           </View>
         </View>
@@ -226,7 +228,7 @@ const StartQuizScreen = () => {
       {/* Button Container */}
       <View style={styles.buttonContainer}>
         <ButtonPrimary
-          text={isGeneratingQuestions ? "Generating..." : "Start"}
+          text={isGeneratingQuestions ? t("generatingQuestions") : t("start")}
           onPress={() => {
             handleStartQuiz(topic, level, rounds);
           }}

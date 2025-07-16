@@ -5,6 +5,7 @@ import { ButtonSecondary } from "@/components/Buttons";
 import { useClerk } from "@clerk/clerk-expo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSound } from "@/providers/SoundProvider";
+import { useTranslation } from "@/hooks/useTranslation";
 
 type DeleteAccountButtonProps = {
   onDelete?: () => void;
@@ -19,6 +20,7 @@ const DeleteAccountButton: React.FC<DeleteAccountButtonProps> = ({
   const [errorAlert, setErrorAlert] = useState<string | null>(null);
   const [reLogIn, setReLogIn] = useState(false);
   const { playSound } = useSound();
+  const { t } = useTranslation();
 
   const handleDeleteAccount = () => {
     playSound("click");
@@ -77,24 +79,24 @@ const DeleteAccountButton: React.FC<DeleteAccountButtonProps> = ({
   return (
     <>
       <ButtonSecondary
-        text={isProcessing ? "Deleting..." : "Delete Account"}
+        text={isProcessing ? t("deleting") : t("deleteAccount")}
         onPress={handleDeleteAccount}
         disabled={isProcessing}
       />
       <CustomAlert
         visible={showAlert}
         onClose={() => setShowAlert(false)}
-        title="Delete Account"
-        message="Are you sure you want to delete your account? This action cannot be undone."
-        cancelText="Cancel"
-        confirmText="Delete"
+        title={t("deleteAccountTitle")}
+        message={t("deleteAccountMessage")}
+        cancelText={t("cancel")}
+        confirmText={t("deleteConfirm")}
         onConfirm={confirmDelete}
         noInternet={false}
       />
       <CustomAlert
         visible={!!errorAlert}
         onClose={() => setErrorAlert(null)}
-        title="Error"
+        title={t("error")}
         message={errorAlert || ""}
         cancelText={null}
         confirmText="OK"
@@ -104,10 +106,10 @@ const DeleteAccountButton: React.FC<DeleteAccountButtonProps> = ({
       <CustomAlert
         visible={reLogIn}
         onClose={() => setReLogIn(false)}
-        title="Re-login Required"
-        message="For security, please log in again to delete your account."
-        cancelText="Cancel"
-        confirmText="Re-login"
+        title={t("reLoginRequired")}
+        message={t("reLoginMessage")}
+        cancelText={t("cancel")}
+        confirmText={t("reLogin")}
         onConfirm={() => {
           setReLogIn(false);
           handleSignOut();

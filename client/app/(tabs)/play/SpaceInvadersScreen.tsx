@@ -279,10 +279,10 @@ const SpaceInvadersScreen = () => {
         x: gameState.player.x + PLAYER_WIDTH / 2 - BULLET_WIDTH / 2,
         y: gameState.player.y - BULLET_HEIGHT,
       };
-      setGameState(prev => ({
-        ...prev,
+    setGameState(prev => ({
+      ...prev,
         bullets: [...prev.bullets, newBullet],
-      }));
+    }));
       playSound('shoot');
     }
   };

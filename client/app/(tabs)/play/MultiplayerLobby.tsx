@@ -33,6 +33,7 @@ import IconDismiss from "@/assets/icons/IconDismiss";
 import IconArrowBack from "@/assets/icons/IconArrowBack";
 import Countdown from "@/components/Countdown";
 import QuizLoader from "@/components/QuizLoader";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface RoomInfo {
   roomId: string;
@@ -50,6 +51,7 @@ const MultiplayerLobby = () => {
   const { userData } = useContext(UserContext);
   const { currentLanguage } = useLanguage();
   const roomRefreshIntervalRef = useRef<any>(null);
+  const { t } = useTranslation();
 
   // ====================== State Variables =====================
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
@@ -1094,7 +1096,7 @@ const MultiplayerLobby = () => {
   if (!roomInfo) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>Loading room...</Text>
+        <Text style={styles.errorText}>{t("loadingRoom")}</Text>
       </View>
     );
   }
@@ -1103,7 +1105,7 @@ const MultiplayerLobby = () => {
     return (
       <View style={styles.container}>
         <Text style={styles.errorText}>
-          {isRejoining ? "Rejoining room..." : "Loading room..."}
+          {isRejoining ? t("rejoiningRoom") : t("loadingRoom")}
         </Text>
       </View>
     );
@@ -1158,12 +1160,12 @@ const MultiplayerLobby = () => {
         </View>
 
         <Text style={styles.roomTitle}>{currentRoom.name}</Text>
-        <Text style={styles.roomId}>Room ID: {roomInfo.roomId}</Text>
+        <Text style={styles.roomId}>{t("roomId")}: {roomInfo.roomId}</Text>
 
         {/* TODO SHOW after choosing topic. Needs to update with socket */}
         {roomInfo.selectedCategory && (
           <Text style={styles.selectedCategory}>
-            Selected Topic:{" "}
+            {t("selectedTopic")}:{" "}
             {roomInfo.selectedTopic || roomInfo.selectedCategory}
           </Text>
         )}
@@ -1182,20 +1184,20 @@ const MultiplayerLobby = () => {
 
       <View style={styles.buttonContainer}>
         {!roomInfo.isAdmin && (
-          <ButtonSecondary text={"Waiting for admin bear..."} disabled />
+          <ButtonSecondary text={t("waitingForAdmin")} disabled />
         )}
 
         {roomInfo.isAdmin && !roomInfo.selectedCategory && (
           <>
-            <ButtonPrimary text="Go" onPress={goToSelectCategory} />
-            <ButtonSecondary text="Cancel" onPress={cancelRoom} />
+            <ButtonPrimary translationKey="go" onPress={goToSelectCategory} />
+            <ButtonSecondary translationKey="cancel" onPress={cancelRoom} />
           </>
         )}
 
         {roomInfo.isAdmin && roomInfo.selectedCategory && (
           <>
-            <ButtonPrimary text="Start" onPress={startGame} />
-            <ButtonSecondary text="Cancel" onPress={cancelRoom} />
+            <ButtonPrimary translationKey="start" onPress={startGame} />
+            <ButtonSecondary translationKey="cancel" onPress={cancelRoom} />
           </>
         )}
       </View>
@@ -1203,8 +1205,8 @@ const MultiplayerLobby = () => {
       {/* Custom Alerts */}
       <CustomAlert
         visible={showNewHostAlert}
-        title="New Host"
-        message={`${newHostName} is now the room host`}
+        title={t("newHost")}
+        message={`${newHostName} ${t("isNowHost")}`}
         onClose={handleNewHostAlertClose}
         cancelText={null}
         confirmText="OK"
@@ -1214,7 +1216,7 @@ const MultiplayerLobby = () => {
 
       <CustomAlert
         visible={showErrorAlert}
-        title="Error"
+        title={t("error")}
         message={errorMessage}
         onClose={handleErrorAlertClose}
         cancelText={null}
@@ -1225,8 +1227,8 @@ const MultiplayerLobby = () => {
 
       <CustomAlert
         visible={showCancelRoomAlert}
-        title="Cancel Room"
-        message="Are you sure you want to cancel the room?"
+        title={t("cancel")}
+        message={t("sureToCancel")}
         onClose={handleCancelRoomAlertClose}
         cancelText="No"
         confirmText="Yes"

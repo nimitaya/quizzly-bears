@@ -29,10 +29,12 @@ import { useEffect, useState, useContext } from "react";
 import { FriendsState, User } from "@/utilities/friendInterfaces";
 import { UserContext } from "@/providers/UserProvider";
 import socketService from "@/utilities/socketService";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const ProfilFriendsScreen = () => {
   const router = useRouter();
   const { userData } = useContext(UserContext);
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [searchState, setSearchState] = useState<{
     email: string;
@@ -349,7 +351,7 @@ const ProfilFriendsScreen = () => {
           <Logo size="small" />
         </View>
 
-        <Text style={styles.pageTitle}>Friends</Text>
+        <Text style={styles.pageTitle}>{t("friends")}</Text>
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
@@ -427,7 +429,7 @@ const ProfilFriendsScreen = () => {
         {friendsState.friendList.friends.map((item) => (
           <View key={item._id} style={styles.friendRow}>
             <Text style={styles.friendName}>
-              {item.email || item.username || "Friend"}
+              {item.email || item.username || t("friend")}
             </Text>
             <View style={styles.actionButtons}>
               <TouchableOpacity
@@ -446,9 +448,9 @@ const ProfilFriendsScreen = () => {
           !friendsState.sentFriendRequests.friendRequests.length && (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
-                Unfortunately, it's empty so far...
+                {t("emptyFriendsList")}
               </Text>
-              <Text style={styles.emptyText}>Invite someone over.</Text>
+              <Text style={styles.emptyText}>{t("inviteSomeone")}</Text>
             </View>
           )}
           {/* Refresh Button - Added manually */}
@@ -482,7 +484,7 @@ const ProfilFriendsScreen = () => {
             }
           }}
         >
-          <Text style={styles.refreshButtonText}>Refresh Friends</Text>
+          <Text style={styles.refreshButtonText}>{t("refreshFriends")}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

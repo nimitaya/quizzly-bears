@@ -5,9 +5,11 @@ import { Gaps, FontSizes, Colors } from "@/styles/theme";
 import { ButtonSecondary, ButtonSkip } from "@/components/Buttons";
 import Fontisto from "@expo/vector-icons/Fontisto";
 import { useRouter } from "expo-router";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const LogInScreen = () => {
   const router = useRouter();
+  const { t } = useTranslation();
 
   // Navigation handlers
   const EmailLogIn = () => {
@@ -31,27 +33,26 @@ const LogInScreen = () => {
         gap: Gaps.g16,
       }}
     >
-      <Text style={styles.textH1}>Log in / Sign Up</Text>
+      <Text style={styles.textH1}>{t("logInSignUp")}</Text>
       <Text style={styles.text}>
-        Create an account or log in to save your progress and connect with
-        friends to explore together.
+        {t("createAccountOrLogin")}
       </Text>
       <Text style={[styles.text, { marginBottom: Gaps.g16 }]}>
-        You can always skip this step for now and come back later!
+        {t("saveProgressConnectFriends")}
       </Text>
       <GoogleSignInButton />
       <FacebookInButton />
       <ButtonSecondary
-        text="Log in with e-mail"
+        text={t("logInWithEmail")}
         icon={<Fontisto name="email" size={24} color={Colors.darkGreen} />}
         onPress={EmailLogIn}
       />
       <ButtonSecondary
-        text="Sign Up"
+        text={t("signUp")}
         onPress={SignUp}
         style={{ marginTop: Gaps.g16 }}
       />
-      <ButtonSkip text="Skip" onPress={Skip} />
+      <ButtonSkip text={t("skipForNow")} onPress={Skip} />
     </View>
   );
 };
