@@ -2,24 +2,24 @@ import React, { useEffect, useRef, useState } from "react";
 import { View, Text, Animated, StyleSheet } from "react-native";
 import { Colors, FontSizes, FontWeights } from "@/styles/theme";
 import { Audio } from 'expo-av';
+import { useSound } from "@/providers/SoundProvider";
 
 interface CountdownProps {
   onComplete: () => void;
   startNumber?: number;
   duration?: number;
-  soundEnabled?: boolean;
 }
 
 const Countdown: React.FC<CountdownProps> = ({
   onComplete,
   startNumber = 3,
   duration = 1200,
-  soundEnabled = true,
 }) => {
   const [countdownNumber, setCountdownNumber] = useState(startNumber);
   const countdownAnimation = useRef(new Animated.Value(0)).current;
   const hasStartedRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { soundEnabled } = useSound();
   
   // Audio refs
   const threeTwoSoundRef = useRef<Audio.Sound | null>(null);
