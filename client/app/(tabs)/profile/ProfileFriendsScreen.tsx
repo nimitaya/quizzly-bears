@@ -32,7 +32,8 @@ import socketService from "@/utilities/socketService";
 
 const ProfilFriendsScreen = () => {
   const router = useRouter();
-  const { userData } = useContext(UserContext);
+  // Get online friends from context
+  const { userData, onlineFriends = [] } = useContext(UserContext);
   const [isLoading, setIsLoading] = useState(false);
   const [searchState, setSearchState] = useState<{
     email: string;
@@ -331,6 +332,32 @@ const ProfilFriendsScreen = () => {
     };
   }, [userData]);
 
+  // Request friends status when component loads
+  useEffect(() => {
+    if (userData && friendsState.friendList.friends?.length > 0) {
+      console.log("Requesting online status for friends");
+      const friendIds = friendsState.friendList.friends.map(
+        (friend) => friend._id
+      );
+      socketService.getFriendsStatus(userData._id, friendIds);
+    }
+  }, [userData, friendsState.friendList.friends]);
+
+  // Add periodic refresh for online status
+  useEffect(() => {
+    if (!userData || !friendsState.friendList.friends?.length) return;
+
+    const refreshInterval = setInterval(() => {
+      console.log("Refreshing friend online status");
+      const friendIds = friendsState.friendList.friends.map(
+        (friend) => friend._id
+      );
+      socketService.getFriendsStatus(userData._id, friendIds);
+    }, 30000); // Every 30 seconds
+
+    return () => clearInterval(refreshInterval);
+  }, [userData, friendsState.friendList.friends]);
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -426,10 +453,25 @@ const ProfilFriendsScreen = () => {
 
         {/* Friends List */}
         {friendsState.friendList.friends.map((item) => (
-          <View key={item._id} style={[styles.friendRow]}>
+
+          <View key={item._id} style={styles.friendRow}>
+            {/* Add this status indicator */}
+            <View
+              style={[
+                styles.statusIndicator,
+                {
+                  backgroundColor: onlineFriends.includes(item._id)
+                    ? "#4CAF50"
+                    : "#757575",
+                },
+              ]}
+            />
+
+
             <Text style={styles.friendName}>
               {item.email || item.username || "Friend"}
             </Text>
+
             <View style={styles.actionButtons}>
               <TouchableOpacity
                 onPress={() => handleRemoveFriend(item._id)}
@@ -575,5 +617,11 @@ const styles = StyleSheet.create({
   refreshButtonText: {
     color: Colors.darkGreen,
     fontSize: FontSizes.TextLargeFs,
+  },
+  statusIndicator: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 8,
   },
 });
