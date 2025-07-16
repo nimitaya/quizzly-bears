@@ -389,7 +389,7 @@ const ProfilFriendsScreen = () => {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        style={[{ zIndex: -1 }]}
+        style={[{ zIndex: 1 }]}
       >
         {/* Friend Requests (incoming) */}
         {friendsState.receivedFriendRequests.friendRequests.map((item) => (
