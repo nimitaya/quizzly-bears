@@ -14,7 +14,7 @@ import IconAddFriend from "@/assets/icons/IconAddFriend";
 import { Logo } from "@/components/Logos";
 import { FontSizes, Gaps, Colors, Radius } from "@/styles/theme";
 import { useRouter } from "expo-router";
-import { SearchFriendInput } from "@/components/InputsTest";
+import { SearchFriendInput } from "@/components/Inputs";
 import {
   getFriends,
   getReceivedFriendRequests,
