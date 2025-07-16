@@ -206,7 +206,9 @@ const MultiplayerResultScreen = () => {
 
       <Logo size="small" />
       <View style={styles.resultsContainer}>
-        <Text style={styles.title}>Quizzly Leaderboard</Text>
+        <Text style={styles.title}>
+          Cool! {players.length > 0 ? players[0].name : ""} win!
+        </Text>
 
         {isLoading ? (
           <Text style={styles.loadingText}>Loading results...</Text>
@@ -290,7 +292,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: FontSizes.H1Fs,
-    fontWeight: "bold",
     textAlign: "center",
     marginBottom: Gaps.g16,
   },
@@ -309,7 +310,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: Gaps.g24,
     padding: Gaps.g16,
-    marginBottom: Gaps.g16,
+    marginBottom: Gaps.g8,
   },
   playerRankRow: {
     flexDirection: "row",
@@ -338,7 +339,7 @@ const styles = StyleSheet.create({
 
   buttonsContainer: {
     gap: Gaps.g16,
-    marginTop: Gaps.g16,
+    marginTop: Gaps.g8,
     paddingBottom: Gaps.g40,
   },
 });
