@@ -46,9 +46,14 @@ type SearchFriendInputProps = TextInputProps & {
   onSearch?: (value: string) => void;
 };
 
-export function SearchFriendInput({ onSearch, value, onChangeText, ...props }: SearchFriendInputProps) {
+export function SearchFriendInput({
+  onSearch,
+  value,
+  onChangeText,
+  ...props
+}: SearchFriendInputProps) {
   const inputRef = useRef<string>(value || "");
-  
+
   const handleChangeText = (text: string) => {
     inputRef.current = text;
     onChangeText?.(text);
