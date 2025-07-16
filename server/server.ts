@@ -16,7 +16,8 @@ import {
   PlayerTypingData,
   ChatMessageReceivedData,
   PlayerTypingStatusData,
-  QuizRoom, Player
+  QuizRoom,
+  Player,
 } from "./types/socket";
 
 const app = express();
@@ -51,9 +52,49 @@ const quizRooms = new Map<string, QuizRoom>();
 // Track player answers for each room and question
 const roomAnswerTracking = new Map<string, Map<number, Set<string>>>();
 
+// Online users map
+const onlineUsers = new Map<string, string>(); // userId -> socketId
+
 // Socket.IO handlers
 io.on("connection", (socket) => {
   console.log(`User connected: ${socket.id}`);
+
+  // User online status
+  socket.on("user-online", (data: { userId: string; clerkUserId: string }) => {
+    try {
+      console.log(
+        `User ${data.userId} (clerk: ${data.clerkUserId}) is online with socket ${socket.id}`
+      );
+
+      // Store both IDs for flexibility
+      if (data.userId) onlineUsers.set(data.userId, socket.id);
+      if (data.clerkUserId) onlineUsers.set(data.clerkUserId, socket.id);
+    } catch (error) {
+      console.error("Error in user-online handler:", error);
+    }
+  });
+
+  // Get friends' online status
+  socket.on(
+    "get-friends-status",
+    async (data: { userId: string; friendIds: string[] }) => {
+      try {
+        console.log(
+          `User ${data.userId} requesting status for ${data.friendIds.length} friends`
+        );
+
+        // Filter for online friends
+        const onlineFriends = data.friendIds.filter((id) =>
+          onlineUsers.has(id)
+        );
+
+        console.log(`Found ${onlineFriends.length} online friends`);
+        socket.emit("friends-status", { onlineFriends });
+      } catch (error) {
+        console.error("Error in get-friends-status handler:", error);
+      }
+    }
+  );
 
   // Room creation
   socket.on(
@@ -101,7 +142,12 @@ io.on("connection", (socket) => {
   // Join room
   socket.on(
     "join-room",
-    (data: { roomId: string; playerId: string; playerName: string; language?: string }) => {
+    (data: {
+      roomId: string;
+      playerId: string;
+      playerName: string;
+      language?: string;
+    }) => {
       const room = quizRooms.get(data.roomId);
 
       if (!room) {
@@ -152,8 +198,15 @@ io.on("connection", (socket) => {
   // Rejoin room (for users returning from another screen)
   socket.on(
     "rejoin-room",
-    (data: { roomId: string; playerId: string; playerName: string; language?: string }) => {
-      console.log(`Rejoin room request: ${data.playerId} wants to rejoin ${data.roomId}`);
+    (data: {
+      roomId: string;
+      playerId: string;
+      playerName: string;
+      language?: string;
+    }) => {
+      console.log(
+        `Rejoin room request: ${data.playerId} wants to rejoin ${data.roomId}`
+      );
       const room = quizRooms.get(data.roomId);
 
       if (!room) {
@@ -162,18 +215,27 @@ io.on("connection", (socket) => {
         return;
       }
 
-      console.log(`Room ${data.roomId} current players:`, room.players.map(p => ({ id: p.id, name: p.name, language: p.language })));
+      console.log(
+        `Room ${data.roomId} current players:`,
+        room.players.map((p) => ({
+          id: p.id,
+          name: p.name,
+          language: p.language,
+        }))
+      );
 
       // Check if player is already in the room
       const existingPlayer = room.players.find((p) => p.id === data.playerId);
       if (existingPlayer) {
-        console.log(`Player ${data.playerId} found in room, updating socket ID and language`);
+        console.log(
+          `Player ${data.playerId} found in room, updating socket ID and language`
+        );
         // Update the socket ID and language for the existing player
         existingPlayer.socketId = socket.id;
         if (data.language) {
           existingPlayer.language = data.language;
         }
-        
+
         // Join the socket room
         socket.join(data.roomId);
 
@@ -183,14 +245,20 @@ io.on("connection", (socket) => {
           room.hostSocketId = socket.id;
         }
 
-        console.log(`Sending room state to rejoining player. Room has ${room.players.length} players`);
+        console.log(
+          `Sending room state to rejoining player. Room has ${room.players.length} players`
+        );
         room.players.forEach((p, index) => {
-          console.log(`Player ${index + 1}: ${p.name}, Language: ${p.language}, ID: ${p.id}`);
+          console.log(
+            `Player ${index + 1}: ${p.name}, Language: ${p.language}, ID: ${
+              p.id
+            }`
+          );
         });
 
         // Send current room state to rejoining player
         socket.emit("room-joined", { room });
-        
+
         // Notify all players about the updated room state
         io.to(data.roomId).emit("player-rejoined", {
           player: existingPlayer,
@@ -229,7 +297,9 @@ io.on("connection", (socket) => {
         });
 
         socket.emit("room-joined", { room });
-        console.log(`${data.playerName} joined room ${data.roomId} (via rejoin)`);
+        console.log(
+          `${data.playerName} joined room ${data.roomId} (via rejoin)`
+        );
       }
     }
   );
@@ -242,18 +312,26 @@ io.on("connection", (socket) => {
         socket.emit("error", { message: "Invalid room data" });
         return;
       }
-      
+
       const room = quizRooms.get(data.roomId);
 
       if (!room) {
-        console.log(`Room ${data.roomId} not found. Available rooms: ${[...quizRooms.keys()]}`);
+        console.log(
+          `Room ${data.roomId} not found. Available rooms: ${[
+            ...quizRooms.keys(),
+          ]}`
+        );
         socket.emit("error", { message: "Room not found" });
         return;
       }
-      
-      console.log(`Sending room state for ${data.roomId} with ${room.players.length} players`);
+
+      console.log(
+        `Sending room state for ${data.roomId} with ${room.players.length} players`
+      );
       room.players.forEach((p: any, index: number) => {
-        console.log(`Player ${index + 1}: ${p.name}, Language: ${p.language}, ID: ${p.id}`);
+        console.log(
+          `Player ${index + 1}: ${p.name}, Language: ${p.language}, ID: ${p.id}`
+        );
       });
 
       // Send current room state
@@ -312,7 +390,10 @@ io.on("connection", (socket) => {
     console.log(
       `Emitting game-started to room ${data.roomId} with ${room.players.length} players`
     );
-    io.to(data.roomId).emit("game-started", { room, questions: data.questions });
+    io.to(data.roomId).emit("game-started", {
+      room,
+      questions: data.questions,
+    });
     console.log(`Game started in room ${data.roomId}`);
   });
 
@@ -329,37 +410,46 @@ io.on("connection", (socket) => {
   });
 
   // Sync quiz settings from host to all players
-  socket.on("sync-quiz-settings", (data: { roomId: string; quizSettings: any }) => {
-    const room = quizRooms.get(data.roomId);
-    if (room) {
-      io.to(data.roomId).emit("sync-quiz-settings", {
-        roomId: data.roomId,
-        quizSettings: data.quizSettings,
-      });
+  socket.on(
+    "sync-quiz-settings",
+    (data: { roomId: string; quizSettings: any }) => {
+      const room = quizRooms.get(data.roomId);
+      if (room) {
+        io.to(data.roomId).emit("sync-quiz-settings", {
+          roomId: data.roomId,
+          quizSettings: data.quizSettings,
+        });
+      }
     }
-  });
+  );
 
   // Handle loading state changes
-  socket.on("loading-state-changed", (data: { roomId: string; isLoading: boolean }) => {
-    const room = quizRooms.get(data.roomId);
-    if (room) {
-      io.to(data.roomId).emit("loading-state-changed", {
-        roomId: data.roomId,
-        isLoading: data.isLoading,
-      });
+  socket.on(
+    "loading-state-changed",
+    (data: { roomId: string; isLoading: boolean }) => {
+      const room = quizRooms.get(data.roomId);
+      if (room) {
+        io.to(data.roomId).emit("loading-state-changed", {
+          roomId: data.roomId,
+          isLoading: data.isLoading,
+        });
+      }
     }
-  });
+  );
 
   // Handle countdown state changes
-  socket.on("countdown-state-changed", (data: { roomId: string; showCountdown: boolean }) => {
-    const room = quizRooms.get(data.roomId);
-    if (room) {
-      io.to(data.roomId).emit("countdown-state-changed", {
-        roomId: data.roomId,
-        showCountdown: data.showCountdown,
-      });
+  socket.on(
+    "countdown-state-changed",
+    (data: { roomId: string; showCountdown: boolean }) => {
+      const room = quizRooms.get(data.roomId);
+      if (room) {
+        io.to(data.roomId).emit("countdown-state-changed", {
+          roomId: data.roomId,
+          showCountdown: data.showCountdown,
+        });
+      }
     }
-  });
+  );
 
   socket.on("next-question", (data: { roomId: string }) => {
     const room = quizRooms.get(data.roomId);
@@ -367,30 +457,36 @@ io.on("connection", (socket) => {
       console.log(`Room ${data.roomId} not found`);
       return;
     }
-    
+
     // Allow any player to request next question (not just host)
     console.log(`Next question request received for room ${data.roomId}`);
 
     if (!room.questions || room.currentQuestion === undefined) {
-      console.log(`Room ${data.roomId} has no questions or currentQuestion is undefined`);
+      console.log(
+        `Room ${data.roomId} has no questions or currentQuestion is undefined`
+      );
       return;
     }
 
     // We always proceed to next question regardless of answers
     // This ensures that even if there's any issue with tracking answers, the game will still progress when a player requests the next question
-    console.log(`Current question: ${room.currentQuestion}, Total questions: ${room.questions.length}`);
-      
+    console.log(
+      `Current question: ${room.currentQuestion}, Total questions: ${room.questions.length}`
+    );
+
     if (room.currentQuestion < room.questions.length - 1) {
       // Increment the question index
       const nextQuestionIndex = room.currentQuestion + 1;
       room.currentQuestion = nextQuestionIndex;
-      
+
       const question = room.questions[nextQuestionIndex];
-      console.log(`Sending question ${nextQuestionIndex + 1} to room ${data.roomId}`);
-      
+      console.log(
+        `Sending question ${nextQuestionIndex + 1} to room ${data.roomId}`
+      );
+
       // First emit the next-question event to signal clients to prepare
       io.to(data.roomId).emit("next-question");
-      
+
       // Then emit the actual question content
       io.to(data.roomId).emit("question", {
         question,
@@ -430,7 +526,7 @@ io.on("connection", (socket) => {
       if (!player.answers) {
         player.answers = [];
       }
-      
+
       player.answers.push({
         questionId: currentQ.id || `q${room.currentQuestion}`,
         answer: data.answer,
@@ -440,9 +536,13 @@ io.on("connection", (socket) => {
       });
 
       // Check if all players have answered
-      const allPlayersAnswered = room.players.every(p => 
-        p.answers && p.answers.some(a => 
-          a.questionId === (currentQ.id || `q${room.currentQuestion}`)));
+      const allPlayersAnswered = room.players.every(
+        (p) =>
+          p.answers &&
+          p.answers.some(
+            (a) => a.questionId === (currentQ.id || `q${room.currentQuestion}`)
+          )
+      );
 
       // Notify everyone about the player's answer
       io.to(data.roomId).emit("player-answered", {
@@ -455,15 +555,19 @@ io.on("connection", (socket) => {
           // No score field here since we'll get the final scores at the end
         })),
       });
-      
+
       // If all players have answered, automatically move to next question after delay
-      if (allPlayersAnswered && 
-          room.currentQuestion !== undefined && 
-          room.questions && 
-          room.currentQuestion < room.questions.length - 1) {
+      if (
+        allPlayersAnswered &&
+        room.currentQuestion !== undefined &&
+        room.questions &&
+        room.currentQuestion < room.questions.length - 1
+      ) {
         setTimeout(() => {
-          console.log(`All players answered in room ${data.roomId}, auto-advancing to next question`);
-          
+          console.log(
+            `All players answered in room ${data.roomId}, auto-advancing to next question`
+          );
+
           // Reuse the next-question event handler logic to avoid duplication
           // The server handles moving to the next question through this event
           socket.emit("next-question", { roomId: data.roomId });
@@ -473,35 +577,40 @@ io.on("connection", (socket) => {
   );
 
   // Submit game results
-  socket.on("submit-game-results", (data: { 
-    roomId: string; 
-    playerId: string; 
-    playerName: string;
-    gamePoints: {
-      score: number;
-      timePoints: number;
-      perfectGame: number;
-      total: number;
-      chosenCorrect: number;
-      totalAnswers: number;
-    }
-  }) => {
-    const room = quizRooms.get(data.roomId);
-    if (!room) return;
+  socket.on(
+    "submit-game-results",
+    (data: {
+      roomId: string;
+      playerId: string;
+      playerName: string;
+      gamePoints: {
+        score: number;
+        timePoints: number;
+        perfectGame: number;
+        total: number;
+        chosenCorrect: number;
+        totalAnswers: number;
+      };
+    }) => {
+      const room = quizRooms.get(data.roomId);
+      if (!room) return;
 
-    const player = room.players.find(p => p.id === data.playerId);
-    if (player) {
-      // Store the detailed game points
-      player.gamePoints = data.gamePoints;
-      // Update the player's score (used for sorting)
-      player.score = data.gamePoints.total;
+      const player = room.players.find((p) => p.id === data.playerId);
+      if (player) {
+        // Store the detailed game points
+        player.gamePoints = data.gamePoints;
+        // Update the player's score (used for sorting)
+        player.score = data.gamePoints.total;
 
-      // Broadcast updated results to all players in the room with sorted scores
-      io.to(data.roomId).emit("game-results", {
-        finalScores: [...room.players].sort((a, b) => (b.gamePoints?.total || 0) - (a.gamePoints?.total || 0))
-      });
+        // Broadcast updated results to all players in the room with sorted scores
+        io.to(data.roomId).emit("game-results", {
+          finalScores: [...room.players].sort(
+            (a, b) => (b.gamePoints?.total || 0) - (a.gamePoints?.total || 0)
+          ),
+        });
+      }
     }
-  });
+  );
 
   // Get game results
   socket.on("get-game-results", (data: { roomId: string }) => {
@@ -509,7 +618,11 @@ io.on("connection", (socket) => {
     if (room) {
       // Sort players by their total score in descending order for consistency with submit-game-results
       socket.emit("game-results", {
-        finalScores: [...room.players].sort((a, b) => (b.gamePoints?.total || b.score || 0) - (a.gamePoints?.total || a.score || 0))
+        finalScores: [...room.players].sort(
+          (a, b) =>
+            (b.gamePoints?.total || b.score || 0) -
+            (a.gamePoints?.total || a.score || 0)
+        ),
       });
     }
   });
@@ -628,18 +741,30 @@ io.on("connection", (socket) => {
 
   // Disconnect
   socket.on("disconnect", () => {
-    console.log(`User disconnected: ${socket.id}`);
+    try {
+      console.log(`User disconnected: ${socket.id}`);
 
-    // Find and remove player from all rooms
-    for (const [roomId, room] of quizRooms.entries()) {
-      const playerIndex = room.players.findIndex(
-        (p) => p.socketId === socket.id
-      );
-      if (playerIndex !== -1) {
-        const player = room.players[playerIndex];
-        leaveRoom(socket, roomId, player.id);
-        break;
+      // Remove from online users map
+      for (const [userId, socketId] of onlineUsers.entries()) {
+        if (socketId === socket.id) {
+          console.log(`Removing user ${userId} from online users`);
+          onlineUsers.delete(userId);
+        }
       }
+
+      // Find and remove player from all rooms
+      for (const [roomId, room] of quizRooms.entries()) {
+        const playerIndex = room.players.findIndex(
+          (p) => p.socketId === socket.id
+        );
+        if (playerIndex !== -1) {
+          const player = room.players[playerIndex];
+          leaveRoom(socket, roomId, player.id);
+          break;
+        }
+      }
+    } catch (error) {
+      console.error("Error in disconnect handler:", error);
     }
   });
 });
