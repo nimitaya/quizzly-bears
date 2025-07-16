@@ -3,6 +3,7 @@ import axios from "axios";
 import { useUser } from "@clerk/clerk-expo";
 import { getReceivedInviteRequests } from "@/utilities/invitationApi";
 import { getReceivedFriendRequests } from "@/utilities/friendRequestApi";
+import socketService from "@/utilities/socketService";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
@@ -25,6 +26,7 @@ type UserContextType = {
   setReceivedInviteRequests?: React.Dispatch<React.SetStateAction<number>>;
   refreshFriendRequestCount?: () => Promise<void>;
   refreshInvitationCount?: () => Promise<void>;
+  onlineFriends: string[];
 };
 
 export const UserContext = createContext<UserContextType>({
@@ -43,6 +45,7 @@ export const UserContext = createContext<UserContextType>({
   setReceivedInviteRequests: () => {},
   refreshFriendRequestCount: async () => {},
   refreshInvitationCount: async () => {},
+  onlineFriends: [],
 });
 
 type TopPlayer = { username?: string; email: string; totalPoints: number };
@@ -62,6 +65,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [error, setError] = useState<string | null>(null);
   const [receivedRequestsCount, setReceivedRequestsCount] = useState(0);
   const [receivedInviteRequests, setReceivedInviteRequests] = useState(0);
+  const [onlineFriends, setOnlineFriends] = useState<string[]>([]);
 
   const fetchUserData = async () => {
     if (!user) {
@@ -190,6 +194,39 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     fetchTopPlayers();
   }, [userEmail]);
 
+  useEffect(() => {
+    if (!userData) return;
+
+    console.log("Setting up online status tracking");
+
+    // Set user as online
+    if (userData._id && userData.clerkUserId) {
+      socketService.setUserOnline(userData._id, userData.clerkUserId);
+    }
+
+    // Listen for friends status updates
+    socketService.onFriendsStatus((data) => {
+      console.log("Online friends updated:", data.onlineFriends);
+      setOnlineFriends(data.onlineFriends);
+    });
+
+    // Handle reconnection
+    const handleReconnect = () => {
+      console.log("Reconnected, re-establishing online status");
+      if (userData._id && userData.clerkUserId) {
+        socketService.setUserOnline(userData._id, userData.clerkUserId);
+      }
+    };
+
+    socketService.on("connect", handleReconnect);
+
+    // Clean up listeners
+    return () => {
+      socketService.off("friends-status");
+      socketService.off("connect", handleReconnect);
+    };
+  }, [userData]);
+
   return (
     <UserContext.Provider
       value={{
@@ -208,6 +245,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         setReceivedInviteRequests,
         refreshFriendRequestCount,
         refreshInvitationCount,
+        onlineFriends,
       }}
     >
       {children}

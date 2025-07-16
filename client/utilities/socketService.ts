@@ -157,6 +157,50 @@ class SocketService {
   private connectionRetries = 0;
   private maxRetries = 3;
 
+  // Add these methods to your SocketService class
+
+  private pendingUserOnline: { userId: string; clerkUserId: string } | null =
+    null;
+
+  setUserOnline(userId: string, clerkUserId: string): void {
+    try {
+      if (this.socket?.connected) {
+        this.socket.emit("user-online", { userId, clerkUserId });
+        console.log("Emitted user-online event");
+      } else {
+        console.warn("Socket not connected, storing for reconnection");
+        this.pendingUserOnline = { userId, clerkUserId };
+      }
+    } catch (error) {
+      console.error("Error in setUserOnline:", error);
+    }
+  }
+
+  getFriendsStatus(userId: string, friendIds: string[]): void {
+    try {
+      if (!this.socket?.connected) {
+        console.warn("Socket not connected, can't get friend status");
+        return;
+      }
+
+      if (!friendIds || !Array.isArray(friendIds)) {
+        console.warn("Invalid friendIds:", friendIds);
+        return;
+      }
+
+      this.socket.emit("get-friends-status", {
+        userId,
+        friendIds: friendIds.filter((id) => id), // Filter out null/undefined
+      });
+    } catch (error) {
+      console.error("Error in getFriendsStatus:", error);
+    }
+  }
+
+  onFriendsStatus(callback: (data: { onlineFriends: string[] }) => void): void {
+    this.on("friends-status", callback);
+  }
+
   connect(): Promise<void> {
     return new Promise(async (resolve, reject) => {
       // ========== IMPORTANT not needed anymore ==========
@@ -385,19 +429,21 @@ class SocketService {
     console.log(`Socket connected status: ${this.isConnected()}`);
     console.log(`Socket ID: ${this.getSocketId()}`);
     console.log(`Socket URL: ${SOCKET_URL}`);
-    
+
     // Add a direct error listener to catch any errors
     const errorListener = (error: any) => {
       console.error("Socket error during room state request:", error);
       this.off("error", errorListener);
     };
     this.on("error", errorListener);
-    
+
     this.emit("get-room-state", { roomId });
-    
+
     // Debug: check if the response is received
     const debugTimeout = setTimeout(() => {
-      console.log(`No room state response received for roomId: ${roomId} after 3 seconds`);
+      console.log(
+        `No room state response received for roomId: ${roomId} after 3 seconds`
+      );
       this.off("error", errorListener);
     }, 3000);
   }
@@ -605,14 +651,18 @@ class SocketService {
   onShowStartQuiz(callback: (data: { room: QuizRoom }) => void) {
     this.on("show-start-quiz", callback);
   }
-  
-   // Listen for changes in loading state (when host is generating questions)
-  onLoadingStateChanged(callback: (data: { roomId: string; isLoading: boolean }) => void) {
+
+  // Listen for changes in loading state (when host is generating questions)
+  onLoadingStateChanged(
+    callback: (data: { roomId: string; isLoading: boolean }) => void
+  ) {
     this.on("loading-state-changed", callback);
   }
 
   // Listen for changes in countdown state (when host starts the countdown)
-  onCountdownStateChanged(callback: (data: { roomId: string; showCountdown: boolean }) => void) {
+  onCountdownStateChanged(
+    callback: (data: { roomId: string; showCountdown: boolean }) => void
+  ) {
     this.on("countdown-state-changed", callback);
   }
 
@@ -693,6 +743,22 @@ class SocketService {
       });
     });
   }
+
+  // Enhanced connect handler to restore online status
+  private handleConnect = () => {
+    console.log("Socket connected!");
+
+    // Re-send online status if it was pending
+    if (this.pendingUserOnline) {
+      console.log("Resending online status after reconnect");
+      this.setUserOnline(
+        this.pendingUserOnline.userId,
+        this.pendingUserOnline.clerkUserId
+      );
+    }
+
+    // Your existing code...
+  };
 }
 
 // Export singleton
