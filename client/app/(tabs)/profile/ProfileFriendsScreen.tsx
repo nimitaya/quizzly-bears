@@ -12,7 +12,7 @@ import IconPending from "@/assets/icons/IconPending";
 import IconDelete from "@/assets/icons/IconDelete";
 import IconAddFriend from "@/assets/icons/IconAddFriend";
 import { Logo } from "@/components/Logos";
-import { FontSizes, Gaps, Colors } from "@/styles/theme";
+import { FontSizes, Gaps, Colors, Radius } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import { SearchFriendInput } from "@/components/Inputs";
 import {
@@ -560,14 +560,19 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   refreshButton: {
-    backgroundColor: Colors.black,
-    padding: Gaps.g8,
-    borderRadius: 8,
+    backgroundColor: Colors.white,
+    justifyContent: "center",
     alignItems: "center",
-    marginTop: Gaps.g24,
+    gap: Gaps.g8,
+    paddingHorizontal: Gaps.g16,
+    height: 56,
+    width: 348,
+    alignSelf: "center",
+    borderRadius: Radius.r50,
+    marginTop: Gaps.g32,
   },
   refreshButtonText: {
-    color: "white",
-    fontSize: FontSizes.TextMediumFs,
+    color: Colors.darkGreen,
+    fontSize: FontSizes.TextLargeFs,
   },
 });
