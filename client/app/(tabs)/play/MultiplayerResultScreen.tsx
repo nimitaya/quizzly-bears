@@ -72,60 +72,51 @@ const MultiplayerResultScreen = () => {
   }, []);
 
   // ========== Functions ==========
-  const handlePlayAgain = async () => {
-    if (roomInfo && userData) {
-      //
+
+  const [medalsSent, setMedalsSent] = useState(false);
+
+  const sendMedalsOnce = async () => {
+    if (!medalsSent && roomInfo && players.length > 0) {
+      setMedalsSent(true);
       try {
+        const awarded = new Set();
         for (let i = 0; i < 3 && i < players.length; i++) {
           const player = players[i];
-          await sendMedal({
-            clerkUserId: player.id,
-            place: i + 1,
-            roomId: roomInfo.roomId,
-          });
+          if (!awarded.has(player.id)) {
+            await sendMedal({
+              clerkUserId: player.id,
+              place: i + 1,
+              roomId: roomInfo.roomId,
+            });
+            awarded.add(player.id);
+          }
         }
       } catch (err) {
         console.error("Error sending medals:", err);
       }
-      // Clear cache data except for the current room
+    }
+  };
+
+  const handlePlayAgain = async () => {
+    await sendMedalsOnce();
+    if (roomInfo && userData) {
       clearCacheData(CACHE_KEY.aiQuestions);
-      // Signal readiness for another game
-      //socketService.togglePlayerReady(roomInfo.roomId, userData.clerkUserId);
       router.push("./MultiplayerLobby");
     }
   };
 
   const handleHome = async () => {
-    // Send medals for 1st, 2nd, 3rd place
-    if (roomInfo && players.length > 0) {
-      try {
-        for (let i = 0; i < 3 && i < players.length; i++) {
-          const player = players[i];
-          await sendMedal({
-            clerkUserId: player.id,
-            place: i + 1,
-            roomId: roomInfo.roomId,
-          });
-        }
-      } catch (err) {
-        console.error("Error sending medals:", err);
-      }
-    }
-    // Clear all cache data
+    await sendMedalsOnce();
     clearCacheData(CACHE_KEY.aiQuestions);
     clearCacheData(CACHE_KEY.gameData);
     clearCacheData(CACHE_KEY.quizSettings);
 
-    // Leave the socket room and wait for acknowledgment before navigating
     if (roomInfo && userData) {
-      // Add an event listener for room deletion confirmation
       const onRoomLeft = () => {
-        // Once we receive confirmation, navigate and clean up
         clearCacheData(CACHE_KEY.currentRoom);
         router.push("./");
       };
 
-      // Listen for error events that might occur when accessing a deleted room
       socketService.on("error", (data: { message: string }) => {
         if (data.message === "Room not found") {
           clearCacheData(CACHE_KEY.currentRoom);
@@ -133,18 +124,14 @@ const MultiplayerResultScreen = () => {
         }
       });
 
-      // First leave the room
       socketService.leaveRoom(roomInfo.roomId, userData.clerkUserId);
 
-      // Clean up listeners and navigate after a short delay
-      // This ensures server has time to process the leave-room event
       setTimeout(() => {
         socketService.off("error");
         clearCacheData(CACHE_KEY.currentRoom);
         router.push("./");
       }, 300);
     } else {
-      // If no room info, just navigate home
       router.push("./");
     }
   };
