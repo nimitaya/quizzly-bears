@@ -52,6 +52,7 @@ export function SearchFriendInput({
   onChangeText,
   ...props
 }: SearchFriendInputProps) {
+
   const { width } = useWindowDimensions();
   const inputWidth = Math.max(348, width - 48);
   const inputRef = useRef<string>(value || "");

@@ -93,11 +93,23 @@ export function QuizButton({
   };
 
   // Handle button press with sound
-  const handlePress = () => {
-    // Only play sound if button is not already checked (disabled)
-    if (!checked) {
-      playAuswahlSound();
+  const handlePress = async () => {
+    if (checked) return;
+    
+    // Play selection sound if enabled
+    if (soundEnabled && auswahlSound.current) {
+      try {
+        console.log('QuizButton: Playing auswahl sound');
+        await auswahlSound.current.setPositionAsync(0);
+        await auswahlSound.current.playAsync();
+        console.log('QuizButton: Auswahl sound played successfully');
+      } catch (error) {
+        console.error('QuizButton: Error playing auswahl sound:', error);
+      }
+    } else {
+      console.log('QuizButton: Sound not enabled or not loaded');
     }
+    
     onPress();
   };
 

@@ -78,14 +78,13 @@ const TimerBar: React.FC<TimerBarProps> = ({
 
   // Start/stop timer sound based on animation state
   const startTimerSound = async () => {
-    // TEMPORARY DEBUG: Always try to play sound regardless of settings
-    if (!timerSound.current || !soundLoaded || isPlaying) {
-      console.log('TimerBar: Cannot start sound - soundLoaded:', soundLoaded, 'isPlaying:', isPlaying);
+    if (!soundEnabled || !timerSound.current || !soundLoaded || isPlaying) {
+      console.log('TimerBar: Cannot start sound - soundEnabled:', soundEnabled, 'soundLoaded:', soundLoaded, 'isPlaying:', isPlaying);
       return;
     }
     
     try {
-      console.log('TimerBar: Starting timer sound (DEBUG MODE - ignoring soundEnabled)');
+      console.log('TimerBar: Starting timer sound');
       await timerSound.current.setPositionAsync(0);
       await timerSound.current.playAsync();
       setIsPlaying(true);
@@ -122,12 +121,12 @@ const TimerBar: React.FC<TimerBarProps> = ({
       useNativeDriver: false,
     });
 
-    // TEMPORARY DEBUG: Start timer sound when animation starts (regardless of sound settings)
-    if (soundLoaded) {
-      console.log('TimerBar: Attempting to start sound (DEBUG MODE)');
+    // Start timer sound when animation starts (if sound is enabled)
+    if (soundEnabled && soundLoaded) {
+      console.log('TimerBar: Attempting to start sound');
       startTimerSound();
     } else {
-      console.log('TimerBar: Sound not loaded yet, cannot start');
+      console.log('TimerBar: Sound not enabled or not loaded yet');
     }
 
     animation.start(({ finished }) => {
@@ -146,7 +145,7 @@ const TimerBar: React.FC<TimerBarProps> = ({
       // Stop timer sound when component unmounts or animation is interrupted
       stopTimerSound();
     };
-  }, [duration, onTimeUp, soundLoaded]); // Remove soundEnabled dependency for debug
+  }, [duration, onTimeUp, soundEnabled, soundLoaded]); // Add soundEnabled dependency back
 
   useEffect(() => {
     console.log('TimerBar: Pause effect triggered, isPaused:', isPaused);

@@ -15,13 +15,11 @@ import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import Countdown from "@/components/Countdown";
 import QuizLoader from "@/components/QuizLoader";
 import CustomAlert from "@/components/CustomAlert";
-import { useSound } from "@/providers/SoundProvider";
 
 const StartQuizScreen = () => {
   const router = useRouter();
   const cacheKey = CACHE_KEY.quizSettings;
   const cacheAi = CACHE_KEY.aiQuestions;
-  const { soundEnabled } = useSound();
   const [level, setLevel] = useState<Difficulty>("medium");
   const [topic, setTopic] = useState<string>("");
   const [category, setCategory] = useState<string>("");
@@ -162,7 +160,6 @@ const StartQuizScreen = () => {
         onComplete={handleCountdownComplete}
         startNumber={3}
         duration={1500}
-        soundEnabled={soundEnabled}
       />
     );
   }
