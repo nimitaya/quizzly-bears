@@ -12,7 +12,7 @@ import IconPending from "@/assets/icons/IconPending";
 import IconDelete from "@/assets/icons/IconDelete";
 import IconAddFriend from "@/assets/icons/IconAddFriend";
 import { Logo } from "@/components/Logos";
-import { FontSizes, Gaps, Colors } from "@/styles/theme";
+import { FontSizes, Gaps, Colors, Radius } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import { SearchFriendInput } from "@/components/InputsTest";
 import {

@@ -139,7 +139,11 @@ export function useQuizLogic() {
 
   // Play feedback sound based on answer correctness
   const playFeedbackSound = async (isCorrect: boolean) => {
-    // DEBUG: Always try to play sound regardless of settings (like TimerBar and QuizButton)
+    if (!soundEnabled) {
+      console.log('useQuizLogic: Sound not enabled, skipping feedback sound');
+      return;
+    }
+    
     const soundToPlay = isCorrect ? correctSound.current : errorSound.current;
     const soundType = isCorrect ? 'richtig' : 'error';
     
@@ -149,7 +153,7 @@ export function useQuizLogic() {
     }
     
     try {
-      console.log(`useQuizLogic: Playing ${soundType} sound (DEBUG MODE)`);
+      console.log(`useQuizLogic: Playing ${soundType} sound`);
       await soundToPlay.setPositionAsync(0);
       await soundToPlay.playAsync();
       console.log(`useQuizLogic: ${soundType} sound played successfully`);

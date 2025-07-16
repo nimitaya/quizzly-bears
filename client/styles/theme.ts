@@ -1,6 +1,6 @@
 export const Colors = {
   primaryLimo: "#CDF546",
-  lightGreen: "#8FD40B",
+  
   darkGreen: "#144419",
   black: "#212121",
   white: "#FFFFFF",
