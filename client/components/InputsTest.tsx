@@ -156,7 +156,6 @@ export function SearchFriendInput({
 
   return (
     <View style={styles.containerSearchFriendWrapper}>
-      {/* Input original - EXACTAMENTE IGUAL */}
       <View style={styles.containerSearchFriend}>
         <TextInput
           style={styles.inputSearchFriend}
@@ -179,7 +178,7 @@ export function SearchFriendInput({
         <ButtonSearchFriend onPress={handleSearch} />
       </View>
 
-      {/* Sugerencias - SOLO aparecen si hay clerkUserId */}
+      {/* Email Suggest nur wenn die in Clerk sind*/}
       {clerkUserId && showSuggestions && suggestions.length > 0 && (
         <View style={styles.suggestionsContainer}>
           <FlatList
@@ -257,6 +256,7 @@ const styles = StyleSheet.create({
     position: "relative",
     maxWidth: 348,
     zIndex: 1000,
+    overflow: "visible", // Asegúrate de que sea "visible"
   },
   // ESTILO ORIGINAL - SIN CAMBIOS
   containerSearchFriend: {
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
     maxHeight: 200,
-    zIndex: 1001,
+    zIndex: 2001,
   },
   suggestionsList: {
     flexGrow: 0,

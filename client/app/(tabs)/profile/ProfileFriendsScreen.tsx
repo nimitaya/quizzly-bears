@@ -29,7 +29,6 @@ import { useEffect, useState, useContext } from "react";
 import { FriendsState, User } from "@/utilities/friendInterfaces";
 import { UserContext } from "@/providers/UserProvider";
 import socketService from "@/utilities/socketService";
-import { SearchFriendInputWithAutocomplete } from "@/components/SearchFriendWithAutocomplete";
 
 const ProfilFriendsScreen = () => {
   const router = useRouter();
@@ -452,6 +451,39 @@ const ProfilFriendsScreen = () => {
               <Text style={styles.emptyText}>Invite someone over.</Text>
             </View>
           )}
+          {/* Refresh Button - Added manually */}
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={() => {
+            console.log("Manual refresh triggered");
+            if (userData?.clerkUserId) {
+              const fetchFriends = async () => {
+                try {
+                  setIsLoading(true);
+                  const clerkUserId = userData.clerkUserId;
+
+                  const friends = await getFriends(clerkUserId);
+                  const received = await getReceivedFriendRequests(clerkUserId);
+                  const sent = await getSentFriendRequests(clerkUserId);
+
+                  setFriendsState({
+                    friendList: friends,
+                    receivedFriendRequests: received,
+                    sentFriendRequests: sent,
+                  });
+                  console.log("Friends data refreshed manually");
+                } catch (error) {
+                  console.error("Error refreshing friends:", error);
+                } finally {
+                  setIsLoading(false);
+                }
+              };
+              fetchFriends();
+            }
+          }}
+        >
+          <Text style={styles.refreshButtonText}>Refresh Friends</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -526,5 +558,21 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FontSizes.TextLargeFs,
     textAlign: "center",
+  },
+  refreshButton: {
+    backgroundColor: Colors.white,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: Gaps.g8,
+    paddingHorizontal: Gaps.g16,
+    height: 56,
+    width: 348,
+    alignSelf: "center",
+    borderRadius: Radius.r50,
+    marginTop: Gaps.g32,
+  },
+  refreshButtonText: {
+    color: Colors.darkGreen,
+    fontSize: FontSizes.TextLargeFs,
   },
 });
