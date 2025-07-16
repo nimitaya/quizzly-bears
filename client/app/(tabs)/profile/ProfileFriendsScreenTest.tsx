@@ -1,474 +1,474 @@
-import {
-    View,
-    TouchableOpacity,
-    StyleSheet,
-    Text,
-    ScrollView,
-  } from "react-native";
-  import IconArrowBack from "@/assets/icons/IconArrowBack";
-  import IconAccept from "@/assets/icons/IconAccept";
-  import IconDismiss from "@/assets/icons/IconDismiss";
-  import IconPending from "@/assets/icons/IconPending";
-  import IconDelete from "@/assets/icons/IconDelete";
-  import IconAddFriend from "@/assets/icons/IconAddFriend";
-  import { Logo } from "@/components/Logos";
-  import { FontSizes, Gaps, Colors } from "@/styles/theme";
-  import { useRouter } from "expo-router";
-  import { SearchFriendInputWithAutocomplete } from "@/components/SearchFriendWithAutocomplete"; // Nuevo import
-  import {
-    getFriends,
-    getReceivedFriendRequests,
-    getSentFriendRequests,
-    acceptFriendRequest,
-    declineFriendRequest,
-    removeFriend,
-    searchUserByEmail,
-    sendFriendRequest,
-  } from "@/utilities/friendRequestApi";
-  import { useEffect, useState, useContext } from "react";
-  import { FriendsState, User } from "@/utilities/friendInterfaces";
-  import { UserContext } from "@/providers/UserProvider";
-  import { io } from "socket.io-client";
+// import {
+//     View,
+//     TouchableOpacity,
+//     StyleSheet,
+//     Text,
+//     ScrollView,
+//   } from "react-native";
+//   import IconArrowBack from "@/assets/icons/IconArrowBack";
+//   import IconAccept from "@/assets/icons/IconAccept";
+//   import IconDismiss from "@/assets/icons/IconDismiss";
+//   import IconPending from "@/assets/icons/IconPending";
+//   import IconDelete from "@/assets/icons/IconDelete";
+//   import IconAddFriend from "@/assets/icons/IconAddFriend";
+//   import { Logo } from "@/components/Logos";
+//   import { FontSizes, Gaps, Colors } from "@/styles/theme";
+//   import { useRouter } from "expo-router";
+//   import { SearchFriendInputWithAutocomplete } from "@/components/SearchFriendWithAutocomplete"; // Nuevo import
+//   import {
+//     getFriends,
+//     getReceivedFriendRequests,
+//     getSentFriendRequests,
+//     acceptFriendRequest,
+//     declineFriendRequest,
+//     removeFriend,
+//     searchUserByEmail,
+//     sendFriendRequest,
+//   } from "@/utilities/friendRequestApi";
+//   import { useEffect, useState, useContext } from "react";
+//   import { FriendsState, User } from "@/utilities/friendInterfaces";
+//   import { UserContext } from "@/providers/UserProvider";
+//   import { io } from "socket.io-client";
   
-  const ProfilFriendsScreen = () => {
-    const router = useRouter();
-    const { userData } = useContext(UserContext);
-    const [isLoading, setIsLoading] = useState(false);
-    const [searchState, setSearchState] = useState<{
-      email: string;
-      result: User | null;
-      error: string;
-    }>({
-      email: "",
-      result: null,
-      error: "",
-    });
-    const [friendsState, setFriendsState] = useState<FriendsState>({
-      friendList: { friends: [] },
-      receivedFriendRequests: { friendRequests: [] },
-      sentFriendRequests: { friendRequests: [] },
-    });
+//   const ProfilFriendsScreen = () => {
+//     const router = useRouter();
+//     const { userData } = useContext(UserContext);
+//     const [isLoading, setIsLoading] = useState(false);
+//     const [searchState, setSearchState] = useState<{
+//       email: string;
+//       result: User | null;
+//       error: string;
+//     }>({
+//       email: "",
+//       result: null,
+//       error: "",
+//     });
+//     const [friendsState, setFriendsState] = useState<FriendsState>({
+//       friendList: { friends: [] },
+//       receivedFriendRequests: { friendRequests: [] },
+//       sentFriendRequests: { friendRequests: [] },
+//     });
   
-    const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
+//     const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
   
-    // =========== Functions ==========
-    // Handler Search User
-    const handleSearchUser = async (email: string) => {
-      if (!email.trim() || !userData) {
-        setSearchState((prev) => ({
-          ...prev,
-          error: "Please enter a valid email",
-        }));
-        return;
-      }
+//     // =========== Functions ==========
+//     // Handler Search User
+//     const handleSearchUser = async (email: string) => {
+//       if (!email.trim() || !userData) {
+//         setSearchState((prev) => ({
+//           ...prev,
+//           error: "Please enter a valid email",
+//         }));
+//         return;
+//       }
   
-      try {
-        setIsLoading(true);
-        setSearchState((prev) => ({ ...prev, result: null, error: "" }));
+//       try {
+//         setIsLoading(true);
+//         setSearchState((prev) => ({ ...prev, result: null, error: "" }));
   
-        const result = await searchUserByEmail(email, userData.clerkUserId);
-        setSearchState((prev) => ({ ...prev, result: result.user, email: "" }));
-      } catch (error: any) {
-        setSearchState((prev) => ({
-          ...prev,
-          result: null,
-          error: "not a quizzly bear",
-        }));
-      } finally {
-        setIsLoading(false);
-      }
-    };
+//         const result = await searchUserByEmail(email, userData.clerkUserId);
+//         setSearchState((prev) => ({ ...prev, result: result.user, email: "" }));
+//       } catch (error: any) {
+//         setSearchState((prev) => ({
+//           ...prev,
+//           result: null,
+//           error: "not a quizzly bear",
+//         }));
+//       } finally {
+//         setIsLoading(false);
+//       }
+//     };
   
-    // Handler Send Friend Request
-    const handleSendFriendRequest = async (targetUserId: string) => {
-      if (!userData) return;
+//     // Handler Send Friend Request
+//     const handleSendFriendRequest = async (targetUserId: string) => {
+//       if (!userData) return;
   
-      try {
-        setIsLoading(true);
-        await sendFriendRequest(userData.clerkUserId, targetUserId);
+//       try {
+//         setIsLoading(true);
+//         await sendFriendRequest(userData.clerkUserId, targetUserId);
   
-        // Refresh the sent requests list
-        const sent = await getSentFriendRequests(userData.clerkUserId);
-        setFriendsState((prev) => ({
-          ...prev,
-          sentFriendRequests: sent,
-        }));
+//         // Refresh the sent requests list
+//         const sent = await getSentFriendRequests(userData.clerkUserId);
+//         setFriendsState((prev) => ({
+//           ...prev,
+//           sentFriendRequests: sent,
+//         }));
   
-        // Clear search result after sending request
-        setSearchState((prev) => ({ ...prev, email: "", result: null }));
-      } catch (error: any) {
-        setSearchState((prev) => ({
-          ...prev,
-          error: error.message || "Failed to send friend request",
-        }));
-      } finally {
-        setIsLoading(false);
-      }
-    };
+//         // Clear search result after sending request
+//         setSearchState((prev) => ({ ...prev, email: "", result: null }));
+//       } catch (error: any) {
+//         setSearchState((prev) => ({
+//           ...prev,
+//           error: error.message || "Failed to send friend request",
+//         }));
+//       } finally {
+//         setIsLoading(false);
+//       }
+//     };
   
-    // Handler Accept
-    const handleAcceptFriendRequest = async (requestId: string) => {
-      try {
-        if (!userData) return;
-        await acceptFriendRequest(userData.clerkUserId, requestId);
-        // Refresh the friends list after accepting
-        const friends = await getFriends(userData.clerkUserId);
-        const received = await getReceivedFriendRequests(userData.clerkUserId);
-        const sent = await getSentFriendRequests(userData.clerkUserId);
+//     // Handler Accept
+//     const handleAcceptFriendRequest = async (requestId: string) => {
+//       try {
+//         if (!userData) return;
+//         await acceptFriendRequest(userData.clerkUserId, requestId);
+//         // Refresh the friends list after accepting
+//         const friends = await getFriends(userData.clerkUserId);
+//         const received = await getReceivedFriendRequests(userData.clerkUserId);
+//         const sent = await getSentFriendRequests(userData.clerkUserId);
   
-        setFriendsState({
-          friendList: friends,
-          receivedFriendRequests: received,
-          sentFriendRequests: sent,
-        });
-      } catch (error) {
-        console.error("Error accepting friend request:", error);
-      }
-    };
+//         setFriendsState({
+//           friendList: friends,
+//           receivedFriendRequests: received,
+//           sentFriendRequests: sent,
+//         });
+//       } catch (error) {
+//         console.error("Error accepting friend request:", error);
+//       }
+//     };
   
-    // Handler Decline
-    const handleDeclineFriendRequest = async (requestId: string) => {
-      try {
-        if (!userData) return;
-        await declineFriendRequest(userData.clerkUserId, requestId);
-        // Refresh the friends list after declining
-        const received = await getReceivedFriendRequests(userData.clerkUserId);
-        setFriendsState((prev) => ({
-          ...prev,
-          receivedFriendRequests: received,
-        }));
-      } catch (error) {
-        console.error("Error declining friend request:", error);
-      }
-    };
+//     // Handler Decline
+//     const handleDeclineFriendRequest = async (requestId: string) => {
+//       try {
+//         if (!userData) return;
+//         await declineFriendRequest(userData.clerkUserId, requestId);
+//         // Refresh the friends list after declining
+//         const received = await getReceivedFriendRequests(userData.clerkUserId);
+//         setFriendsState((prev) => ({
+//           ...prev,
+//           receivedFriendRequests: received,
+//         }));
+//       } catch (error) {
+//         console.error("Error declining friend request:", error);
+//       }
+//     };
   
-    // Handler Remove
-    const handleRemoveFriend = async (friendId: string) => {
-      try {
-        if (!userData) return;
-        await removeFriend(userData.clerkUserId, friendId);
-        // Refresh the friends list after removing
-        const friends = await getFriends(userData.clerkUserId);
-        setFriendsState((prev) => ({
-          ...prev,
-          friendList: friends,
-        }));
-      } catch (error) {
-        console.error("Error removing friend:", error);
-      }
-    };
+//     // Handler Remove
+//     const handleRemoveFriend = async (friendId: string) => {
+//       try {
+//         if (!userData) return;
+//         await removeFriend(userData.clerkUserId, friendId);
+//         // Refresh the friends list after removing
+//         const friends = await getFriends(userData.clerkUserId);
+//         setFriendsState((prev) => ({
+//           ...prev,
+//           friendList: friends,
+//         }));
+//       } catch (error) {
+//         console.error("Error removing friend:", error);
+//       }
+//     };
   
-    // =========== UseEffect ==========
-    // Auto-hide error after 5 seconds
-    useEffect(() => {
-      if (searchState.error) {
-        const timer = setTimeout(() => {
-          setSearchState((prev) => ({ ...prev, error: "" }));
-        }, 5000);
+//     // =========== UseEffect ==========
+//     // Auto-hide error after 5 seconds
+//     useEffect(() => {
+//       if (searchState.error) {
+//         const timer = setTimeout(() => {
+//           setSearchState((prev) => ({ ...prev, error: "" }));
+//         }, 5000);
   
-        return () => clearTimeout(timer);
-      }
-    }, [searchState.error]);
+//         return () => clearTimeout(timer);
+//       }
+//     }, [searchState.error]);
   
-    useEffect(() => {
-      if (!userData) {
-        return;
-      }
-      // Fetch friends when the component mounts
-      const fetchFriends = async () => {
-        try {
-          const clerkUserId = userData.clerkUserId;
+//     useEffect(() => {
+//       if (!userData) {
+//         return;
+//       }
+//       // Fetch friends when the component mounts
+//       const fetchFriends = async () => {
+//         try {
+//           const clerkUserId = userData.clerkUserId;
   
-          const friends = await getFriends(clerkUserId);
-          const received = await getReceivedFriendRequests(clerkUserId);
-          const sent = await getSentFriendRequests(clerkUserId);
+//           const friends = await getFriends(clerkUserId);
+//           const received = await getReceivedFriendRequests(clerkUserId);
+//           const sent = await getSentFriendRequests(clerkUserId);
   
-          setFriendsState({
-            friendList: friends,
-            receivedFriendRequests: received,
-            sentFriendRequests: sent,
-          });
-        } catch (error) {
-          console.error("Error fetching friends:", error);
-        }
-      };
-      fetchFriends();
-    }, []);
+//           setFriendsState({
+//             friendList: friends,
+//             receivedFriendRequests: received,
+//             sentFriendRequests: sent,
+//           });
+//         } catch (error) {
+//           console.error("Error fetching friends:", error);
+//         }
+//       };
+//       fetchFriends();
+//     }, []);
   
-    useEffect(() => {
-      socket.on("friendRequestSent", (data) => {
-        console.log("Friend request sent:", data);
+//     useEffect(() => {
+//       socket.on("friendRequestSent", (data) => {
+//         console.log("Friend request sent:", data);
   
-        // Update the received friend requests list in real time
-        if (userData) {
-          getReceivedFriendRequests(userData.clerkUserId).then((received) => {
-            setFriendsState((prev) => ({
-              ...prev,
-              receivedFriendRequests: received,
-            }));
-          });
-        }
-      });
+//         // Update the received friend requests list in real time
+//         if (userData) {
+//           getReceivedFriendRequests(userData.clerkUserId).then((received) => {
+//             setFriendsState((prev) => ({
+//               ...prev,
+//               receivedFriendRequests: received,
+//             }));
+//           });
+//         }
+//       });
   
-      socket.on("friendRequestAccepted", (data) => {
-        console.log("Friend request accepted:", data);
+//       socket.on("friendRequestAccepted", (data) => {
+//         console.log("Friend request accepted:", data);
   
-        if (userData) {
-          const clerkUserId = userData.clerkUserId;
+//         if (userData) {
+//           const clerkUserId = userData.clerkUserId;
   
-          // Update the friends list
-          getFriends(clerkUserId).then((friends) => {
-            setFriendsState((prev) => ({
-              ...prev,
-              friendList: friends,
-            }));
-          });
+//           // Update the friends list
+//           getFriends(clerkUserId).then((friends) => {
+//             setFriendsState((prev) => ({
+//               ...prev,
+//               friendList: friends,
+//             }));
+//           });
   
-          // Update the requests list (remove the accepted one)
-          getSentFriendRequests(clerkUserId).then((sent) => {
-            setFriendsState((prev) => ({
-              ...prev,
-              sentFriendRequests: sent,
-            }));
-          });
-        }
-      });
+//           // Update the requests list (remove the accepted one)
+//           getSentFriendRequests(clerkUserId).then((sent) => {
+//             setFriendsState((prev) => ({
+//               ...prev,
+//               sentFriendRequests: sent,
+//             }));
+//           });
+//         }
+//       });
   
-      socket.on("friendRequestDeclined", (data) => {
-        console.log("Friend request declined:", data);
+//       socket.on("friendRequestDeclined", (data) => {
+//         console.log("Friend request declined:", data);
   
-        // Update the received friend requests list
-        if (userData) {
-          getReceivedFriendRequests(userData.clerkUserId).then((received) => {
-            setFriendsState((prev) => ({
-              ...prev,
-              receivedFriendRequests: received,
-            }));
-          });
-          getSentFriendRequests(userData.clerkUserId).then((sent) => {
-            setFriendsState((prev) => ({
-              ...prev,
-              sentFriendRequests: sent,
-            }));
-          });
-        }
-      });
+//         // Update the received friend requests list
+//         if (userData) {
+//           getReceivedFriendRequests(userData.clerkUserId).then((received) => {
+//             setFriendsState((prev) => ({
+//               ...prev,
+//               receivedFriendRequests: received,
+//             }));
+//           });
+//           getSentFriendRequests(userData.clerkUserId).then((sent) => {
+//             setFriendsState((prev) => ({
+//               ...prev,
+//               sentFriendRequests: sent,
+//             }));
+//           });
+//         }
+//       });
   
-      socket.on("friendRemoved", (data) => {
-        console.log("Friend removed:", data);
+//       socket.on("friendRemoved", (data) => {
+//         console.log("Friend removed:", data);
   
-        // Update the friends list
-        if (userData) {
-          getFriends(userData.clerkUserId).then((friends) => {
-            setFriendsState((prev) => ({
-              ...prev,
-              friendList: friends,
-            }));
-          });
-        }
-      });
+//         // Update the friends list
+//         if (userData) {
+//           getFriends(userData.clerkUserId).then((friends) => {
+//             setFriendsState((prev) => ({
+//               ...prev,
+//               friendList: friends,
+//             }));
+//           });
+//         }
+//       });
   
-      return () => {
-        socket.off("friendRequestSent");
-        socket.off("friendRequestAccepted");
-        socket.off("friendRequestDeclined");
-        socket.off("friendRemoved");
-      };
-    }, [userData]);
+//       return () => {
+//         socket.off("friendRequestSent");
+//         socket.off("friendRequestAccepted");
+//         socket.off("friendRequestDeclined");
+//         socket.off("friendRemoved");
+//       };
+//     }, [userData]);
   
-    return (
-      <View style={styles.container}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-          accessibilityLabel="Go back"
-        >
-          <IconArrowBack />
-        </TouchableOpacity>
+//     return (
+//       <View style={styles.container}>
+//         <TouchableOpacity
+//           style={styles.backButton}
+//           onPress={() => router.back()}
+//           accessibilityLabel="Go back"
+//         >
+//           <IconArrowBack />
+//         </TouchableOpacity>
   
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.logoContainer}>
-            <Logo size="small" />
-          </View>
+//         <ScrollView
+//           contentContainerStyle={styles.scrollContent}
+//           showsVerticalScrollIndicator={false}
+//         >
+//           <View style={styles.logoContainer}>
+//             <Logo size="small" />
+//           </View>
   
-          <Text style={styles.pageTitle}>Friends</Text>
+//           <Text style={styles.pageTitle}>Friends</Text>
   
-          {/* Search Bar with Autocomplete */}
-          <View style={styles.searchContainer}>
-            <SearchFriendInputWithAutocomplete
-              placeholder="e-mail..."
-              value={searchState.email}
-              onChangeText={(text: string) => {
-                setSearchState((prev) => ({ ...prev, email: text }));
-              }}
-              onSearch={handleSearchUser}
-              clerkUserId={userData?.clerkUserId || ""}
-            />
+//           {/* Search Bar with Autocomplete */}
+//           <View style={styles.searchContainer}>
+//             <SearchFriendInputWithAutocomplete
+//               placeholder="e-mail..."
+//               value={searchState.email}
+//               onChangeText={(text: string) => {
+//                 setSearchState((prev) => ({ ...prev, email: text }));
+//               }}
+//               onSearch={handleSearchUser}
+//               clerkUserId={userData?.clerkUserId || ""}
+//             />
   
-            {/* Fixed space for error message */}
-            <View style={styles.errorContainer}>
-              {searchState.error ? (
-                <Text style={styles.errorText}>{searchState.error}</Text>
-              ) : null}
-            </View>
+//             {/* Fixed space for error message */}
+//             <View style={styles.errorContainer}>
+//               {searchState.error ? (
+//                 <Text style={styles.errorText}>{searchState.error}</Text>
+//               ) : null}
+//             </View>
   
-            {/* Search Result */}
-            {searchState.result ? (
-              <View style={styles.friendRow}>
-                <Text style={styles.friendName}>{searchState.result.email}</Text>
-                <View style={styles.actionButtons}>
-                  <TouchableOpacity
-                    onPress={() =>
-                      searchState.result &&
-                      handleSendFriendRequest(searchState.result._id)
-                    }
-                    disabled={isLoading}
-                    style={styles.iconButton}
-                  >
-                    <IconAddFriend />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : null}
-          </View>
+//             {/* Search Result */}
+//             {searchState.result ? (
+//               <View style={styles.friendRow}>
+//                 <Text style={styles.friendName}>{searchState.result.email}</Text>
+//                 <View style={styles.actionButtons}>
+//                   <TouchableOpacity
+//                     onPress={() =>
+//                       searchState.result &&
+//                       handleSendFriendRequest(searchState.result._id)
+//                     }
+//                     disabled={isLoading}
+//                     style={styles.iconButton}
+//                   >
+//                     <IconAddFriend />
+//                   </TouchableOpacity>
+//                 </View>
+//               </View>
+//             ) : null}
+//           </View>
   
-          {/* Friend Requests (incoming) */}
-          {friendsState.receivedFriendRequests.friendRequests.map((item) => (
-            <View key={item._id} style={styles.friendRow}>
-              <Text style={styles.friendName}>{item.from.email}</Text>
-              <View style={styles.actionButtons}>
-                <TouchableOpacity
-                  onPress={() => handleAcceptFriendRequest(item._id)}
-                  style={styles.iconButton}
-                >
-                  <IconAccept />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleDeclineFriendRequest(item._id)}
-                  style={styles.iconButton}
-                >
-                  <IconDismiss />
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
+//           {/* Friend Requests (incoming) */}
+//           {friendsState.receivedFriendRequests.friendRequests.map((item) => (
+//             <View key={item._id} style={styles.friendRow}>
+//               <Text style={styles.friendName}>{item.from.email}</Text>
+//               <View style={styles.actionButtons}>
+//                 <TouchableOpacity
+//                   onPress={() => handleAcceptFriendRequest(item._id)}
+//                   style={styles.iconButton}
+//                 >
+//                   <IconAccept />
+//                 </TouchableOpacity>
+//                 <TouchableOpacity
+//                   onPress={() => handleDeclineFriendRequest(item._id)}
+//                   style={styles.iconButton}
+//                 >
+//                   <IconDismiss />
+//                 </TouchableOpacity>
+//               </View>
+//             </View>
+//           ))}
   
-          {/* Sent Requests (pending) */}
-          {friendsState.sentFriendRequests.friendRequests.map((item) => (
-            <View key={item._id} style={styles.friendRow}>
-              <Text style={styles.friendName}>{item.to.email}</Text>
-              <View style={styles.actionButtons}>
-                <TouchableOpacity style={styles.iconButton}>
-                  <IconPending />
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
+//           {/* Sent Requests (pending) */}
+//           {friendsState.sentFriendRequests.friendRequests.map((item) => (
+//             <View key={item._id} style={styles.friendRow}>
+//               <Text style={styles.friendName}>{item.to.email}</Text>
+//               <View style={styles.actionButtons}>
+//                 <TouchableOpacity style={styles.iconButton}>
+//                   <IconPending />
+//                 </TouchableOpacity>
+//               </View>
+//             </View>
+//           ))}
   
-          {/* Friends List */}
-          {friendsState.friendList.friends.map((item) => (
-            <View key={item._id} style={styles.friendRow}>
-              <Text style={styles.friendName}>
-                {item.email || item.username || "Friend"}
-              </Text>
-              <View style={styles.actionButtons}>
-                <TouchableOpacity
-                  onPress={() => handleRemoveFriend(item._id)}
-                  style={styles.iconButton}
-                >
-                  <IconDelete />
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
+//           {/* Friends List */}
+//           {friendsState.friendList.friends.map((item) => (
+//             <View key={item._id} style={styles.friendRow}>
+//               <Text style={styles.friendName}>
+//                 {item.email || item.username || "Friend"}
+//               </Text>
+//               <View style={styles.actionButtons}>
+//                 <TouchableOpacity
+//                   onPress={() => handleRemoveFriend(item._id)}
+//                   style={styles.iconButton}
+//                 >
+//                   <IconDelete />
+//                 </TouchableOpacity>
+//               </View>
+//             </View>
+//           ))}
   
-          {/* Empty State */}
-          {!friendsState.friendList.friends.length &&
-            !friendsState.receivedFriendRequests.friendRequests.length &&
-            !friendsState.sentFriendRequests.friendRequests.length && (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>
-                  Unfortunately, it's empty so far...
-                </Text>
-                <Text style={styles.emptyText}>Invite someone over.</Text>
-              </View>
-            )}
-        </ScrollView>
-      </View>
-    );
-  };
-  export default ProfilFriendsScreen;
+//           {/* Empty State */}
+//           {!friendsState.friendList.friends.length &&
+//             !friendsState.receivedFriendRequests.friendRequests.length &&
+//             !friendsState.sentFriendRequests.friendRequests.length && (
+//               <View style={styles.emptyContainer}>
+//                 <Text style={styles.emptyText}>
+//                   Unfortunately, it's empty so far...
+//                 </Text>
+//                 <Text style={styles.emptyText}>Invite someone over.</Text>
+//               </View>
+//             )}
+//         </ScrollView>
+//       </View>
+//     );
+//   };
+//   export default ProfilFriendsScreen;
   
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: Colors.bgGray,
-      paddingTop: Gaps.g80,
-      maxWidth: 440,
-      alignSelf: "center",
-      width: "100%",
-    },
-    scrollContent: {
-      paddingHorizontal: Gaps.g16,
-      paddingBottom: Gaps.g24,
-    },
-    backButton: {
-      position: "absolute",
-      top: Gaps.g80,
-      left: 16,
-      zIndex: 10,
-    },
-    logoContainer: {
-      alignItems: "center",
-      marginBottom: Gaps.g16,
-    },
-    pageTitle: {
-      fontSize: FontSizes.H2Fs,
-      textAlign: "center",
-      marginBottom: Gaps.g24,
-    },
-    searchContainer: {
-      marginBottom: Gaps.g24,
-    },
-    errorContainer: {
-      height: 32,
-      justifyContent: "center",
-      alignItems: "center",
-      marginTop: Gaps.g8,
-    },
-    errorText: {
-      color: Colors.systemRed,
-      fontSize: FontSizes.TextMediumFs,
-      textAlign: "center",
-    },
-    friendRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      paddingVertical: Gaps.g4,
-      paddingHorizontal: Gaps.g16,
-      marginBottom: 1,
-    },
-    friendName: {
-      fontSize: FontSizes.TextLargeFs,
-      flex: 1,
-    },
-    actionButtons: {
-      flexDirection: "row",
-      gap: Gaps.g16,
-    },
-    iconButton: {
-      padding: Gaps.g4,
-    },
-    emptyContainer: {
-      alignItems: "center",
-      marginTop: Gaps.g48,
-    },
-    emptyText: {
-      fontSize: FontSizes.TextLargeFs,
-      textAlign: "center",
-    },
-  });
+//   const styles = StyleSheet.create({
+//     container: {
+//       flex: 1,
+//       backgroundColor: Colors.bgGray,
+//       paddingTop: Gaps.g80,
+//       maxWidth: 440,
+//       alignSelf: "center",
+//       width: "100%",
+//     },
+//     scrollContent: {
+//       paddingHorizontal: Gaps.g16,
+//       paddingBottom: Gaps.g24,
+//     },
+//     backButton: {
+//       position: "absolute",
+//       top: Gaps.g80,
+//       left: 16,
+//       zIndex: 10,
+//     },
+//     logoContainer: {
+//       alignItems: "center",
+//       marginBottom: Gaps.g16,
+//     },
+//     pageTitle: {
+//       fontSize: FontSizes.H2Fs,
+//       textAlign: "center",
+//       marginBottom: Gaps.g24,
+//     },
+//     searchContainer: {
+//       marginBottom: Gaps.g24,
+//     },
+//     errorContainer: {
+//       height: 32,
+//       justifyContent: "center",
+//       alignItems: "center",
+//       marginTop: Gaps.g8,
+//     },
+//     errorText: {
+//       color: Colors.systemRed,
+//       fontSize: FontSizes.TextMediumFs,
+//       textAlign: "center",
+//     },
+//     friendRow: {
+//       flexDirection: "row",
+//       justifyContent: "space-between",
+//       alignItems: "center",
+//       paddingVertical: Gaps.g4,
+//       paddingHorizontal: Gaps.g16,
+//       marginBottom: 1,
+//     },
+//     friendName: {
+//       fontSize: FontSizes.TextLargeFs,
+//       flex: 1,
+//     },
+//     actionButtons: {
+//       flexDirection: "row",
+//       gap: Gaps.g16,
+//     },
+//     iconButton: {
+//       padding: Gaps.g4,
+//     },
+//     emptyContainer: {
+//       alignItems: "center",
+//       marginTop: Gaps.g48,
+//     },
+//     emptyText: {
+//       fontSize: FontSizes.TextLargeFs,
+//       textAlign: "center",
+//     },
+//   });

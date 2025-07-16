@@ -487,3 +487,70 @@ export const removeFriend = async (
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+// ==================== Search emails for autocomplete ====================
+export const searchEmailsAutocomplete = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { query, clerkUserId } = req.query;
+
+    if (!query || !clerkUserId) {
+      res.status(400).json({ error: "Query and clerkUserId are required" });
+      return;
+    }
+
+    // Find the requesting user
+    const requestingUser = await User.findOne({ clerkUserId });
+    if (!requestingUser) {
+      res.status(404).json({ error: "Requesting user not found" });
+      return;
+    }
+
+    // Search for users with emails that start with the query
+    // Exclude the requesting user and limit to 5 results
+    const users = await User.find({
+      email: { 
+        $regex: `^${query.toString().toLowerCase()}`, 
+        $options: 'i' 
+      },
+      _id: { $ne: requestingUser._id },
+    })
+    .select("email")
+    .limit(5);
+
+    // Filter out users who are already friends or have pending requests
+    const filteredUsers = [];
+    
+    for (const user of users) {
+      // Check if already friends
+      const isAlreadyFriend = requestingUser.friends.some(
+        (friendId) => friendId.toString() === user._id.toString()
+      );
+      
+      if (!isAlreadyFriend) {
+        // Check if friend request already exists
+        const existingRequest = await FriendRequest.findOne({
+          $or: [
+            { from: requestingUser._id, to: user._id },
+            { from: user._id, to: requestingUser._id },
+          ],
+          status: "pending",
+        });
+        
+        if (!existingRequest) {
+          filteredUsers.push({
+            _id: user._id,
+            email: user.email,
+          });
+        }
+      }
+    }
+
+    res.json({ users: filteredUsers });
+  } catch (error) {
+    console.error("Error searching emails:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
