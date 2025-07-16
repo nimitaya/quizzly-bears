@@ -187,9 +187,9 @@ const StartQuizScreen = () => {
           handleStartQuiz(topic, level, rounds);
         }}
         noInternet={false}
-        showMiniGamesButton={true}
+        //showMiniGamesButton={true}
         onMiniGamesPress={handleMiniGamesPress}
-        imageSource={require("@/assets/images/Bear-green-black-ooh.webp")}
+        // imageSource={require("@/assets/images/Bear-green-black-ooh.webp")}
       />
 
       <View style={{ marginBottom: Gaps.g40 }}>
