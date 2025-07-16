@@ -76,7 +76,13 @@ const MultiplayerResultScreen = () => {
   const [medalsSent, setMedalsSent] = useState(false);
 
   const sendMedalsOnce = async () => {
-    if (!medalsSent && roomInfo && players.length > 0) {
+    // Medals sent only if room type is "group"
+    if (
+      !medalsSent &&
+      roomInfo &&
+      players.length > 0 &&
+      roomInfo.type === "group"
+    ) {
       setMedalsSent(true);
       try {
         const awarded = new Set();
@@ -95,6 +101,26 @@ const MultiplayerResultScreen = () => {
         console.error("Error sending medals:", err);
       }
     }
+    // OLD code
+    // if (!medalsSent && roomInfo && players.length > 0) {
+    //   setMedalsSent(true);
+    //   try {
+    //     const awarded = new Set();
+    //     for (let i = 0; i < 3 && i < players.length; i++) {
+    //       const player = players[i];
+    //       if (!awarded.has(player.id)) {
+    //         await sendMedal({
+    //           clerkUserId: player.id,
+    //           place: i + 1,
+    //           roomId: roomInfo.roomId,
+    //         });
+    //         awarded.add(player.id);
+    //       }
+    //     }
+    //   } catch (err) {
+    //     console.error("Error sending medals:", err);
+    //   }
+    // }
   };
 
   const handlePlayAgain = async () => {
@@ -137,8 +163,9 @@ const MultiplayerResultScreen = () => {
   };
 
   // Render the trophy icon for top players (1st, 2nd, 3rd place)
-  //  ============================= IMPORTANT TODO Hier MARTINS Medallien einfügen!!!! ========================================
+  //Medals should be sent only for group rooms
   const renderTrophy = (index: number) => {
+    if (roomInfo?.type !== "group") return null;
     if (index === 0) {
       return <IconMedal1PlaceWebp />;
     } else if (index === 1) {
@@ -148,6 +175,17 @@ const MultiplayerResultScreen = () => {
     }
     return null;
   };
+  // OLD code for rendering trophies
+  // const renderTrophy = (index: number) => {
+  //   if (index === 0) {
+  //     return <IconMedal1PlaceWebp />;
+  //   } else if (index === 1) {
+  //     return <IconMedal2PlaceWebp />;
+  //   } else if (index === 2) {
+  //     return <IconMedal3PlaceWebp />;
+  //   }
+  //   return null;
+  // };
 
   return (
     <ScrollView
