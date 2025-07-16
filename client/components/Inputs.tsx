@@ -250,7 +250,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.TextLargeFs,
     textAlign: "center",
   },
-  // Wrapper para las sugerencias - NUEVO
   containerSearchFriendWrapper: {
     width: "100%",
     alignSelf: "center",
@@ -258,7 +257,6 @@ const styles = StyleSheet.create({
     maxWidth: 348,
     zIndex: 1002,
   },
-  // ESTILO ORIGINAL - SIN CAMBIOS
   containerSearchFriend: {
     width: "100%",
     alignSelf: "center",
@@ -267,7 +265,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     maxWidth: 348,
   },
-  // ESTILO ORIGINAL - SIN CAMBIOS
   inputSearchFriend: {
     height: 56,
     borderTopLeftRadius: 50,
@@ -295,10 +292,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     zIndex: 1,
   },
-  // NUEVOS ESTILOS para las sugerencias
   suggestionsContainer: {
     position: "absolute",
-    top: 64, // Justo debajo del input (56px de altura + 8px de margen)
+    top: 64, 
     left: 0,
     right: 0,
     backgroundColor: Colors.white,
@@ -320,13 +316,12 @@ const styles = StyleSheet.create({
     flexGrow: 0,
   },
   suggestionItem: {
-    paddingHorizontal: 32, // Mismo padding que el input
+    paddingHorizontal: 32,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: Colors.disable,
   },
   suggestionText: {
-    fontSize: FontSizes.TextLargeFs, // Mismo tamaño que el input
-    color: Colors.black,
+    fontSize: FontSizes.TextLargeFs,
   },
 });
