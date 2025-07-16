@@ -14,7 +14,7 @@ import IconAddFriend from "@/assets/icons/IconAddFriend";
 import { Logo } from "@/components/Logos";
 import { FontSizes, Gaps, Colors } from "@/styles/theme";
 import { useRouter } from "expo-router";
-import { SearchFriendInputWithAutocomplete } from "@/components/SearchFriendWithAutocomplete"; // Nuevo import
+import { SearchFriendInput } from "@/components/Inputs";
 import {
   getFriends,
   getReceivedFriendRequests,
@@ -28,7 +28,7 @@ import {
 import { useEffect, useState, useContext } from "react";
 import { FriendsState, User } from "@/utilities/friendInterfaces";
 import { UserContext } from "@/providers/UserProvider";
-import { io } from "socket.io-client";
+import socketService from "@/utilities/socketService";
 
 const ProfilFriendsScreen = () => {
   const router = useRouter();
@@ -49,7 +49,23 @@ const ProfilFriendsScreen = () => {
     sentFriendRequests: { friendRequests: [] },
   });
 
-  const socket = io(process.env.EXPO_PUBLIC_SOCKET_URL);
+  useEffect(() => {
+    console.log("ProfileFriendsScreen mounted");
+    return () => console.log("ProfileFriendsScreen unmounted");
+  }, []);
+
+  useEffect(() => {
+    console.log(
+      "userData changed:",
+      userData
+        ? {
+            id: userData._id,
+            clerkId: userData.clerkUserId,
+            email: userData.email,
+          }
+        : "No userData"
+    );
+  }, [userData]);
 
   // =========== Functions ==========
   // Handler Search User
@@ -171,12 +187,19 @@ const ProfilFriendsScreen = () => {
   }, [searchState.error]);
 
   useEffect(() => {
-    if (!userData) {
+    if (!userData?.clerkUserId) {
       return;
     }
-    // Fetch friends when the component mounts
+
+    console.log(
+      "Fetching friends data with clerkUserId:",
+      userData.clerkUserId
+    );
+
+    // Fetch friends when userData becomes available
     const fetchFriends = async () => {
       try {
+        setIsLoading(true); // Add loading state
         const clerkUserId = userData.clerkUserId;
 
         const friends = await getFriends(clerkUserId);
@@ -188,91 +211,123 @@ const ProfilFriendsScreen = () => {
           receivedFriendRequests: received,
           sentFriendRequests: sent,
         });
+        console.log("Friends data loaded:", {
+          friendCount: friends.friends.length,
+          receivedCount: received.friendRequests.length,
+          sentCount: sent.friendRequests.length,
+        });
       } catch (error) {
         console.error("Error fetching friends:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
+
     fetchFriends();
-  }, []);
+  }, [userData?.clerkUserId]); // Add userData as dependency
 
   useEffect(() => {
-    socket.on("friendRequestSent", (data) => {
-      console.log("Friend request sent:", data);
+    if (!userData) return;
 
-      // Update the received friend requests list in real time
-      if (userData) {
-        getReceivedFriendRequests(userData.clerkUserId).then((received) => {
-          setFriendsState((prev) => ({
-            ...prev,
-            receivedFriendRequests: received,
-          }));
-        });
-      }
-    });
+    // Function to set up all socket listeners
+    const setupSocketListeners = () => {
+      console.log("Setting up friend event listeners...");
 
-    socket.on("friendRequestAccepted", (data) => {
-      console.log("Friend request accepted:", data);
+      // Clean up existing listeners first to avoid duplicates
+      socketService.off("friendRequestSent");
+      socketService.off("friendRequestAccepted");
+      socketService.off("friendRequestDeclined");
+      socketService.off("friendRemoved");
 
-      if (userData) {
-        const clerkUserId = userData.clerkUserId;
+      // Register new listeners
+      socketService.on("friendRequestSent", (data: any) => {
+        console.log("🔔 Friend request SENT event received:", data);
+        if (userData) {
+          getReceivedFriendRequests(userData.clerkUserId).then((received) => {
+            console.log("Updated received requests:", received);
+            setFriendsState((prev) => ({
+              ...prev,
+              receivedFriendRequests: received,
+            }));
+          });
+        }
+      });
+
+      socketService.on("friendRequestAccepted", (data: any) => {
+        console.log("Friend request accepted:", data);
+
+        if (userData) {
+          const clerkUserId = userData.clerkUserId;
+
+          // Update the friends list
+          getFriends(clerkUserId).then((friends) => {
+            setFriendsState((prev) => ({
+              ...prev,
+              friendList: friends,
+            }));
+          });
+
+          // Update the requests list (remove the accepted one)
+          getSentFriendRequests(clerkUserId).then((sent) => {
+            setFriendsState((prev) => ({
+              ...prev,
+              sentFriendRequests: sent,
+            }));
+          });
+        }
+      });
+
+      socketService.on("friendRequestDeclined", (data: any) => {
+        console.log("Friend request declined:", data);
+
+        // Update the received friend requests list
+        if (userData) {
+          getReceivedFriendRequests(userData.clerkUserId).then((received) => {
+            setFriendsState((prev) => ({
+              ...prev,
+              receivedFriendRequests: received,
+            }));
+          });
+          getSentFriendRequests(userData.clerkUserId).then((sent) => {
+            setFriendsState((prev) => ({
+              ...prev,
+              sentFriendRequests: sent,
+            }));
+          });
+        }
+      });
+
+      socketService.on("friendRemoved", (data: any) => {
+        console.log("Friend removed:", data);
 
         // Update the friends list
-        getFriends(clerkUserId).then((friends) => {
-          setFriendsState((prev) => ({
-            ...prev,
-            friendList: friends,
-          }));
-        });
+        if (userData) {
+          getFriends(userData.clerkUserId).then((friends) => {
+            setFriendsState((prev) => ({
+              ...prev,
+              friendList: friends,
+            }));
+          });
+        }
+      });
+    };
 
-        // Update the requests list (remove the accepted one)
-        getSentFriendRequests(clerkUserId).then((sent) => {
-          setFriendsState((prev) => ({
-            ...prev,
-            sentFriendRequests: sent,
-          }));
-        });
-      }
-    });
+    // Set up listeners initially
+    setupSocketListeners();
 
-    socket.on("friendRequestDeclined", (data) => {
-      console.log("Friend request declined:", data);
-
-      // Update the received friend requests list
-      if (userData) {
-        getReceivedFriendRequests(userData.clerkUserId).then((received) => {
-          setFriendsState((prev) => ({
-            ...prev,
-            receivedFriendRequests: received,
-          }));
-        });
-        getSentFriendRequests(userData.clerkUserId).then((sent) => {
-          setFriendsState((prev) => ({
-            ...prev,
-            sentFriendRequests: sent,
-          }));
-        });
-      }
-    });
-
-    socket.on("friendRemoved", (data) => {
-      console.log("Friend removed:", data);
-
-      // Update the friends list
-      if (userData) {
-        getFriends(userData.clerkUserId).then((friends) => {
-          setFriendsState((prev) => ({
-            ...prev,
-            friendList: friends,
-          }));
-        });
-      }
+    // Re-register listeners when socket connects
+    socketService.on("connect", () => {
+      console.log("Socket reconnected, re-registering listeners");
+      setupSocketListeners();
     });
 
     return () => {
-      socket.off("friendRequestSent");
-      socket.off("friendRequestAccepted");
-      socket.off("friendRequestDeclined");
-      socket.off("friendRemoved");
+      console.log("Cleaning up socket listeners");
+      socketService.off("friendRequestSent");
+      socketService.off("friendRequestAccepted");
+      socketService.off("friendRequestDeclined");
+      socketService.off("friendRemoved");
+      socketService.off("connect");
     };
   }, [userData]);
 
@@ -296,16 +351,15 @@ const ProfilFriendsScreen = () => {
 
         <Text style={styles.pageTitle}>Friends</Text>
 
-        {/* Search Bar with Autocomplete */}
+        {/* Search Bar */}
         <View style={styles.searchContainer}>
-          <SearchFriendInputWithAutocomplete
+          <SearchFriendInput
             placeholder="e-mail..."
             value={searchState.email}
             onChangeText={(text: string) => {
               setSearchState((prev) => ({ ...prev, email: text }));
             }}
-            onSearch={handleSearchUser}
-            clerkUserId={userData?.clerkUserId || ""}
+            onSearch={(email) => handleSearchUser(email)}
           />
 
           {/* Fixed space for error message */}
@@ -396,6 +450,40 @@ const ProfilFriendsScreen = () => {
               <Text style={styles.emptyText}>Invite someone over.</Text>
             </View>
           )}
+
+        {/* Refresh Button - Added manually */}
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={() => {
+            console.log("Manual refresh triggered");
+            if (userData?.clerkUserId) {
+              const fetchFriends = async () => {
+                try {
+                  setIsLoading(true);
+                  const clerkUserId = userData.clerkUserId;
+
+                  const friends = await getFriends(clerkUserId);
+                  const received = await getReceivedFriendRequests(clerkUserId);
+                  const sent = await getSentFriendRequests(clerkUserId);
+
+                  setFriendsState({
+                    friendList: friends,
+                    receivedFriendRequests: received,
+                    sentFriendRequests: sent,
+                  });
+                  console.log("Friends data refreshed manually");
+                } catch (error) {
+                  console.error("Error refreshing friends:", error);
+                } finally {
+                  setIsLoading(false);
+                }
+              };
+              fetchFriends();
+            }
+          }}
+        >
+          <Text style={styles.refreshButtonText}>Refresh Friends</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -470,5 +558,16 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FontSizes.TextLargeFs,
     textAlign: "center",
+  },
+  refreshButton: {
+    backgroundColor: Colors.black,
+    padding: Gaps.g8,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: Gaps.g24,
+  },
+  refreshButtonText: {
+    color: "white",
+    fontSize: FontSizes.TextMediumFs,
   },
 });
