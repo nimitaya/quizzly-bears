@@ -6,7 +6,7 @@ import React, {
   useImperativeHandle,
 } from "react";
 import { useUser, useAuth, useClerk } from "@clerk/clerk-expo";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { Text, View, StyleSheet, ActivityIndicator } from "react-native";
 import SignOutButton from "@/app/(auth)/SignOutButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -15,6 +15,7 @@ import DeleteAccountButton from "./DeleteAccountButton";
 import ChangePassword from "./ChangePassword";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 import { useStatistics } from "@/providers/UserProvider";
+import { navigationState } from "@/utilities/navigationStateManager";
 
 // Define the ref type
 export type ClerkSettingsRefType = {
@@ -347,6 +348,24 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
       );
     }
 
+    // Add this before any navigation to auth screens
+    const router = useRouter();
+    const handleNavigateToAuth = () => {
+      // Signal that we're starting auth navigation
+      navigationState.startAuthNavigation();
+
+      // Then navigate to the auth screen
+      router.push("/(auth)/LogInScreen");
+    };
+
+    const handleNavigateToSignUp = () => {
+      // Signal that we're starting auth navigation
+      navigationState.startAuthNavigation();
+
+      // Then navigate to the auth screen
+      router.push("/(auth)/SignUp");
+    };
+
     return (
       <View style={styles.container}>
         {currentAuthState === "signedIn" ? (
@@ -365,12 +384,10 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
         ) : (
           <View style={styles.signedOutContainer}>
             <Text style={styles.title}>Guest</Text>
-            <Link href="/(auth)/LogInScreen" asChild>
-              <ButtonPrimary text="Log in" />
-            </Link>
-            <Link href="/(auth)/SignUp" asChild>
-              <ButtonSecondary text="Sign up" />
-            </Link>
+
+            <ButtonPrimary text="Log in" onPress={handleNavigateToAuth} />
+
+            <ButtonSecondary text="Sign up" onPress={handleNavigateToSignUp} />
           </View>
         )}
       </View>

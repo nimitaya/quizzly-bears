@@ -9,6 +9,9 @@ import { Colors } from "@/styles/theme";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import CustomAlert from "@/components/CustomAlert";
+import socketService from "@/utilities/socketService";
+import { navigationState } from "@/utilities/navigationStateManager";
+import { useSocket } from "@/providers/SocketProvider";
 
 if (Platform.OS === "web") {
   WebBrowser.maybeCompleteAuthSession();
@@ -23,6 +26,7 @@ const FacebookSignInButton = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const { refreshGlobalState } = useGlobalLoading();
+  const { initialize } = useSocket();
 
   const FacebookForm = async () => {
     try {
@@ -50,7 +54,23 @@ const FacebookSignInButton = () => {
 
         // Special case for web platforms
         if (Platform.OS === "web") {
-          router.replace("/(tabs)/play");
+          // ADDED: Socket reconnection for web
+          console.log("🔄 Facebook OAuth successful - reconnecting socket");
+          navigationState.startAuthNavigation();
+
+          setTimeout(async () => {
+            try {
+              await initialize();
+              console.log("✅ Socket reconnected after Facebook OAuth");
+              router.replace("/(tabs)/play");
+            } catch (err) {
+              console.error("❌ Socket reconnection failed:", err);
+              router.replace("/(tabs)/play");
+            }
+          }, 800);
+        } else {
+          // For mobile
+          await AsyncStorage.setItem("socket_needs_reconnect", "true");
         }
       } else {
         if (Platform.OS !== "web") {
