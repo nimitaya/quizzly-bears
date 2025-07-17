@@ -55,19 +55,7 @@ const ProfileScreen = () => {
     setReceivedInviteRequests,
   } = useContext(UserContext);
 
-  // Function to test onboarding
-  const handleShowOnboarding = async () => {
-    try {
-      await resetOnboarding();
-      router.push({
-        pathname: "/onboarding",
-      } as any);
-    } catch (error) {
-      console.error("Error resetting onboarding:", error);
-    }
-  };
-
-  //=========Vadim: Funktion to handle language change=========
+  //========= Funktion to handle language change=========
   const handleLanguageChange = async (language: any) => {
     console.log("Language changed to:", language);
     await changeLanguage(language);
@@ -237,7 +225,7 @@ const ProfileScreen = () => {
         console.log("Invite request sent:", data);
 
         if (!userData?.clerkUserId) {
-          console.warn("clerkUserId відсутній");
+          console.warn("clerkUserId is missing");
           return;
         }
 
@@ -353,10 +341,6 @@ const ProfileScreen = () => {
       });
   }, [userData?.clerkUserId]);
 
-  if (isGloballyLoading) {
-    return <Loading />;
-  }
-
   return (
     <ScrollView
       style={styles.container}
@@ -366,7 +350,13 @@ const ProfileScreen = () => {
       <View style={{ marginBottom: Gaps.g24 }}>
         <Logo size="small" />
       </View>
-      <GreetingsScreen ref={clerkSettingsRef} refreshKey={refreshKey} />
+      <View style={styles.greetingsContainer}>
+        {isGloballyLoading ? (
+          <Loading />
+        ) : (
+          <GreetingsScreen ref={clerkSettingsRef} refreshKey={refreshKey} />
+        )}
+      </View>
       <View style={styles.toggleBox}>
         <Toggle label="Sound" onToggle={toggleSound} enabled={soundEnabled} />
         <Toggle label="Music" enabled={musicEnabled} onToggle={toggleMusic} />
@@ -399,10 +389,6 @@ const ProfileScreen = () => {
             router.push("/profile/FaqScreen");
           }}
         />
-        <ButtonSecondary
-          text="Show Onboarding"
-          onPress={handleShowOnboarding}
-        />
       </View>
     </ScrollView>
   );
@@ -422,6 +408,13 @@ const styles = StyleSheet.create({
     paddingBottom: Gaps.g24,
     width: "100%",
     maxWidth: "100%",
+  },
+  greetingsContainer: {
+    height: 60,
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+    marginBottom: Gaps.g24,
   },
   toggleBox: {
     gap: Gaps.g8,
