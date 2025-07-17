@@ -582,6 +582,7 @@ const InviteFriendsScreen = () => {
             setSearchState((prev) => ({ ...prev, email: text }));
           }}
           onSearch={(email) => handleSearchUser(email)}
+          clerkUserId={userData?.clerkUserId}
         />
 
         {/* Fixed space for error message */}
