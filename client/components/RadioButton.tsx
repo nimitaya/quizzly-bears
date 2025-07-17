@@ -39,8 +39,6 @@ const radioStyles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 5,
-    paddingVertical: 8,
     paddingHorizontal: 4,
   },
   outerCircle: {
@@ -51,7 +49,7 @@ const radioStyles = StyleSheet.create({
     borderColor: Colors.black,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 10,
+    marginRight: 8,
   },
   innerCircle: {
     height: 12,
@@ -61,5 +59,5 @@ const radioStyles = StyleSheet.create({
     borderColor: Colors.black,
     borderWidth: 1,
   },
-  label: { fontSize: FontSizes.TextLargeFs },
+  label: { fontSize: FontSizes.TextLargeFs, color: Colors.black },
 });
