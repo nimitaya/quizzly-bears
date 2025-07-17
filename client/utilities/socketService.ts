@@ -15,6 +15,8 @@ export interface QuizRoom {
   questions?: QuizQuestion[];
   settings: QuizSettings;
   createdAt?: Date;
+  selectedCategory?: string;
+  selectedTopic?: string;
 }
 
 export interface Player {

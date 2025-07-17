@@ -10,7 +10,7 @@ import {
 import { useRouter } from "expo-router";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
-import { Colors, FontSizes, Gaps } from "@/styles/theme";
+import { FontSizes, Gaps } from "@/styles/theme";
 import { socketService, Player, QuizRoom } from "@/utilities/socketService";
 import {
   loadCacheData,
@@ -61,7 +61,7 @@ const MultiplayerLobby = () => {
   const [newHostName, setNewHostName] = useState("");
   const [showErrorAlert, setShowErrorAlert] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [showWarningAlert, setShowWarningAlert] = useState(false);
+  // const [showWarningAlert, setShowWarningAlert] = useState(false); IMPORTANT
   const [showCancelRoomAlert, setShowCancelRoomAlert] = useState(false);
 
   // For invitation handling
@@ -304,11 +304,18 @@ const MultiplayerLobby = () => {
         "Admin broadcasting category change to all players:",
         roomInfo.selectedCategory
       );
-      socketService.emit("categoryChanged", {
-        roomId: roomInfo.roomId,
-        newCategory: roomInfo.selectedCategory,
-        newTopic: roomInfo.selectedTopic || roomInfo.selectedCategory,
-      });
+      
+      // Add a timestamp to track when we last emitted this event to prevent duplicates
+      const now = Date.now();
+      const lastEmit = (window as any).lastCategoryChangeEmit || 0;
+      if (now - lastEmit > 2000) { // Only emit if it's been more than 2 seconds since last emit
+        socketService.emit("categoryChanged", {
+          roomId: roomInfo.roomId,
+          newCategory: roomInfo.selectedCategory,
+          newTopic: roomInfo.selectedTopic || roomInfo.selectedCategory,
+        });
+        (window as any).lastCategoryChangeEmit = now;
+      }
     }
   }, [roomInfo?.selectedCategory, roomInfo?.selectedTopic]);
 
@@ -403,16 +410,29 @@ const MultiplayerLobby = () => {
         (window as any).rejoinTimeout = null;
       }
 
+      console.log("[CATEGORY DEBUG] Room joined event received");
+      
       setCurrentRoom(data.room);
       collectAllLanguages(data.room);
       setIsRejoining(false); // Reset rejoin flag
 
       // Update room info with latest room data
       if (roomInfo) {
+        // Check if server provided category info in the room data
+        if (data.room.selectedCategory) {
+          console.log("[CATEGORY DEBUG] Room joined event includes category:", data.room.selectedCategory);
+        }
+        
         const updatedRoomInfo = {
           ...roomInfo,
           room: data.room,
+          // Use server-provided category if available, otherwise keep local values
+          selectedCategory: data.room.selectedCategory || roomInfo.selectedCategory,
+          selectedTopic: data.room.selectedTopic || roomInfo.selectedTopic || roomInfo.selectedCategory,
         };
+        
+        console.log("[CATEGORY DEBUG] After room joined, category is:", updatedRoomInfo.selectedCategory);
+        
         setRoomInfo(updatedRoomInfo);
         saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
       }
@@ -422,20 +442,45 @@ const MultiplayerLobby = () => {
     socketService.on(
       "categoryChanged",
       (data: { roomId: string; newCategory: string; newTopic?: string }) => {
-        console.log("Category changed:", data);
-        if (data.newCategory && roomInfo && data.roomId === roomInfo.roomId) {
-          const updatedRoomInfo = {
-            ...roomInfo,
-            selectedCategory: data.newCategory,
-            selectedTopic: data.newTopic || data.newCategory,
-          };
-          setRoomInfo(updatedRoomInfo);
-          saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
-          console.log(
-            "Updated room info with selected category:",
-            data.newCategory
-          );
+        console.log("[CATEGORY DEBUG] Category changed event received:", data);
+        
+        if (!data.newCategory) {
+          console.log("[CATEGORY DEBUG] No category in event data");
+          return;
         }
+        
+        if (!roomInfo) {
+          console.log("[CATEGORY DEBUG] No roomInfo available when category event received");
+          return;
+        }
+        
+        if (data.roomId !== roomInfo.roomId) {
+          console.log(`[CATEGORY DEBUG] Room ID mismatch: event=${data.roomId}, local=${roomInfo.roomId}`);
+          return;
+        }
+        
+        console.log("[CATEGORY DEBUG] Updating roomInfo with category:", data.newCategory);
+        
+        // Create updated room info
+        const updatedRoomInfo = {
+          ...roomInfo,
+          selectedCategory: data.newCategory,
+          selectedTopic: data.newTopic || data.newCategory,
+        };
+        
+        // Update state
+        setRoomInfo(updatedRoomInfo);
+        
+        // Save to cache
+        console.log("[CATEGORY DEBUG] Saving updated category to cache");
+        saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
+        
+        console.log(
+          "[CATEGORY DEBUG] Updated room info with category:",
+          updatedRoomInfo.selectedCategory,
+          "topic:",
+          updatedRoomInfo.selectedTopic
+        );
       }
     );
 
@@ -467,6 +512,10 @@ const MultiplayerLobby = () => {
     );
 
     socketService.onRoomStateUpdated((data) => {
+      console.log("[CATEGORY DEBUG] Room state update received");
+      console.log(data);
+      
+      
       // Check if there are actual changes before updating state
       const hasChanges =
         !currentRoom ||
@@ -480,10 +529,28 @@ const MultiplayerLobby = () => {
 
         // Update room info with latest room data
         if (roomInfo) {
+          // Check if room data has category information
+          const serverCategory = data.room.selectedCategory;
+          const serverTopic = data.room.selectedTopic;
+          
+          // Log whether server is providing category info
+          if (serverCategory) {
+            console.log("[CATEGORY DEBUG] Server provided category in room state:", serverCategory);
+          }
+          
           const updatedRoomInfo = {
             ...roomInfo,
             room: data.room,
+            // Use server category if available, otherwise keep local
+            selectedCategory: serverCategory || roomInfo.selectedCategory,
+            selectedTopic: serverTopic || roomInfo.selectedTopic || roomInfo.selectedCategory,
           };
+          
+          console.log("[CATEGORY DEBUG] Updated roomInfo after room state:", {
+            category: updatedRoomInfo.selectedCategory,
+            topic: updatedRoomInfo.selectedTopic
+          });
+          
           setRoomInfo(updatedRoomInfo);
           saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
         }
@@ -1071,8 +1138,6 @@ const MultiplayerLobby = () => {
           ) : (
             <Text style={styles.readyText}>{item.status}</Text>
           )
-        ) : item.isReady ? (
-          <IconAccept />
         ) : (
           <IconAccept />
         )}
@@ -1089,13 +1154,55 @@ const MultiplayerLobby = () => {
     setShowErrorAlert(false);
   };
 
-  const handleWarningAlertClose = () => {
-    setShowWarningAlert(false);
-  };
+  // const handleWarningAlertClose = () => {
+  //   setShowWarningAlert(false);
+  // }; IMPORTANT
 
   const handleCancelRoomAlertClose = () => {
     setShowCancelRoomAlert(false);
   };
+
+  // Add additional console log to help debug category info in render
+  useEffect(() => {
+    // Debug log every time roomInfo changes
+    if (roomInfo) {
+      console.log(`[CATEGORY DEBUG] Current roomInfo state:`, {
+        selectedCategory: roomInfo.selectedCategory,
+        selectedTopic: roomInfo.selectedTopic,
+        isAdmin: roomInfo.isAdmin,
+        roomId: roomInfo.roomId
+      });
+    }
+  }, [roomInfo]);
+
+  // Check cache periodically for category changes
+  useEffect(() => {
+    const checkCategoryInCache = async () => {
+      try {
+        const cachedRoomInfo = await loadCacheData(CACHE_KEY.currentRoom);
+        if (cachedRoomInfo && roomInfo) {
+          if (
+            cachedRoomInfo.selectedCategory !== roomInfo.selectedCategory ||
+            cachedRoomInfo.selectedTopic !== roomInfo.selectedTopic
+          ) {
+            console.log(`[CATEGORY DEBUG] Cache and state mismatch! Cache:`, {
+              selectedCategory: cachedRoomInfo.selectedCategory,
+              selectedTopic: cachedRoomInfo.selectedTopic
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error checking cache for category info:", error);
+      }
+    };
+    
+    // Check cache every 3 seconds
+    const cacheCheckInterval = setInterval(checkCategoryInCache, 3000);
+    
+    return () => {
+      clearInterval(cacheCheckInterval);
+    };
+  }, [roomInfo]);
 
   if (!roomInfo) {
     return (
@@ -1166,11 +1273,15 @@ const MultiplayerLobby = () => {
         <Text style={styles.roomTitle}>{currentRoom.name}</Text>
         <Text style={styles.roomId}>Room ID: {roomInfo.roomId}</Text>
 
-        {/* TODO SHOW after choosing topic. Needs to update with socket */}
-        {roomInfo.selectedCategory && (
+        {/* Display selected category/topic */}
+        {roomInfo.selectedCategory ? (
           <Text style={styles.selectedCategory}>
             Selected Topic:{" "}
             {roomInfo.selectedTopic || roomInfo.selectedCategory}
+          </Text>
+        ) : (
+          <Text style={[styles.selectedCategory, {color: '#777'}]}>
+            Waiting for topic selection...
           </Text>
         )}
 
