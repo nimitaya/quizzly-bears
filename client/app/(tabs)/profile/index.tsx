@@ -395,7 +395,6 @@ const ProfileScreen = () => {
         <ButtonSecondary
           text="FAQ"
           onPress={() => {
-            playSound("custom");
             router.push("/profile/FaqScreen");
           }}
         />
