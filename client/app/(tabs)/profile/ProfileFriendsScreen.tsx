@@ -442,7 +442,9 @@ const ProfilFriendsScreen = () => {
         {/* Sent Requests (pending) */}
         {friendsState.sentFriendRequests.friendRequests.map((item) => (
           <View key={item._id} style={[styles.friendRow]}>
-            <Text style={styles.friendName}>{item.to.email}</Text>
+            <Text style={styles.friendName}>
+              {item.to.email ? item.to.email.split("@")[0] : "Friend"}
+            </Text>
             <View style={styles.actionButtons}>
               <TouchableOpacity style={styles.iconButton}>
                 <IconPending />
@@ -453,7 +455,6 @@ const ProfilFriendsScreen = () => {
 
         {/* Friends List */}
         {friendsState.friendList.friends.map((item) => (
-
           <View key={item._id} style={styles.friendRow}>
             {/* Add this status indicator */}
             <View
@@ -461,15 +462,15 @@ const ProfilFriendsScreen = () => {
                 styles.statusIndicator,
                 {
                   backgroundColor: onlineFriends.includes(item._id)
-                    ? "#4CAF50"
-                    : "#757575",
+                    ? Colors.primaryLimo
+                    : Colors.disable,
                 },
               ]}
             />
 
-
             <Text style={styles.friendName}>
-              {item.email || item.username || "Friend"}
+              {(item.email ? item.email.split("@")[0] : item.username) ||
+                "Friend"}
             </Text>
 
             <View style={styles.actionButtons}>
@@ -622,6 +623,6 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    marginRight: 8,
+    marginRight: Gaps.g8,
   },
 });
