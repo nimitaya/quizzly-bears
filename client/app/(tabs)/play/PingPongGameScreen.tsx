@@ -684,7 +684,7 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: Gaps.g16,
-    marginTop: Gaps.g24, // Added margin to avoid overlap with back button
+    marginTop: Gaps.g24 + 40, // Added 40px more margin to avoid overlap with back button
   },
   scoreContainer: {
     flexDirection: 'row',

@@ -31,8 +31,9 @@ const GameCard: React.FC<GameCardProps> = ({ title, imageSource, onPress }) => {
 
 const MiniGamesScreen = () => {
   const router = useRouter();
-  const { width } = useWindowDimensions();
-  const cardWidth = (width - 64) / 2; // 2 cards per row with spacing
+  const { width, height } = useWindowDimensions();
+  const cardWidth = Math.min((width - 64) / 2, 160); // Responsive card width with max size
+  const cardHeight = Math.min(cardWidth, 160); // Square cards
 
   const handleGamePress = (gameName: string) => {
     console.log(`Starting ${gameName}`);
@@ -53,7 +54,8 @@ const MiniGamesScreen = () => {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
-      showsVerticalScrollIndicator={false}
+      showsVerticalScrollIndicator={true}
+      bounces={true}
     >
       <TouchableOpacity
         style={styles.backButton}
@@ -62,7 +64,7 @@ const MiniGamesScreen = () => {
       >
         <IconArrowBack />
       </TouchableOpacity>
-      <View style={{ marginBottom: Gaps.g32 }}>
+      <View style={{ marginBottom: Gaps.g24 }}>
         <Logo size="small" />
       </View>
       <Text style={styles.subtitle}>Mini Games</Text>
@@ -74,7 +76,7 @@ const MiniGamesScreen = () => {
             imageSource={require("@/assets/images/VierGewinnt.webp")}
             onPress={() => handleGamePress("Connect Four")}
           />
-          <View style={{ width: Gaps.g16 }} />
+          <View style={{ width: Gaps.g8 }} />
           <GameCard
             title="Space Invaders"
             imageSource={require("@/assets/images/SpaceInvaders.webp")}
@@ -89,7 +91,7 @@ const MiniGamesScreen = () => {
             imageSource={require("@/assets/images/Pingpong.webp")}
             onPress={() => handleGamePress("Ping Pong")}
           />
-          <View style={{ width: Gaps.g16 }} />
+          <View style={{ width: Gaps.g8 }} />
           <GameCard
             title="Snake"
             imageSource={require("@/assets/images/snake.webp")}
@@ -118,6 +120,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexGrow: 1,
     paddingBottom: Gaps.g40,
+    paddingHorizontal: Gaps.g16,
   },
   backButton: {
     position: "absolute",
@@ -128,12 +131,13 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: FontSizes.H2Fs,
     textAlign: "center",
-    paddingBottom: Gaps.g32,
+    paddingBottom: Gaps.g24,
+    color: Colors.black,
   },
   gamesGrid: {
-    flex: 1,
-    paddingHorizontal: Gaps.g16,
-    minHeight: 400,
+    width: "100%",
+    paddingHorizontal: Gaps.g8,
+    minHeight: 350,
   },
   row: {
     flexDirection: "row",
@@ -143,11 +147,16 @@ const styles = StyleSheet.create({
   gameCard: {
     backgroundColor: Colors.primaryLimo,
     borderRadius: Gaps.g16,
-    padding: Gaps.g16,
+    padding: Gaps.g8,
     alignItems: "center",
     justifyContent: "center",
     width: 160,
     height: 160,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   gameImage: {
     width: 80,
@@ -159,9 +168,12 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.TextMediumFs,
     color: Colors.black,
     textAlign: "center",
+    fontWeight: FontWeights.SubtitleFw as any,
   },
   backButtonContainer: {
-    marginTop: Gaps.g4,
+    marginTop: Gaps.g16,
+    width: "100%",
+    alignItems: "center",
   },
 });
 

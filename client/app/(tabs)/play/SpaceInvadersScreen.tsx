@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Alert, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Alert, Keyboard, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors, Gaps, FontSizes, FontWeights } from '@/styles/theme';
 import IconArrowBack from '@/assets/icons/IconArrowBack';
@@ -15,7 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const GAME_WIDTH = Math.min(screenWidth - 32, 350);
-const GAME_HEIGHT = 400;
+const GAME_HEIGHT = 420; // Increased from 400 to 420 (20 pixels longer)
 const PIXEL = 3;
 
 // Sprites
@@ -35,7 +35,7 @@ const ENEMY_ROWS_BASE = 4;
 const ENEMY_COLS_BASE = 8;
 const ENEMY_H_SPACING = 10;
 const ENEMY_V_SPACING = 20;
-const ENEMY_START_Y = 40;
+const ENEMY_START_Y = 10;
 const ENEMY_STEP_DOWN = 20;
 const ENEMY_BULLET_SPEED = 1.5;
 
@@ -185,7 +185,7 @@ const SpaceInvadersScreen = () => {
   };
 
   const playSound = async (type: string) => {
-    if (!soundOn || !sounds[type]) return;
+    if (!soundOn || !sounds[type] || gameState.paused) return;
     
     try {
       const sound = sounds[type];
@@ -532,9 +532,37 @@ const SpaceInvadersScreen = () => {
     };
   }, [gameState.paused, gameState.gameOver]);
 
-  const togglePause = () => {
-    setPaused(!paused);
-    setGameState(prev => ({ ...prev, paused: !prev.paused }));
+  const togglePause = async () => {
+    const newPausedState = !gameState.paused;
+    setPaused(newPausedState);
+    setGameState(prev => ({ ...prev, paused: newPausedState }));
+    
+    if (newPausedState) {
+      // Stop all sounds when pausing
+      if (bgMusic) {
+        try {
+          await bgMusic.stopAsync();
+        } catch (error) {
+          console.log('Error stopping background music:', error);
+        }
+      }
+      
+      // Stop all sound effects
+      Object.values(sounds).forEach(sound => {
+        if (sound) {
+          sound.stopAsync().catch(() => {});
+        }
+      });
+    } else {
+      // Resume music if it was on before
+      if (bgMusic && musicOn) {
+        try {
+          await bgMusic.playAsync();
+        } catch (error) {
+          console.log('Error resuming background music:', error);
+        }
+      }
+    }
   };
 
   const renderSprite = (sprite: string[], x: number, y: number) => {
@@ -654,7 +682,7 @@ const SpaceInvadersScreen = () => {
     
     if (bgMusic) {
       try {
-        if (newMusicOn) {
+        if (newMusicOn && !gameState.paused) {
           await bgMusic.playAsync();
         } else {
           await bgMusic.stopAsync();
@@ -702,110 +730,118 @@ const SpaceInvadersScreen = () => {
         <IconArrowBack color={Colors.primaryLimo} />
       </TouchableOpacity>
 
-      <View style={styles.content}>
-        {/* HUD */}
-        <View style={styles.hud}>
-          <Text style={styles.hudText}>SCORE: {gameState.score}</Text>
-          <Text style={styles.hudText}>LIVES: {gameState.lives}</Text>
-          <Text style={styles.hudText}>HI: {gameState.highscore}</Text>
-          <Text style={styles.hudText}>WAVE {gameState.level}</Text>
-        </View>
-
-        {/* Game Canvas */}
-        <View style={styles.gameCanvas}>
-          <Svg width={GAME_WIDTH} height={GAME_HEIGHT} style={styles.svg}>
-            {renderPlayer()}
-            {renderEnemies()}
-            {renderBullets()}
-          </Svg>
-        </View>
-
-        {/* Wave Message Overlay */}
-        {showWaveMessage && (
-          <View style={styles.waveOverlay}>
-            <Text style={styles.waveMessage}>{waveMessage}</Text>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={true}
+        bounces={true}
+        scrollEnabled={true}
+      >
+        <View style={styles.content}>
+          {/* HUD */}
+          <View style={styles.hud}>
+            <Text style={styles.hudText}>SCORE: {gameState.score}</Text>
+            <Text style={styles.hudText}>LIVES: {gameState.lives}</Text>
+            <Text style={styles.hudText}>HI: {gameState.highscore}</Text>
+            <Text style={styles.hudText}>WAVE {gameState.level}</Text>
           </View>
-        )}
 
-        {/* Game Over Overlay */}
-        {gameState.gameOver && (
-          <View style={styles.overlay}>
-            <View style={styles.overlayContent}>
-              <Text style={styles.gameOverText}>GAME OVER</Text>
-              <Text style={styles.scoreText}>Final Score: {gameState.score}</Text>
-              <TouchableOpacity style={styles.restartButton} onPress={init}>
-                <Text style={styles.restartButtonText}>Restart</Text>
-              </TouchableOpacity>
+          {/* Game Canvas */}
+          <View style={styles.gameCanvas}>
+            <Svg width={GAME_WIDTH} height={GAME_HEIGHT} style={styles.svg}>
+              {renderPlayer()}
+              {renderEnemies()}
+              {renderBullets()}
+            </Svg>
+          </View>
+
+          {/* Wave Message Overlay */}
+          {showWaveMessage && (
+            <View style={styles.waveOverlay}>
+              <Text style={styles.waveMessage}>{waveMessage}</Text>
             </View>
-          </View>
-        )}
+          )}
 
-        {/* Pause Overlay */}
-        {gameState.paused && !gameState.gameOver && (
-          <View style={styles.overlay}>
-            <View style={styles.overlayContent}>
-              <Text style={styles.pauseText}>PAUSED</Text>
+          {/* Game Over Overlay */}
+          {gameState.gameOver && (
+            <View style={styles.overlay}>
+              <View style={styles.overlayContent}>
+                <Text style={styles.gameOverText}>GAME OVER</Text>
+                <Text style={styles.scoreText}>Final Score: {gameState.score}</Text>
+                <TouchableOpacity style={styles.restartButton} onPress={init}>
+                  <Text style={styles.restartButtonText}>Restart</Text>
+                </TouchableOpacity>
+              </View>
             </View>
+          )}
+
+          {/* Pause Overlay */}
+          {gameState.paused && !gameState.gameOver && (
+            <View style={styles.overlay}>
+              <View style={styles.overlayContent}>
+                <Text style={styles.pauseText}>PAUSED</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Controls */}
+          <View style={styles.controls}>
+            <TouchableOpacity
+              style={styles.controlButton}
+              onPressIn={() => handleTouch('left')}
+              onPressOut={() => handleTouchEnd('left')}
+            >
+              <Text style={styles.controlText}>◀</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.controlButton}
+              onPress={() => handleTouch('fire')}
+            >
+              <Text style={styles.controlText}>⨀</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.controlButton}
+              onPressIn={() => handleTouch('right')}
+              onPressOut={() => handleTouchEnd('right')}
+            >
+              <Text style={styles.controlText}>▶</Text>
+            </TouchableOpacity>
           </View>
-        )}
 
-        {/* Controls */}
-        <View style={styles.controls}>
-          <TouchableOpacity
-            style={styles.controlButton}
-            onPressIn={() => handleTouch('left')}
-            onPressOut={() => handleTouchEnd('left')}
-          >
-            <Text style={styles.controlText}>◄</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.controlButton}
-            onPress={() => handleTouch('fire')}
-          >
-            <Text style={styles.controlText}>⨀</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.controlButton}
-            onPressIn={() => handleTouch('right')}
-            onPressOut={() => handleTouchEnd('right')}
-          >
-            <Text style={styles.controlText}>►</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.gameButton}
+              onPress={() => setSoundOn(!soundOn)}
+            >
+              {soundOn ? (
+                <IconVolume size={24} color={Colors.primaryLimo} />
+              ) : (
+                <IconVolumeOff size={24} color={Colors.primaryLimo} />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.gameButton}
+              onPress={toggleMusic}
+            >
+              {musicOn ? (
+                <IconMusic size={24} color={Colors.primaryLimo} />
+              ) : (
+                <IconMusicOff size={24} color={Colors.primaryLimo} />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.gameButton}
+              onPress={togglePause}
+            >
+              {gameState.paused ? (
+                <IconPlay size={24} color={Colors.primaryLimo} />
+              ) : (
+                <IconPause size={24} color={Colors.primaryLimo} />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.gameButton}
-            onPress={() => setSoundOn(!soundOn)}
-          >
-            {soundOn ? (
-              <IconVolume size={24} color={Colors.primaryLimo} />
-            ) : (
-              <IconVolumeOff size={24} color={Colors.primaryLimo} />
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.gameButton}
-            onPress={toggleMusic}
-          >
-            {musicOn ? (
-              <IconMusic size={24} color={Colors.primaryLimo} />
-            ) : (
-              <IconMusicOff size={24} color={Colors.primaryLimo} />
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.gameButton}
-            onPress={togglePause}
-          >
-            {gameState.paused ? (
-              <IconPlay size={24} color={Colors.primaryLimo} />
-            ) : (
-              <IconPause size={24} color={Colors.primaryLimo} />
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -814,14 +850,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.black,
-  },
-  content: {
-    flex: 1,
     alignItems: 'center',
     paddingTop: Gaps.g80,
-    paddingHorizontal: Gaps.g16,
-    paddingBottom: Gaps.g24,
-    marginTop: Gaps.g24, // Added margin to avoid overlap with back button
+  },
+  backButton: {
+    position: 'absolute',
+    top: 72,
+    left: 16,
+    zIndex: 10,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    paddingBottom: Gaps.g80,
+    minHeight: 800, // Ensure content is tall enough to scroll
+  },
+  content: {
+    alignItems: 'center',
+    marginTop: 40, // Added 40px margin to avoid overlap with back button
   },
   title: {
     fontSize: FontSizes.H1Fs,
@@ -834,7 +883,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: GAME_WIDTH,
-    marginBottom: Gaps.g16,
+    marginBottom: Gaps.g8,
   },
   hudText: {
     fontSize: FontSizes.TextSmallFs,
@@ -896,35 +945,35 @@ const styles = StyleSheet.create({
     fontWeight: FontWeights.SubtitleFw as any,
   },
   controls: {
-    marginTop: Gaps.g24,
+    marginTop: Gaps.g8,
     width: GAME_WIDTH,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: Gaps.g16,
     paddingHorizontal: Gaps.g16,
-    minHeight: 80,
+    minHeight: 60, // Reduced from 80
   },
   controlButton: {
     backgroundColor: Colors.primaryLimo,
-    paddingHorizontal: Gaps.g16,
-    paddingVertical: Gaps.g16,
-    minWidth: 100,
+    paddingHorizontal: Gaps.g8, // Reduced from 16
+    paddingVertical: Gaps.g8, // Reduced from 16
+    minWidth: 80, // Reduced from 100
     alignItems: 'center',
     borderRadius: 12,
     flex: 0,
-    maxWidth: 140,
+    maxWidth: 120, // Reduced from 140
     borderWidth: 2,
     borderColor: Colors.black,
-    minHeight: 60,
+    minHeight: 50, // Reduced from 60
   },
   controlText: {
     color: Colors.black,
-    fontSize: 28,
+    fontSize: 24, // Reduced from 28
     fontWeight: 'bold' as any,
   },
   buttonContainer: {
-    marginTop: Gaps.g24,
+    marginTop: Gaps.g8, // Reduced from 16
     flexDirection: 'row',
     gap: Gaps.g16,
     alignItems: 'center',
@@ -962,12 +1011,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.H2Fs,
     fontWeight: FontWeights.H1Fw as any,
     color: Colors.primaryLimo,
-  },
-  backButton: {
-    position: 'absolute',
-    top: 72,
-    left: 16,
-    zIndex: 10,
   },
 });
 
