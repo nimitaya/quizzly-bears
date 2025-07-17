@@ -519,7 +519,9 @@ const InviteFriendsScreen = () => {
                 style={[
                   styles.statusIndicator,
                   {
-                    backgroundColor: isOnline ? Colors.primaryLimo : Colors.disable,
+                    backgroundColor: isOnline
+                      ? Colors.primaryLimo
+                      : Colors.disable,
                   },
                 ]}
               />
@@ -698,7 +700,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: Gaps.g8,
+    paddingVertical: Gaps.g8,
+    paddingHorizontal: Gaps.g8,
     marginBottom: Gaps.g8,
   },
   friendItemSelected: {},
