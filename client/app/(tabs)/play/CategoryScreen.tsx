@@ -241,6 +241,7 @@ const styles = StyleSheet.create({
   },
   levelSelectionBlock: {
     marginBottom: Gaps.g32,
+    gap: Gaps.g16,
   },
   preparedToticContainer: {
     gap: Gaps.g16,

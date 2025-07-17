@@ -10,7 +10,7 @@ import {
 import { useRouter } from "expo-router";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
-import { FontSizes, Gaps } from "@/styles/theme";
+import { Colors, FontSizes, Gaps } from "@/styles/theme";
 import { socketService, Player, QuizRoom } from "@/utilities/socketService";
 import {
   loadCacheData,
@@ -61,7 +61,6 @@ const MultiplayerLobby = () => {
   const [newHostName, setNewHostName] = useState("");
   const [showErrorAlert, setShowErrorAlert] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  // const [showWarningAlert, setShowWarningAlert] = useState(false); IMPORTANT
   const [showCancelRoomAlert, setShowCancelRoomAlert] = useState(false);
 
   // For invitation handling
@@ -103,7 +102,6 @@ const MultiplayerLobby = () => {
         languages: languages,
       };
       setRoomInfo(updatedRoomInfo);
-      // Save to cache
       saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
     }
   };
@@ -186,8 +184,7 @@ const MultiplayerLobby = () => {
           setRoomInfo(updatedRoomInfo);
         }
 
-        // If we're missing category info but the host has already selected it,
-        // request the room state to get the latest info
+        // If we're missing category info but the host has already selected it, request the room state to get the latest info
         if (
           !roomInfo?.selectedCategory &&
           socketService.isConnected() &&
@@ -304,11 +301,11 @@ const MultiplayerLobby = () => {
         "Admin broadcasting category change to all players:",
         roomInfo.selectedCategory
       );
-      
+
       // Add a timestamp to track when we last emitted this event to prevent duplicates
       const now = Date.now();
       const lastEmit = (window as any).lastCategoryChangeEmit || 0;
-      if (now - lastEmit > 2000) { // Only emit if it's been more than 2 seconds since last emit
+      if (now - lastEmit > 2000) {
         socketService.emit("categoryChanged", {
           roomId: roomInfo.roomId,
           newCategory: roomInfo.selectedCategory,
@@ -363,7 +360,7 @@ const MultiplayerLobby = () => {
             if (cachedRoomInfo.room) {
               collectAllLanguages(cachedRoomInfo.room);
             }
-          }, 5000); // 5 second timeout
+          }, 5000);
 
           // Store timeout ID so we can clear it if rejoin succeeds
           (window as any).rejoinTimeout = rejoinTimeout;
@@ -388,7 +385,6 @@ const MultiplayerLobby = () => {
             language
           );
         } else {
-          // No need to rejoin, use cached data
           setCurrentRoom(cachedRoomInfo.room);
           if (cachedRoomInfo.room) {
             collectAllLanguages(cachedRoomInfo.room);
@@ -410,81 +406,53 @@ const MultiplayerLobby = () => {
         (window as any).rejoinTimeout = null;
       }
 
-      console.log("[CATEGORY DEBUG] Room joined event received");
-      
       setCurrentRoom(data.room);
       collectAllLanguages(data.room);
       setIsRejoining(false); // Reset rejoin flag
 
       // Update room info with latest room data
       if (roomInfo) {
-        // Check if server provided category info in the room data
-        if (data.room.selectedCategory) {
-          console.log("[CATEGORY DEBUG] Room joined event includes category:", data.room.selectedCategory);
-        }
-        
         const updatedRoomInfo = {
           ...roomInfo,
           room: data.room,
           // Use server-provided category if available, otherwise keep local values
-          selectedCategory: data.room.selectedCategory || roomInfo.selectedCategory,
-          selectedTopic: data.room.selectedTopic || roomInfo.selectedTopic || roomInfo.selectedCategory,
+          selectedCategory:
+            data.room.selectedCategory || roomInfo.selectedCategory,
+          selectedTopic:
+            data.room.selectedTopic ||
+            roomInfo.selectedTopic ||
+            roomInfo.selectedCategory,
         };
-        
-        console.log("[CATEGORY DEBUG] After room joined, category is:", updatedRoomInfo.selectedCategory);
-        
+
         setRoomInfo(updatedRoomInfo);
         saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
       }
     });
 
-    // Add a socket listener for category changes
+    // Socket listener for category changes
     socketService.on(
       "categoryChanged",
       (data: { roomId: string; newCategory: string; newTopic?: string }) => {
-        console.log("[CATEGORY DEBUG] Category changed event received:", data);
-        
-        if (!data.newCategory) {
-          console.log("[CATEGORY DEBUG] No category in event data");
-          return;
-        }
-        
         if (!roomInfo) {
-          console.log("[CATEGORY DEBUG] No roomInfo available when category event received");
+          console.log(
+            "[CATEGORY DEBUG] No roomInfo available when category event received"
+          );
           return;
         }
-        
-        if (data.roomId !== roomInfo.roomId) {
-          console.log(`[CATEGORY DEBUG] Room ID mismatch: event=${data.roomId}, local=${roomInfo.roomId}`);
-          return;
-        }
-        
-        console.log("[CATEGORY DEBUG] Updating roomInfo with category:", data.newCategory);
-        
+
         // Create updated room info
         const updatedRoomInfo = {
           ...roomInfo,
           selectedCategory: data.newCategory,
           selectedTopic: data.newTopic || data.newCategory,
         };
-        
-        // Update state
+
         setRoomInfo(updatedRoomInfo);
-        
-        // Save to cache
-        console.log("[CATEGORY DEBUG] Saving updated category to cache");
         saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
-        
-        console.log(
-          "[CATEGORY DEBUG] Updated room info with category:",
-          updatedRoomInfo.selectedCategory,
-          "topic:",
-          updatedRoomInfo.selectedTopic
-        );
       }
     );
 
-    // Add listeners for loading state and countdown
+    // Listener for loading state
     socketService.on(
       "loading-state-changed",
       (data: { roomId: string; isLoading: boolean }) => {
@@ -496,6 +464,7 @@ const MultiplayerLobby = () => {
       }
     );
 
+    // Listeners for countdown state
     socketService.on(
       "countdown-state-changed",
       (data: { roomId: string; showCountdown: boolean }) => {
@@ -512,10 +481,6 @@ const MultiplayerLobby = () => {
     );
 
     socketService.onRoomStateUpdated((data) => {
-      console.log("[CATEGORY DEBUG] Room state update received");
-      console.log(data);
-      
-      
       // Check if there are actual changes before updating state
       const hasChanges =
         !currentRoom ||
@@ -532,25 +497,17 @@ const MultiplayerLobby = () => {
           // Check if room data has category information
           const serverCategory = data.room.selectedCategory;
           const serverTopic = data.room.selectedTopic;
-          
-          // Log whether server is providing category info
-          if (serverCategory) {
-            console.log("[CATEGORY DEBUG] Server provided category in room state:", serverCategory);
-          }
-          
           const updatedRoomInfo = {
             ...roomInfo,
             room: data.room,
             // Use server category if available, otherwise keep local
             selectedCategory: serverCategory || roomInfo.selectedCategory,
-            selectedTopic: serverTopic || roomInfo.selectedTopic || roomInfo.selectedCategory,
+            selectedTopic:
+              serverTopic ||
+              roomInfo.selectedTopic ||
+              roomInfo.selectedCategory,
           };
-          
-          console.log("[CATEGORY DEBUG] Updated roomInfo after room state:", {
-            category: updatedRoomInfo.selectedCategory,
-            topic: updatedRoomInfo.selectedTopic
-          });
-          
+
           setRoomInfo(updatedRoomInfo);
           saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
         }
@@ -842,8 +799,6 @@ const MultiplayerLobby = () => {
             roomRefreshIntervalRef.current = null;
           }
         }
-
-        // COUNTDOWN
         setShowCountdown(true);
 
         // Emit countdown state to all players
@@ -1081,7 +1036,7 @@ const MultiplayerLobby = () => {
 
           // Check if this player is the current user
           const isCurrentUser = player.socketId === socketService.getSocketId();
-          
+
           // For current user, use userData if available
           if (isCurrentUser && userData) {
             displayName = userData.username || userData.email.split("@")[0];
@@ -1089,12 +1044,16 @@ const MultiplayerLobby = () => {
             // For other players:
             // First check if we can find this player in acceptedInvites
             const matchingInvite = acceptedInvites.find(
-              invite => invite.to.username === player.name || invite.to.email.includes(player.name)
+              (invite) =>
+                invite.to.username === player.name ||
+                invite.to.email.includes(player.name)
             );
-            
+
             if (matchingInvite) {
               // Use the invite data for consistent display
-              displayName = matchingInvite.to.username || matchingInvite.to.email.split("@")[0];
+              displayName =
+                matchingInvite.to.username ||
+                matchingInvite.to.email.split("@")[0];
             } else {
               // Fallback to cleaning up the display name
               displayName = player.name.includes("@")
@@ -1119,9 +1078,7 @@ const MultiplayerLobby = () => {
   // ----- Render Combined Item -----
   const renderCombinedItem = ({ item }: { item: any }) => (
     <View style={styles.playerItem}>
-      <Text style={styles.playerName}>
-        {item.name} 
-      </Text>
+      <Text style={styles.playerName}>{item.name}</Text>
       <View
         style={[
           styles.readyIndicator,
@@ -1154,56 +1111,11 @@ const MultiplayerLobby = () => {
     setShowErrorAlert(false);
   };
 
-  // const handleWarningAlertClose = () => {
-  //   setShowWarningAlert(false);
-  // }; IMPORTANT
-
   const handleCancelRoomAlertClose = () => {
     setShowCancelRoomAlert(false);
   };
 
-  // Add additional console log to help debug category info in render
-  useEffect(() => {
-    // Debug log every time roomInfo changes
-    if (roomInfo) {
-      console.log(`[CATEGORY DEBUG] Current roomInfo state:`, {
-        selectedCategory: roomInfo.selectedCategory,
-        selectedTopic: roomInfo.selectedTopic,
-        isAdmin: roomInfo.isAdmin,
-        roomId: roomInfo.roomId
-      });
-    }
-  }, [roomInfo]);
-
-  // Check cache periodically for category changes
-  useEffect(() => {
-    const checkCategoryInCache = async () => {
-      try {
-        const cachedRoomInfo = await loadCacheData(CACHE_KEY.currentRoom);
-        if (cachedRoomInfo && roomInfo) {
-          if (
-            cachedRoomInfo.selectedCategory !== roomInfo.selectedCategory ||
-            cachedRoomInfo.selectedTopic !== roomInfo.selectedTopic
-          ) {
-            console.log(`[CATEGORY DEBUG] Cache and state mismatch! Cache:`, {
-              selectedCategory: cachedRoomInfo.selectedCategory,
-              selectedTopic: cachedRoomInfo.selectedTopic
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Error checking cache for category info:", error);
-      }
-    };
-    
-    // Check cache every 3 seconds
-    const cacheCheckInterval = setInterval(checkCategoryInCache, 3000);
-    
-    return () => {
-      clearInterval(cacheCheckInterval);
-    };
-  }, [roomInfo]);
-
+  // ================ Render Logic ================
   if (!roomInfo) {
     return (
       <View style={styles.container}>
@@ -1239,11 +1151,11 @@ const MultiplayerLobby = () => {
     );
   }
 
-  // Zeige den Countdown wenn aktiv
+  // Show countdown if it's active
   if (showCountdown) {
     return (
       <Countdown
-        key={`countdown-${Date.now()}`} // Eindeutiger key für jeden Countdown
+        key={`countdown-${Date.now()}`}
         onComplete={handleCountdownComplete}
         startNumber={3}
         duration={1500}
@@ -1280,8 +1192,8 @@ const MultiplayerLobby = () => {
             {roomInfo.selectedTopic || roomInfo.selectedCategory}
           </Text>
         ) : (
-          <Text style={[styles.selectedCategory, {color: '#777'}]}>
-            Waiting for topic selection...
+          <Text style={[styles.selectedCategory]}>
+            Waiting for topic selection by admin
           </Text>
         )}
 
@@ -1298,9 +1210,9 @@ const MultiplayerLobby = () => {
       </ScrollView>
 
       <View style={styles.buttonContainer}>
-        {!roomInfo.isAdmin && (
+        {/* {!roomInfo.isAdmin && (
           <ButtonSecondary text={"Waiting for admin bear..."} disabled />
-        )}
+        )} */}
 
         {roomInfo.isAdmin && !roomInfo.selectedCategory && (
           <>
@@ -1375,7 +1287,6 @@ const styles = StyleSheet.create({
   },
   roomTitle: {
     fontSize: FontSizes.H1Fs,
-    fontWeight: "bold",
     marginBottom: Gaps.g8,
     textAlign: "center",
   },
@@ -1384,10 +1295,13 @@ const styles = StyleSheet.create({
     marginBottom: Gaps.g32,
   },
   selectedCategory: {
-    fontSize: FontSizes.TextMediumFs,
-    marginBottom: Gaps.g16,
-    color: "#4caf50",
-    fontWeight: "500",
+    fontSize: FontSizes.TextLargeFs,
+    marginBottom: Gaps.g32,
+    borderColor: Colors.primaryLimo,
+    borderWidth: 2,
+    paddingVertical: Gaps.g16,
+    paddingHorizontal: Gaps.g24,
+    borderRadius: 50,
   },
   playersContainer: {
     width: "100%",
@@ -1412,10 +1326,7 @@ const styles = StyleSheet.create({
     paddingVertical: Gaps.g4,
   },
   readyIndicatorActive: {},
-  readyText: {
-    fontSize: FontSizes.TextSmallFs,
-    color: "#666",
-  },
+  readyText: {},
   buttonContainer: {
     width: "100%",
     gap: Gaps.g16,
@@ -1423,7 +1334,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: FontSizes.TextLargeFs,
-    color: "#666",
   },
 });
 
