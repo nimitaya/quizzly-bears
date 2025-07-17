@@ -42,6 +42,8 @@ export interface QuizRoom {
   questions?: QuizQuestion[];
   settings: QuizSettings;
   createdAt: Date;
+  selectedCategory?: string;
+  selectedTopic?: string;
   // Chat functionality
   chatMessages: ChatMessage[];
   typingPlayers: Set<string>;
