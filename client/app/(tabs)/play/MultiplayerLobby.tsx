@@ -10,7 +10,7 @@ import {
 import { useRouter } from "expo-router";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
-import { FontSizes, Gaps } from "@/styles/theme";
+import { Colors, FontSizes, Gaps } from "@/styles/theme";
 import { socketService, Player, QuizRoom } from "@/utilities/socketService";
 import {
   loadCacheData,
@@ -301,7 +301,7 @@ const MultiplayerLobby = () => {
         "Admin broadcasting category change to all players:",
         roomInfo.selectedCategory
       );
-      
+
       // Add a timestamp to track when we last emitted this event to prevent duplicates
       const now = Date.now();
       const lastEmit = (window as any).lastCategoryChangeEmit || 0;
@@ -405,21 +405,25 @@ const MultiplayerLobby = () => {
         clearTimeout((window as any).rejoinTimeout);
         (window as any).rejoinTimeout = null;
       }
-      
+
       setCurrentRoom(data.room);
       collectAllLanguages(data.room);
       setIsRejoining(false); // Reset rejoin flag
 
       // Update room info with latest room data
-      if (roomInfo) {       
+      if (roomInfo) {
         const updatedRoomInfo = {
           ...roomInfo,
           room: data.room,
           // Use server-provided category if available, otherwise keep local values
-          selectedCategory: data.room.selectedCategory || roomInfo.selectedCategory,
-          selectedTopic: data.room.selectedTopic || roomInfo.selectedTopic || roomInfo.selectedCategory,
+          selectedCategory:
+            data.room.selectedCategory || roomInfo.selectedCategory,
+          selectedTopic:
+            data.room.selectedTopic ||
+            roomInfo.selectedTopic ||
+            roomInfo.selectedCategory,
         };
-        
+
         setRoomInfo(updatedRoomInfo);
         saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
       }
@@ -428,25 +432,27 @@ const MultiplayerLobby = () => {
     // Socket listener for category changes
     socketService.on(
       "categoryChanged",
-      (data: { roomId: string; newCategory: string; newTopic?: string }) => {                
+      (data: { roomId: string; newCategory: string; newTopic?: string }) => {
         if (!roomInfo) {
-          console.log("[CATEGORY DEBUG] No roomInfo available when category event received");
+          console.log(
+            "[CATEGORY DEBUG] No roomInfo available when category event received"
+          );
           return;
         }
-              
+
         // Create updated room info
         const updatedRoomInfo = {
           ...roomInfo,
           selectedCategory: data.newCategory,
           selectedTopic: data.newTopic || data.newCategory,
         };
-        
+
         setRoomInfo(updatedRoomInfo);
         saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
       }
     );
 
-    // Listener for loading state 
+    // Listener for loading state
     socketService.on(
       "loading-state-changed",
       (data: { roomId: string; isLoading: boolean }) => {
@@ -490,15 +496,18 @@ const MultiplayerLobby = () => {
         if (roomInfo) {
           // Check if room data has category information
           const serverCategory = data.room.selectedCategory;
-          const serverTopic = data.room.selectedTopic;          
+          const serverTopic = data.room.selectedTopic;
           const updatedRoomInfo = {
             ...roomInfo,
             room: data.room,
             // Use server category if available, otherwise keep local
             selectedCategory: serverCategory || roomInfo.selectedCategory,
-            selectedTopic: serverTopic || roomInfo.selectedTopic || roomInfo.selectedCategory,
+            selectedTopic:
+              serverTopic ||
+              roomInfo.selectedTopic ||
+              roomInfo.selectedCategory,
           };
-                    
+
           setRoomInfo(updatedRoomInfo);
           saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
         }
@@ -1027,7 +1036,7 @@ const MultiplayerLobby = () => {
 
           // Check if this player is the current user
           const isCurrentUser = player.socketId === socketService.getSocketId();
-          
+
           // For current user, use userData if available
           if (isCurrentUser && userData) {
             displayName = userData.username || userData.email.split("@")[0];
@@ -1035,12 +1044,16 @@ const MultiplayerLobby = () => {
             // For other players:
             // First check if we can find this player in acceptedInvites
             const matchingInvite = acceptedInvites.find(
-              invite => invite.to.username === player.name || invite.to.email.includes(player.name)
+              (invite) =>
+                invite.to.username === player.name ||
+                invite.to.email.includes(player.name)
             );
-            
+
             if (matchingInvite) {
               // Use the invite data for consistent display
-              displayName = matchingInvite.to.username || matchingInvite.to.email.split("@")[0];
+              displayName =
+                matchingInvite.to.username ||
+                matchingInvite.to.email.split("@")[0];
             } else {
               // Fallback to cleaning up the display name
               displayName = player.name.includes("@")
@@ -1065,9 +1078,7 @@ const MultiplayerLobby = () => {
   // ----- Render Combined Item -----
   const renderCombinedItem = ({ item }: { item: any }) => (
     <View style={styles.playerItem}>
-      <Text style={styles.playerName}>
-        {item.name} 
-      </Text>
+      <Text style={styles.playerName}>{item.name}</Text>
       <View
         style={[
           styles.readyIndicator,
@@ -1144,7 +1155,7 @@ const MultiplayerLobby = () => {
   if (showCountdown) {
     return (
       <Countdown
-        key={`countdown-${Date.now()}`} 
+        key={`countdown-${Date.now()}`}
         onComplete={handleCountdownComplete}
         startNumber={3}
         duration={1500}
@@ -1181,8 +1192,8 @@ const MultiplayerLobby = () => {
             {roomInfo.selectedTopic || roomInfo.selectedCategory}
           </Text>
         ) : (
-          <Text style={[styles.selectedCategory, {color: '#777'}]}>
-            Waiting for topic selection...
+          <Text style={[styles.selectedCategory]}>
+            Waiting for topic selection by admin
           </Text>
         )}
 
@@ -1199,9 +1210,9 @@ const MultiplayerLobby = () => {
       </ScrollView>
 
       <View style={styles.buttonContainer}>
-        {!roomInfo.isAdmin && (
+        {/* {!roomInfo.isAdmin && (
           <ButtonSecondary text={"Waiting for admin bear..."} disabled />
-        )}
+        )} */}
 
         {roomInfo.isAdmin && !roomInfo.selectedCategory && (
           <>
@@ -1276,7 +1287,6 @@ const styles = StyleSheet.create({
   },
   roomTitle: {
     fontSize: FontSizes.H1Fs,
-    fontWeight: "bold",
     marginBottom: Gaps.g8,
     textAlign: "center",
   },
@@ -1285,10 +1295,13 @@ const styles = StyleSheet.create({
     marginBottom: Gaps.g32,
   },
   selectedCategory: {
-    fontSize: FontSizes.TextMediumFs,
-    marginBottom: Gaps.g16,
-    color: "#4caf50",
-    fontWeight: "500",
+    fontSize: FontSizes.TextLargeFs,
+    marginBottom: Gaps.g32,
+    borderColor: Colors.primaryLimo,
+    borderWidth: 2,
+    paddingVertical: Gaps.g16,
+    paddingHorizontal: Gaps.g24,
+    borderRadius: 50,
   },
   playersContainer: {
     width: "100%",
@@ -1313,10 +1326,7 @@ const styles = StyleSheet.create({
     paddingVertical: Gaps.g4,
   },
   readyIndicatorActive: {},
-  readyText: {
-    fontSize: FontSizes.TextSmallFs,
-    color: "#666",
-  },
+  readyText: {},
   buttonContainer: {
     width: "100%",
     gap: Gaps.g16,
@@ -1324,7 +1334,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: FontSizes.TextLargeFs,
-    color: "#666",
   },
 });
 
