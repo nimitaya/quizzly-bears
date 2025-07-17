@@ -564,7 +564,6 @@ class SocketService {
 
   onRoomStateUpdated(callback: (data: { room: QuizRoom }) => void) {
     const wrappedCallback = (data: { room: QuizRoom }) => {
-      console.log("--------------SONJA TEST CLIENT RESPONSE", data.room?.id);
       callback(data);
     };
     this.on("room-state-updated", wrappedCallback);

@@ -1012,14 +1012,28 @@ const MultiplayerLobby = () => {
           const isHost = player.id === currentRoom?.host;
           let displayName = player.name;
 
-          // If this is the host and we have user data, show real name/email
-          if (isHost && userData) {
+          // Check if this player is the current user
+          const isCurrentUser = player.socketId === socketService.getSocketId();
+          
+          // For current user, use userData if available
+          if (isCurrentUser && userData) {
             displayName = userData.username || userData.email.split("@")[0];
           } else {
-            // For other players, clean up the display name
-            displayName = player.name.includes("@")
-              ? player.name.split("@")[0]
-              : player.name;
+            // For other players:
+            // First check if we can find this player in acceptedInvites
+            const matchingInvite = acceptedInvites.find(
+              invite => invite.to.username === player.name || invite.to.email.includes(player.name)
+            );
+            
+            if (matchingInvite) {
+              // Use the invite data for consistent display
+              displayName = matchingInvite.to.username || matchingInvite.to.email.split("@")[0];
+            } else {
+              // Fallback to cleaning up the display name
+              displayName = player.name.includes("@")
+                ? player.name.split("@")[0]
+                : player.name;
+            }
           }
 
           return {
