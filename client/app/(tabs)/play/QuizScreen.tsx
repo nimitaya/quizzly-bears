@@ -14,7 +14,7 @@ import {
   ButtonSecondary,
 } from "@/components/Buttons";
 import { useQuizLogic } from "@/utilities/quiz-logic/useQuizLogic";
-import { Colors, FontSizes, FontWeights, Gaps } from "@/styles/theme";
+import { Colors, FontSizes, Gaps } from "@/styles/theme";
 import { Logo } from "@/components/Logos";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -103,7 +103,7 @@ const QuizLogic = () => {
     clearCacheData(cacheKey.points);
     if (gameState.playStyle === "solo") {
       clearCacheData(cacheKey.settings);
-     }
+    }
 
     // in Multiplayer send gameState and pointsState to socket server
     if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
@@ -211,7 +211,7 @@ const QuizLogic = () => {
     //console.log("getQuestionText input:", currentQuestionData.question);
     //console.log("getQuestionText currentLanguage:", currentLanguage.code);
     //console.log("getQuestionText result:", result);
-    
+
     return result;
   };
 
@@ -311,7 +311,7 @@ const QuizLogic = () => {
           />
 
           {/* ---------- QUESTIONS ---------- */}
-          <View style={styles.questionScreenContainer}>
+          <View>
             <Text style={styles.questionNumber}>
               {currQuestionIndex + 1} from 10
             </Text>
@@ -435,9 +435,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     minHeight: 135,
   },
-  questionScreenContainer: {
-    // NO STYLING?
-  },
+
   resultsContainer: {
     alignItems: "flex-start",
     gap: Gaps.g16,
