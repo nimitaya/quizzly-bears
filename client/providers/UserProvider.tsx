@@ -4,6 +4,7 @@ import { useUser } from "@clerk/clerk-expo";
 import { getReceivedInviteRequests } from "@/utilities/invitationApi";
 import { getReceivedFriendRequests } from "@/utilities/friendRequestApi";
 import socketService from "@/utilities/socketService";
+import { useSocket } from "./SocketProvider";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
@@ -194,38 +195,32 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     fetchTopPlayers();
   }, [userEmail]);
 
+  // Get socket state from context
+  const { isConnected: isSocketConnected } = useSocket();
+
+  // Use isSocketConnected in your useEffect for online status
   useEffect(() => {
-    if (!userData) return;
-
-    console.log("Setting up online status tracking");
-
-    // Set user as online
-    if (userData._id && userData.clerkUserId) {
-      socketService.setUserOnline(userData._id, userData.clerkUserId);
+    if (!userData || !userData._id || !isSocketConnected) {
+      return; // Exit if user data is missing or socket isn't connected
     }
 
-    // Listen for friends status updates
-    socketService.onFriendsStatus((data) => {
-      console.log("Online friends updated:", data.onlineFriends);
-      setOnlineFriends(data.onlineFriends);
+    console.log("Setting user online status");
+    socketService.setUserOnline(userData._id, userData.clerkUserId);
+
+    // Set up socket listeners for friends status
+    socketService.on("friends-status", (data: any) => {
+      console.log(
+        "Received friends status update:",
+        data.onlineFriends?.length || 0,
+        "online friends"
+      );
+      setOnlineFriends(data.onlineFriends || []);
     });
 
-    // Handle reconnection
-    const handleReconnect = () => {
-      console.log("Reconnected, re-establishing online status");
-      if (userData._id && userData.clerkUserId) {
-        socketService.setUserOnline(userData._id, userData.clerkUserId);
-      }
-    };
-
-    socketService.on("connect", handleReconnect);
-
-    // Clean up listeners
     return () => {
       socketService.off("friends-status");
-      socketService.off("connect", handleReconnect);
     };
-  }, [userData]);
+  }, [userData, isSocketConnected]); // Depend on socket connection state
 
   return (
     <UserContext.Provider

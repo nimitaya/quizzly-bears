@@ -9,6 +9,10 @@ import { Colors } from "@/styles/theme";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import CustomAlert from "@/components/CustomAlert";
+// Add these imports for socket handling
+import socketService from "@/utilities/socketService";
+import { navigationState } from "@/utilities/navigationStateManager";
+import { useSocket } from "@/providers/SocketProvider";
 
 if (Platform.OS === "web") {
   WebBrowser.maybeCompleteAuthSession();
@@ -23,10 +27,15 @@ const GoogleSignInButton = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const { refreshGlobalState } = useGlobalLoading();
+  // Get socket initialize function
+  const { initialize } = useSocket();
 
   const GoogleForm = async () => {
     try {
       setIsLoading(true);
+
+      // Preserve socket during navigation to loading screen
+      navigationState.startAuthNavigation();
 
       // IMPORTANT: For mobile, show loading screen during OAuth flow
       if (Platform.OS !== "web") {
@@ -50,9 +59,28 @@ const GoogleSignInButton = () => {
 
         // Special case for web platforms
         if (Platform.OS === "web") {
-          router.replace("/(tabs)/play");
+          // ADDED: Socket reconnection for web
+          console.log("🔄 Google OAuth successful - reconnecting socket");
+          // Start auth navigation to preserve socket during navigation
+          navigationState.startAuthNavigation();
+
+          // Wait for auth state to update before reconnecting socket
+          setTimeout(async () => {
+            try {
+              await initialize();
+              console.log("✅ Socket reconnected after Google OAuth");
+              router.replace("/(tabs)/play");
+            } catch (err) {
+              console.error("❌ Socket reconnection failed:", err);
+              router.replace("/(tabs)/play"); // Still navigate even if socket fails
+            }
+          }, 800);
+        } else {
+          // For mobile, add reconnection info to AsyncStorage for AuthNavigationHelper
+          await AsyncStorage.setItem("socket_needs_reconnect", "true");
         }
       } else {
+        // Existing code for handling cancellation...
         if (Platform.OS !== "web") {
           await AsyncStorage.setItem("auth_navigation_pending", "true");
           await AsyncStorage.setItem(
@@ -60,12 +88,14 @@ const GoogleSignInButton = () => {
             "/(auth)/LogInScreen"
           );
         } else {
+          navigationState.startAuthNavigation();
           router.replace("/(auth)/LogInScreen");
         }
       }
     } catch (err: any) {
       console.error("Google OAuth error:", err);
 
+      // Existing error handling...
       if (Platform.OS !== "web") {
         await AsyncStorage.setItem("auth_navigation_pending", "true");
         await AsyncStorage.setItem(
@@ -73,6 +103,7 @@ const GoogleSignInButton = () => {
           "/(auth)/LogInScreen"
         );
       } else {
+        navigationState.startAuthNavigation();
         router.replace("/(auth)/LogInScreen");
       }
 
@@ -80,9 +111,11 @@ const GoogleSignInButton = () => {
         visible={true}
         message="Something went wrong while signing in with Google. Please try again later."
         onConfirm={() => {
+          navigationState.startAuthNavigation();
           router.replace("/(auth)/LogInScreen");
         }}
         onClose={() => {
+          navigationState.startAuthNavigation();
           router.replace("/(auth)/LogInScreen");
         }}
         noInternet={false}

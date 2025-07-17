@@ -42,7 +42,7 @@ interface RoomInfo {
 
 const InviteFriendsScreen = () => {
   const router = useRouter();
-  const { userData } = useContext(UserContext);
+  const { userData, onlineFriends = [] } = useContext(UserContext);
 
   const [showNoFriendsAlert, setShowNoFriendsAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
@@ -65,6 +65,9 @@ const InviteFriendsScreen = () => {
   });
 
   const [sentInvites, setSentInvites] = useState<InviteRequest[]>([]);
+
+  // Add this state to track friend request status
+  const [sentFriendRequests, setSentFriendRequests] = useState<string[]>([]);
 
   // =========== Functions ==========
   // ----- Handler Fetch Friendlist -----
@@ -192,6 +195,9 @@ const InviteFriendsScreen = () => {
     try {
       setIsLoading(true);
       await sendFriendRequest(userData.clerkUserId, targetUserId);
+
+      // Add user to sent requests list
+      setSentFriendRequests((prev) => [...prev, targetUserId]);
 
       // Clear search result after sending request
       setSearchState((prev) => ({ ...prev, email: "", result: null }));
@@ -379,15 +385,57 @@ const InviteFriendsScreen = () => {
     }
   }, [searchState.result]);
 
+  // Add this useEffect to request and update online status
+  useEffect(() => {
+    if (!userData || !friends.friends.length) return;
+
+    const friendIds = friends.friends.map((friend) => friend._id);
+    if (friendIds.length > 0) {
+      console.log("Requesting online status for friends");
+      socketService.getFriendsStatus(userData._id, friendIds);
+    }
+
+    // Set up periodic refresh
+    const refreshInterval = setInterval(() => {
+      if (friendIds.length > 0 && userData._id) {
+        socketService.getFriendsStatus(userData._id, friendIds);
+      }
+    }, 30000); // Every 30 seconds
+
+    return () => clearInterval(refreshInterval);
+  }, [userData, friends.friends]);
+
+  // Add socket reconnection handling
+  useEffect(() => {
+    if (!userData || !friends.friends.length) return;
+
+    const handleSocketReconnect = () => {
+      console.log("Socket reconnected, refreshing online status");
+      const friendIds = friends.friends.map((friend) => friend._id);
+
+      if (friendIds.length > 0 && userData._id) {
+        socketService.getFriendsStatus(userData._id, friendIds);
+      }
+    };
+
+    // Listen for socket reconnection
+    socketService.on("connect", handleSocketReconnect);
+
+    return () => {
+      socketService.off("connect", handleSocketReconnect);
+    };
+  }, [userData, friends.friends]);
+
   // ========== Render Functions ==========
   // ----- Render Friend Item -----
   const renderFriendItem = ({ item }: { item: User }) => {
     const isSelected = selectedFriends.includes(item._id);
+    const isOnline = onlineFriends.includes(item._id);
+
     return (
       <TouchableOpacity
         style={[styles.friendItem, isSelected && styles.friendItemSelected]}
         onPress={() => toggleFriendSelection(item._id)}
-        // disabled={!item.isOnline}
       >
         <View style={styles.friendInfo}>
           {/* Show appropriate selection component based on game style */}
@@ -406,13 +454,29 @@ const InviteFriendsScreen = () => {
           )}
 
           <View style={styles.friendDetails}>
-            <Text style={styles.friendName}>
-              {item.username || item.email.split("@")[0]}
-            </Text>
-            <Text style={styles.friendStatus}>
-              {" "}
-              Online/ Offline TODO!
-              {/* {item.isOnline ? "Online" : "Offline"} */}
+            <View style={styles.friendNameContainer}>
+              {/* Add online status indicator */}
+              <View
+                style={[
+                  styles.statusIndicator,
+                  {
+                    backgroundColor: isOnline
+                      ? Colors.primaryLimo // Or use a specific color for online
+                      : Colors.bgGray, // Or use a specific color for offline
+                  },
+                ]}
+              />
+              <Text style={styles.friendName}>
+                {item.username || item.email.split("@")[0]}
+              </Text>
+            </View>
+            <Text
+              style={[
+                styles.friendStatus,
+                isOnline ? styles.onlineStatus : styles.offlineStatus,
+              ]}
+            >
+              {isOnline ? "Online" : "Offline"}
             </Text>
           </View>
         </View>
@@ -423,13 +487,15 @@ const InviteFriendsScreen = () => {
   // ----- Render Non-Friend Item (with Add Friend button) -----
   const renderNonFriendItem = ({ item }: { item: User }) => {
     const isSelected = selectedFriends.includes(item._id);
+    const requestAlreadySent = sentFriendRequests.includes(item._id);
+
     return (
       <TouchableOpacity
         style={[styles.friendItem, isSelected && styles.friendItemSelected]}
         onPress={() => toggleFriendSelection(item._id)}
       >
         <View style={styles.friendInfo}>
-          {/* Show appropriate selection component based on game style */}
+          {/* Selection component (unchanged) */}
           {gameStyle === "duel" ? (
             <RadioButton
               label=""
@@ -445,20 +511,35 @@ const InviteFriendsScreen = () => {
           )}
 
           <View style={styles.friendDetails}>
-            <Text style={styles.friendName}>
-              {item.username || item.email.split("@")[0]}
+            <View style={styles.friendNameContainer}>
+              {/* Status indicator - use neutral color for non-friends */}
+              <View
+                style={[
+                  styles.statusIndicator,
+                  { backgroundColor: Colors.bgGray },
+                ]}
+              />
+              <Text style={styles.friendName}>
+                {item.username || item.email.split("@")[0]}
+              </Text>
+            </View>
+            <Text style={[styles.friendStatus, styles.offlineStatus]}>
+              {requestAlreadySent ? "Friend request sent" : "Found via search"}
             </Text>
           </View>
         </View>
-        <View style={styles.rightSection}>
-          <TouchableOpacity
-            onPress={() => handleSendFriendRequest(item._id)}
-            disabled={isLoading}
-            // style={styles.addFriendButton}
-          >
-            <IconAddFriend />
-          </TouchableOpacity>
-        </View>
+
+        {/* Only show add button if request not already sent */}
+        {!requestAlreadySent && (
+          <View style={styles.rightSection}>
+            <TouchableOpacity
+              onPress={() => handleSendFriendRequest(item._id)}
+              disabled={isLoading}
+            >
+              <IconAddFriend />
+            </TouchableOpacity>
+          </View>
+        )}
       </TouchableOpacity>
     );
   };
@@ -692,6 +773,23 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.TextSmallFs,
     color: Colors.darkGreen,
     marginTop: Gaps.g4,
+  },
+  statusIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: Gaps.g8,
+    alignSelf: "center",
+  },
+  friendNameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  onlineStatus: {
+    color: Colors.darkGreen,
+  },
+  offlineStatus: {
+    color: Colors.systemRed,
   },
 });
 
