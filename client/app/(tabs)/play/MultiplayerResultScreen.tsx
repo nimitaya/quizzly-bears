@@ -93,14 +93,25 @@ const MultiplayerResultScreen = () => {
         for (let i = 0; i < 3 && i < players.length; i++) {
           const player = players[i];
           if (!awarded.has(player.id)) {
+            console.log(
+              `Отправка медали в базу данных: userId=${player.id}, place=${
+                i + 1
+              }, roomId=${roomInfo.roomId}`
+            );
             await sendMedal({
               clerkUserId: player.id,
               place: i + 1,
               roomId: roomInfo.roomId,
             });
+            console.log(
+              `Medal successfully sent: userId=${player.id}, place=${
+                i + 1
+              }, roomId=${roomInfo.roomId}`
+            );
             awarded.add(player.id);
           }
         }
+        console.log("All medals have been sent to the database.");
       } catch (err) {
         console.error("Error sending medals:", err);
       }
@@ -131,6 +142,7 @@ const MultiplayerResultScreen = () => {
     await sendMedalsOnce();
     if (roomInfo && userData) {
       clearCacheData(CACHE_KEY.aiQuestions);
+      clearCacheData(CACHE_KEY.gameData);
       router.push("./MultiplayerLobby");
     }
   };
@@ -179,29 +191,6 @@ const MultiplayerResultScreen = () => {
     }
     return null;
   };
-  // OLD code for rendering trophies
-  // const renderTrophy = (index: number) => {
-  //   if (roomInfo?.type !== "group") return null;
-  //   if (index === 0) {
-  //     return <IconMedal1PlaceWebp />;
-  //   } else if (index === 1) {
-  //     return <IconMedal2PlaceWebp />;
-  //   } else if (index === 2) {
-  //     return <IconMedal3PlaceWebp />;
-  //   }
-  //   return null;
-  // };
-  // OLD code for rendering trophies
-  // const renderTrophy = (index: number) => {
-  //   if (index === 0) {
-  //     return <IconMedal1PlaceWebp />;
-  //   } else if (index === 1) {
-  //     return <IconMedal2PlaceWebp />;
-  //   } else if (index === 2) {
-  //     return <IconMedal3PlaceWebp />;
-  //   }
-  //   return null;
-  // };
 
   return (
     <ScrollView
