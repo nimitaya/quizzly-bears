@@ -194,6 +194,16 @@ io.on("connection", (socket) => {
 
       socket.emit("room-joined", { room });
       console.log(`${data.playerName} joined room ${data.roomId}`);
+
+      // If the room has category information, also emit the categoryChanged event
+      if (room.selectedCategory) {
+        console.log(`Sending category information to new player: ${room.selectedCategory}`);
+        socket.emit("categoryChanged", {
+          roomId: data.roomId,
+          newCategory: room.selectedCategory,
+          newTopic: room.selectedTopic || room.selectedCategory
+        });
+      }
     }
   );
 
@@ -260,14 +270,16 @@ io.on("connection", (socket) => {
 
         // Send current room state to rejoining player
         socket.emit("room-joined", { room });
-
-        // Notify all players about the updated room state
-        io.to(data.roomId).emit("player-rejoined", {
-          player: existingPlayer,
-          room: room,
-        });
-
-        console.log(`${data.playerName} rejoined room ${data.roomId}`);
+        
+        // If the room has category information, also emit the categoryChanged event
+        if (room.selectedCategory) {
+          console.log(`Sending category information to player (via rejoin): ${room.selectedCategory}`);
+          socket.emit("categoryChanged", {
+            roomId: data.roomId,
+            newCategory: room.selectedCategory,
+            newTopic: room.selectedTopic || room.selectedCategory
+          });
+        }
       } else {
         // Player not in room, treat as new join
         if (room.isStarted) {
@@ -336,8 +348,23 @@ io.on("connection", (socket) => {
         );
       });
 
+      // Log category information if it exists DEBUG TODO
+      if (room.selectedCategory) {
+        console.log(`----------Room category: ${room.selectedCategory}, Topic: ${room.selectedTopic || room.selectedCategory}`);
+      }
+
       // Send current room state
       socket.emit("room-state-updated", { room });
+      
+      // If the room has category information, also emit the categoryChanged event
+      if (room.selectedCategory) {
+        socket.emit("categoryChanged", {
+          roomId: data.roomId,
+          newCategory: room.selectedCategory,
+          newTopic: room.selectedTopic || room.selectedCategory
+        });
+      }
+      
       console.log(`Room state sent to socket ${socket.id}`);
     } catch (err) {
       console.error("Error handling get-room-state event:", err);
@@ -769,6 +796,42 @@ io.on("connection", (socket) => {
       console.error("Error in disconnect handler:", error);
     }
   });
+
+  // Handle category change event IMPORTANT MOVE
+  socket.on(
+    "categoryChanged",
+    (data: { roomId: string; newCategory: string; newTopic?: string }) => {
+      try {
+        console.log(`Category change request for room ${data.roomId}:`, data);
+
+        const room = quizRooms.get(data.roomId);
+        if (!room) {
+          console.log(`Room ${data.roomId} not found for category change`);
+          socket.emit("error", { message: "Room not found" });
+          return;
+        }
+
+        // Update the room with category information
+        room.selectedCategory = data.newCategory;
+        room.selectedTopic = data.newTopic || data.newCategory;
+
+        console.log(`Updated room ${data.roomId} with category:`, data.newCategory);
+
+        // Broadcast the category change to all players in the room
+        io.to(data.roomId).emit("categoryChanged", {
+          roomId: data.roomId,
+          newCategory: data.newCategory,
+          newTopic: data.newTopic || data.newCategory
+        });
+
+        // Also update all clients with the updated room state
+        io.to(data.roomId).emit("room-state-updated", { room });
+      } catch (err) {
+        console.error("Error handling categoryChanged event:", err);
+        socket.emit("error", { message: "Server error processing category change" });
+      }
+    }
+  );
 });
 // =======================
 

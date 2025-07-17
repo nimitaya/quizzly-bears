@@ -72,7 +72,7 @@ const ProfilInvitationsScreen = () => {
 
       // Join the room via socket
       const playerName =
-        user.firstName || user.emailAddresses[0]?.emailAddress || "Player";
+        user.username || (user.emailAddresses[0]?.emailAddress?.split("@")[0]) || "Player";
       // Get user's language from context or cache
       let userLanguage = currentLanguage?.code;
       if (!userLanguage) {

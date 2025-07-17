@@ -50,7 +50,7 @@ const QuizTypeSelectionScreen = () => {
       }
 
       const roomName = style === "duel" ? "Duel Room" : "Group Room";
-      const hostName = user?.username || "Player";
+      const hostName = user?.username || (user?.emailAddresses[0]?.emailAddress?.split("@")[0]) || "Player";
       const hostId = user?.id || "anonymous-" + Date.now();
 
       const roomSettings = {

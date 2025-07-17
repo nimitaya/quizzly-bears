@@ -1,5 +1,6 @@
 import { io, Socket } from "socket.io-client";
 import { Platform } from "react-native";
+import { navigationState } from "@/utilities/navigationStateManager";
 
 // Types (can be moved to a separate file)
 export interface QuizRoom {
@@ -14,6 +15,8 @@ export interface QuizRoom {
   questions?: QuizQuestion[];
   settings: QuizSettings;
   createdAt?: Date;
+  selectedCategory?: string;
+  selectedTopic?: string;
 }
 
 export interface Player {
@@ -320,6 +323,13 @@ class SocketService {
   }
 
   disconnect() {
+    if (navigationState.isInAuthNavigation()) {
+      console.log("⚡ Preventing socket disconnect during auth navigation");
+      return; // Don't disconnect during auth navigation
+    }
+
+    // Otherwise proceed with normal disconnect
+    console.log("🔌 Disconnecting socket");
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
@@ -381,20 +391,6 @@ class SocketService {
   private roomStateGameStarted: Record<string, boolean> = {};
 
   requestRoomState(roomId: string) {
-    // Debug logging for room state requests in dev mode
-    if (__DEV__) {
-      console.log(
-        `[SocketService] Room state request attempted for: ${roomId}`
-      );
-
-      if (this.roomStateGameStarted[roomId]) {
-        console.log(
-          `[SocketService] Blocked room state request - game already started for room: ${roomId}`
-        );
-        return;
-      }
-    }
-
     // Don't make requests for rooms where the game has started
     if (this.roomStateGameStarted[roomId]) {
       return;
@@ -405,13 +401,6 @@ class SocketService {
 
     // Throttle requests to prevent excessive calls (min 2 seconds between requests)
     if (now - lastRequest < 2000) {
-      if (__DEV__) {
-        console.log(
-          `[SocketService] Throttled room state request - too soon (${
-            now - lastRequest
-          }ms since last request)`
-        );
-      }
       return;
     }
 
@@ -419,17 +408,12 @@ class SocketService {
     this.lastRoomStateRequest[roomId] = now;
 
     // Make the actual request
-    if (__DEV__) {
-      console.log(
-        `[SocketService] Sending room state request for room: ${roomId}`
-      );
+    if (this.socket) {
+      this.socket.emit("get-room-state", { roomId });
+    } else {
+      console.error("Cannot request room state - socket is null");
     }
-    // DEBUG TODO
-    console.log("--------------SONJA TEST CLIENT REQUEST", roomId);
-    console.log(`Socket connected status: ${this.isConnected()}`);
-    console.log(`Socket ID: ${this.getSocketId()}`);
-    console.log(`Socket URL: ${SOCKET_URL}`);
-
+    
     // Add a direct error listener to catch any errors
     const errorListener = (error: any) => {
       console.error("Socket error during room state request:", error);
@@ -590,7 +574,6 @@ class SocketService {
 
   onRoomStateUpdated(callback: (data: { room: QuizRoom }) => void) {
     const wrappedCallback = (data: { room: QuizRoom }) => {
-      console.log("--------------SONJA TEST CLIENT RESPONSE", data.room?.id);
       callback(data);
     };
     this.on("room-state-updated", wrappedCallback);
@@ -709,56 +692,122 @@ class SocketService {
   }
 
   // Add these methods to socketService.ts
+  private isInitializing = false;
+
   initialize(): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    // If already connected, return immediately
+    if (this.socket?.connected) {
+      console.log("Socket already connected");
+      return Promise.resolve();
+    }
+
+    // If already initializing, don't start another connection attempt
+    if (this.isInitializing) {
+      console.log("Socket connection already in progress");
+      return new Promise((resolve, reject) => {
+        const checkInterval = setInterval(() => {
+          if (this.socket?.connected) {
+            clearInterval(checkInterval);
+            resolve();
+          } else if (!this.isInitializing) {
+            clearInterval(checkInterval);
+            reject(new Error("Socket initialization failed"));
+          }
+        }, 100);
+
+        // Set a timeout to prevent infinite waiting
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          if (!this.socket?.connected) {
+            reject(new Error("Socket initialization timed out"));
+          }
+        }, 10000);
+      });
+    }
+
+    this.isInitializing = true;
+    console.log("Initializing socket connection...");
+
+    return new Promise((resolve, reject) => {
       try {
-        if (this.isConnected()) {
-          console.log("Socket already connected");
-          resolve();
-          return;
+        // Clean up existing socket if any
+        if (this.socket) {
+          this.socket.disconnect();
+          this.socket = null;
         }
 
-        await this.connect();
+        // Get socket URL from environment or use default
+        const SOCKET_URL =
+          process.env.EXPO_PUBLIC_SOCKET_URL ||
+          "https://quizzly-bears.onrender.com";
 
-        // Re-attach all previously registered listeners
-        this.socket?.on("connect", () => {
-          console.log("Socket reconnected, re-attaching listeners");
-          this.reattachListeners();
+        // Initialize the socket with proper options
+        this.socket = io(SOCKET_URL, {
+          transports: ["websocket", "polling"],
+          reconnection: true,
+          reconnectionDelay: 1000,
+          reconnectionDelayMax: 5000,
+          reconnectionAttempts: 10,
+          timeout: 20000,
         });
 
-        resolve();
+        // Handle connection
+        this.socket.on("connect", () => {
+          console.log("✅ Connected to Socket.IO server at", SOCKET_URL);
+          this.isInitializing = false;
+
+          // Process any pending operations (like user online status)
+          if (this.pendingUserOnline) {
+            console.log("Reconnected, re-establishing online status");
+            this.setUserOnline(
+              this.pendingUserOnline.userId,
+              this.pendingUserOnline.clerkUserId
+            );
+          }
+
+          resolve();
+        });
+
+        // Handle connection error
+        this.socket.on("connect_error", (error) => {
+          console.error("❌ Socket connection error:", error.message);
+          // Don't reject - socket.io will retry automatically
+        });
+
+        // Handle disconnection
+        this.socket.on("disconnect", (reason) => {
+          console.log("🔌 Disconnected from Socket.IO server:", reason);
+        });
+
+        // Set a timeout for the initial connection
+        const timeout = setTimeout(() => {
+          if (!this.socket?.connected) {
+            this.isInitializing = false;
+            console.error("❌ Socket connection timed out");
+            reject(new Error("Connection timed out"));
+          }
+        }, 20000);
+
+        // Clear timeout on connect
+        this.socket.on("connect", () => {
+          clearTimeout(timeout);
+        });
       } catch (error) {
+        this.isInitializing = false;
+        console.error("❌ Socket initialization failed:", error);
         reject(error);
       }
     });
   }
 
-  private reattachListeners(): void {
-    if (!this.socket) return;
-
-    this.listeners.forEach((callbacks, event) => {
-      callbacks.forEach((callback) => {
-        console.log(`Re-attaching listener for ${event}`);
-        this.socket?.on(event, callback as any);
-      });
-    });
+  /**
+   * Clears any pending operations (like user online status)
+   */
+  clearPendingOperations(): void {
+    console.log("Clearing pending socket operations");
+    this.pendingUserOnline = null;
+    // Add other pending operations here if you have any
   }
-
-  // Enhanced connect handler to restore online status
-  private handleConnect = () => {
-    console.log("Socket connected!");
-
-    // Re-send online status if it was pending
-    if (this.pendingUserOnline) {
-      console.log("Resending online status after reconnect");
-      this.setUserOnline(
-        this.pendingUserOnline.userId,
-        this.pendingUserOnline.clerkUserId
-      );
-    }
-
-    // Your existing code...
-  };
 }
 
 // Export singleton

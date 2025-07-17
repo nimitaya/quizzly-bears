@@ -15,8 +15,7 @@ import { MusicProvider } from "@/providers/MusicProvider";
 import { SoundProvider } from "@/providers/SoundProvider";
 import { OnboardingProvider } from "@/providers/OnboardingProvider";
 import { LanguageProvider } from "@/providers/LanguageContext";
-
-import socketService from "@/utilities/socketService";
+import { SocketProvider } from "@/providers/SocketProvider";
 
 // ========== Override system fonts globally ==========
 const overrideDefaultFont = () => {
@@ -44,50 +43,6 @@ export default function RootLayout() {
     if (fontsLoaded) overrideDefaultFont();
   }, [fontsLoaded]);
 
-  useEffect(() => {
-    console.log("Initializing socket connection from layout");
-
-    socketService
-      .initialize()
-      .then(() => {
-        console.log("Socket initialized successfully");
-      })
-      .catch((err) => {
-        console.error("Socket initialization failed:", err);
-      });
-
-    let currentAppState = AppState.currentState;
-
-    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
-      if (
-        currentAppState.match(/inactive|background/) &&
-        nextAppState === "active"
-      ) {
-        console.log("🔄 App resumed — reconnecting socket...");
-        await socketService.ensureConnection();
-      }
-
-      if (
-        currentAppState === "active" &&
-        nextAppState.match(/inactive|background/)
-      ) {
-        console.log("📴 App moved to background — disconnecting socket...");
-        socketService.disconnect();
-      }
-
-      currentAppState = nextAppState;
-    };
-
-    const subscription = AppState.addEventListener(
-      "change",
-      handleAppStateChange
-    );
-    return () => {
-      subscription.remove(); // ✅ no error here, remove() exists on subscription object
-      socketService.disconnect(); // cleanup on unmount
-    };
-  }, []);
-
   if (!fontsLoaded) return null;
 
   return (
@@ -95,26 +50,30 @@ export default function RootLayout() {
       publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!}
       tokenCache={tokenCache}
     >
-      <UserProvider>
-        <LanguageProvider>
-          <OnboardingProvider>
-            <GlobalLoadingProvider>
-              <NetworkAlertProvider>
-                <SafeAreaProvider>
-                  <MusicProvider>
-                    <SoundProvider>
-                      <View style={{ flex: 1, backgroundColor: Colors.bgGray }}>
-                        <AuthNavigationHelper />
-                        <Slot />
-                      </View>
-                    </SoundProvider>
-                  </MusicProvider>
-                </SafeAreaProvider>
-              </NetworkAlertProvider>
-            </GlobalLoadingProvider>
-          </OnboardingProvider>
-        </LanguageProvider>
-      </UserProvider>
+      <SocketProvider>
+        <UserProvider>
+          <LanguageProvider>
+            <OnboardingProvider>
+              <GlobalLoadingProvider>
+                <NetworkAlertProvider>
+                  <SafeAreaProvider>
+                    <MusicProvider>
+                      <SoundProvider>
+                        <View
+                          style={{ flex: 1, backgroundColor: Colors.bgGray }}
+                        >
+                          <AuthNavigationHelper />
+                          <Slot />
+                        </View>
+                      </SoundProvider>
+                    </MusicProvider>
+                  </SafeAreaProvider>
+                </NetworkAlertProvider>
+              </GlobalLoadingProvider>
+            </OnboardingProvider>
+          </LanguageProvider>
+        </UserProvider>
+      </SocketProvider>
     </ClerkProvider>
   );
 }

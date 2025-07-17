@@ -212,7 +212,7 @@ const MultiplayerResultScreen = () => {
       <Logo size="small" />
       <View style={styles.resultsContainer}>
         <Text style={styles.title}>
-          Cool! {players.length > 0 ? players[0].name : ""} win!
+          Cool! {players.length > 0 ? players[0].name : ""} wins!
         </Text>
 
         {isLoading ? (

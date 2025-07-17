@@ -1,57 +1,57 @@
 import { useEffect } from "react";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useSocket } from "@/providers/SocketProvider";
 
 export default function AuthNavigationHelper() {
   const router = useRouter();
+  // Get initialize function for socket reconnection
+  const { initialize } = useSocket();
 
   useEffect(() => {
-    let isMounted = true;
-
     const checkPendingNavigation = async () => {
       try {
         const isPending = await AsyncStorage.getItem("auth_navigation_pending");
 
-        if (isPending === "true" && isMounted) {
-          // Clear the pending flag first to prevent loops
+        if (isPending === "true") {
+          const destination = await AsyncStorage.getItem(
+            "auth_navigation_destination"
+          );
+          const needsReconnect = await AsyncStorage.getItem(
+            "socket_needs_reconnect"
+          );
+
+          // Clear flags
           await AsyncStorage.removeItem("auth_navigation_pending");
+          await AsyncStorage.removeItem("auth_navigation_destination");
 
-          // Get the destination
-          const destination =
-            (await AsyncStorage.getItem("auth_navigation_destination")) ||
-            "/(tabs)/play";
+          // Check if we need to reconnect socket (after OAuth)
+          if (needsReconnect === "true") {
+            console.log(
+              "🔄 AuthNavigationHelper: Reconnecting socket after OAuth"
+            );
+            await AsyncStorage.removeItem("socket_needs_reconnect");
 
-          // Use a timeout for extra safety
-          setTimeout(async () => {
-            if (isMounted) {
-              try {
-                router.replace(destination as any);
-                await AsyncStorage.setItem(
-                  "auth_navigation_destination",
-                  "/(tabs)/play"
-                );
-              } catch (e) {
-                console.log("Navigation failed:", e);
-              }
+            try {
+              await initialize();
+              console.log("✅ Socket reconnected via AuthNavigationHelper");
+            } catch (err) {
+              console.error("❌ Socket reconnection failed:", err);
             }
-          }, 100);
+          }
+
+          // Navigate to destination
+          if (destination) {
+            router.replace(destination as any);
+          }
         }
       } catch (err) {
-        console.log("Error checking pending navigation:", err);
+        console.error("Error in AuthNavigationHelper:", err);
       }
     };
 
-    // Check for pending navigation on mount and periodically
     checkPendingNavigation();
-
-    //periodic check for pending navigation
-    const intervalId = setInterval(checkPendingNavigation, 2000);
-
-    return () => {
-      isMounted = false;
-      clearInterval(intervalId);
-    };
-  }, [router]);
+  }, []);
 
   return null;
 }
