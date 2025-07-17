@@ -341,7 +341,7 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primaryLimo} />
           <Text style={styles.loadingText}>
-            Checking authentication status...
+            checking authentication status...
           </Text>
         </View>
       );
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     marginBottom: Gaps.g8,
   },
   title: {
-    fontSize: FontSizes.H2Fs,
+    fontSize: FontSizes.H3Fs,
     marginBottom: Gaps.g16,
   },
   loadingContainer: {
@@ -414,7 +414,8 @@ const styles = StyleSheet.create({
     gap: Gaps.g16,
   },
   loadingText: {
-    fontSize: FontSizes.TextMediumFs,
+    fontSize: FontSizes.TextSmallFs,
+    color: Colors.disable,
   },
 });
 

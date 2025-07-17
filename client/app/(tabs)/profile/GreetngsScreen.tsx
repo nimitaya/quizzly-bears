@@ -345,7 +345,7 @@ const GreetingsScreen = forwardRef<
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primaryLimo} />
         <Text style={styles.loadingText}>
-          Checking authentication status...
+          checking authentication status...
         </Text>
       </View>
     );
@@ -356,7 +356,6 @@ const GreetingsScreen = forwardRef<
       setIsEditing(false);
       return;
     }
-    // const API_BASE_URL = "http://localhost:3000/api";
     const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
     try {
@@ -430,7 +429,8 @@ const styles = StyleSheet.create({
     gap: Gaps.g16,
   },
   loadingText: {
-    fontSize: FontSizes.TextMediumFs,
+    fontSize: FontSizes.TextSmallFs,
+    color: Colors.disable,
   },
   input: {
     fontSize: FontSizes.TextLargeFs,
