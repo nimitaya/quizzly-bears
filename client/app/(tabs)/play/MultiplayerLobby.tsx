@@ -256,9 +256,6 @@ const MultiplayerLobby = () => {
       !isRejoining
     ) {
       // Only rejoin if socket is not connected, we don't have current room data, and we're not already rejoining
-      console.log(
-        "UserData available, socket disconnected, attempting to rejoin room"
-      );
       loadRoomInfo();
     }
   }, [userData, isRejoining]);
@@ -400,8 +397,6 @@ const MultiplayerLobby = () => {
   // ----- Setup Socket Listeners -----
   const setupSocketListeners = () => {
     socketService.onRoomJoined((data) => {
-      console.log("Room joined/rejoined successfully");
-
       // Clear rejoin timeout if it exists
       if ((window as any).rejoinTimeout) {
         clearTimeout((window as any).rejoinTimeout);
@@ -448,7 +443,6 @@ const MultiplayerLobby = () => {
     socketService.on(
       "loading-state-changed",
       (data: { roomId: string; isLoading: boolean }) => {
-        console.log("Loading state changed:", data);
         if (roomInfo && data.roomId === roomInfo.roomId && !roomInfo.isHost) {
           // Only non-host players should react to this event
           setIsGeneratingQuestions(data.isLoading);
@@ -460,7 +454,6 @@ const MultiplayerLobby = () => {
     socketService.on(
       "countdown-state-changed",
       (data: { roomId: string; showCountdown: boolean }) => {
-        console.log("Countdown state changed:", data);
         if (roomInfo && data.roomId === roomInfo.roomId && !roomInfo.isHost) {
           // Only non-host players should react to this event
           setShowCountdown(data.showCountdown);
@@ -589,7 +582,7 @@ const MultiplayerLobby = () => {
         // Transform questions from socket format to the format expected by useQuizLogic
         const transformedQuestions = {
           questionArray: data.questions.map((q: any) => {
-            // Check if we have the new format (with multilingual support) TODO
+            // Check if we have the new format (with multilingual support)
             const hasNewFormat =
               q.options &&
               q.options[0] &&
@@ -599,7 +592,7 @@ const MultiplayerLobby = () => {
             if (hasNewFormat) {
               // New format with multilingual support
               return {
-                question: q.question, // Already in correct format with all languages
+                question: q.question,
                 optionA: {
                   isCorrect: q.options[0].isCorrect,
                   ...q.options[0].content,
@@ -618,7 +611,7 @@ const MultiplayerLobby = () => {
                 },
               };
             } else {
-              // Legacy format - fallback to previous behavior TODO
+              // Legacy format - fallback to previous behavior
               return {
                 question: createLanguageFields(q.question),
                 optionA: {
@@ -647,7 +640,6 @@ const MultiplayerLobby = () => {
           "@/utilities/cacheUtils"
         );
         await saveDataToCache(CACHE_KEY.aiQuestions, transformedQuestions);
-        console.log("Questions cached successfully");
       }
 
       // Go to quiz screen
@@ -947,6 +939,9 @@ const MultiplayerLobby = () => {
 
   // ----- Handle Cancel Room Confirmation -----
   const handleCancelRoomConfirm = () => {
+    // Set gameStarted to true to prevent any new requestRoomState calls
+    setGameStarted(true);
+
     if (roomInfo && currentRoom) {
       // Get player ID and leave room
       const playerId = currentRoom.players.find(
@@ -958,9 +953,6 @@ const MultiplayerLobby = () => {
         clearInterval(roomRefreshIntervalRef.current);
         roomRefreshIntervalRef.current = null;
       }
-
-      // Set gameStarted to true to prevent any new requestRoomState calls
-      setGameStarted(true);
 
       if (playerId) {
         socketService.leaveRoom(roomInfo.roomId, playerId);
@@ -1020,14 +1012,28 @@ const MultiplayerLobby = () => {
           const isHost = player.id === currentRoom?.host;
           let displayName = player.name;
 
-          // If this is the host and we have user data, show real name/email
-          if (isHost && userData) {
+          // Check if this player is the current user
+          const isCurrentUser = player.socketId === socketService.getSocketId();
+          
+          // For current user, use userData if available
+          if (isCurrentUser && userData) {
             displayName = userData.username || userData.email.split("@")[0];
           } else {
-            // For other players, clean up the display name
-            displayName = player.name.includes("@")
-              ? player.name.split("@")[0]
-              : player.name;
+            // For other players:
+            // First check if we can find this player in acceptedInvites
+            const matchingInvite = acceptedInvites.find(
+              invite => invite.to.username === player.name || invite.to.email.includes(player.name)
+            );
+            
+            if (matchingInvite) {
+              // Use the invite data for consistent display
+              displayName = matchingInvite.to.username || matchingInvite.to.email.split("@")[0];
+            } else {
+              // Fallback to cleaning up the display name
+              displayName = player.name.includes("@")
+                ? player.name.split("@")[0]
+                : player.name;
+            }
           }
 
           return {
@@ -1047,7 +1053,7 @@ const MultiplayerLobby = () => {
   const renderCombinedItem = ({ item }: { item: any }) => (
     <View style={styles.playerItem}>
       <Text style={styles.playerName}>
-        {item.name} {item.isHost && "(Host)"}
+        {item.name} 
       </Text>
       <View
         style={[

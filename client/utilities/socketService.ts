@@ -389,20 +389,6 @@ class SocketService {
   private roomStateGameStarted: Record<string, boolean> = {};
 
   requestRoomState(roomId: string) {
-    // Debug logging for room state requests in dev mode
-    if (__DEV__) {
-      console.log(
-        `[SocketService] Room state request attempted for: ${roomId}`
-      );
-
-      if (this.roomStateGameStarted[roomId]) {
-        console.log(
-          `[SocketService] Blocked room state request - game already started for room: ${roomId}`
-        );
-        return;
-      }
-    }
-
     // Don't make requests for rooms where the game has started
     if (this.roomStateGameStarted[roomId]) {
       return;
@@ -413,13 +399,6 @@ class SocketService {
 
     // Throttle requests to prevent excessive calls (min 2 seconds between requests)
     if (now - lastRequest < 2000) {
-      if (__DEV__) {
-        console.log(
-          `[SocketService] Throttled room state request - too soon (${
-            now - lastRequest
-          }ms since last request)`
-        );
-      }
       return;
     }
 
@@ -427,17 +406,12 @@ class SocketService {
     this.lastRoomStateRequest[roomId] = now;
 
     // Make the actual request
-    if (__DEV__) {
-      console.log(
-        `[SocketService] Sending room state request for room: ${roomId}`
-      );
+    if (this.socket) {
+      this.socket.emit("get-room-state", { roomId });
+    } else {
+      console.error("Cannot request room state - socket is null");
     }
-    // DEBUG TODO
-    console.log("--------------SONJA TEST CLIENT REQUEST", roomId);
-    console.log(`Socket connected status: ${this.isConnected()}`);
-    console.log(`Socket ID: ${this.getSocketId()}`);
-    console.log(`Socket URL: ${SOCKET_URL}`);
-
+    
     // Add a direct error listener to catch any errors
     const errorListener = (error: any) => {
       console.error("Socket error during room state request:", error);
@@ -598,7 +572,6 @@ class SocketService {
 
   onRoomStateUpdated(callback: (data: { room: QuizRoom }) => void) {
     const wrappedCallback = (data: { room: QuizRoom }) => {
-      console.log("--------------SONJA TEST CLIENT RESPONSE", data.room?.id);
       callback(data);
     };
     this.on("room-state-updated", wrappedCallback);
