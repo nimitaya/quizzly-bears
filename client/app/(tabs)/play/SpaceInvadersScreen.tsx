@@ -361,6 +361,8 @@ const SpaceInvadersScreen = () => {
       if (!prev.enemyCanFire) return prev;
 
       const newEnemyBullets = [...prev.enemyBullets];
+      let shouldPlayEnemyShoot = false;
+      
       prev.enemies.forEach(e => {
         if (!e.alive) return;
         if (Math.random() < prev.enemyShootChance) {
@@ -368,9 +370,17 @@ const SpaceInvadersScreen = () => {
             x: e.x + ENEMY_WIDTH / 2 - BULLET_WIDTH / 2,
             y: e.y + ENEMY_HEIGHT
           });
-          playSound('enemyShoot');
+          shouldPlayEnemyShoot = true;
         }
       });
+
+      // Play sound immediately if not paused
+      if (shouldPlayEnemyShoot && !prev.paused && soundOn && sounds.enemyShoot) {
+        // Use setTimeout to avoid blocking the state update
+        setTimeout(() => {
+          playSound('enemyShoot');
+        }, 0);
+      }
 
       return {
         ...prev,
@@ -448,10 +458,10 @@ const SpaceInvadersScreen = () => {
     });
     
     // Play sounds outside of setState
-    if (shouldPlayExplosion) {
+    if (shouldPlayExplosion && !gameState.paused) {
       playSound('explosion');
     }
-    if (shouldPlayPlayerHit) {
+    if (shouldPlayPlayerHit && !gameState.paused) {
       playSound('playerHit');
     }
   };
@@ -791,7 +801,8 @@ const SpaceInvadersScreen = () => {
               onPressIn={() => handleTouch('left')}
               onPressOut={() => handleTouchEnd('left')}
             >
-              <Text style={styles.controlText}>◀</Text>
+
+
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.controlButton}
@@ -804,7 +815,9 @@ const SpaceInvadersScreen = () => {
               onPressIn={() => handleTouch('right')}
               onPressOut={() => handleTouchEnd('right')}
             >
-              <Text style={styles.controlText}>▶</Text>
+
+              <Text style={styles.controlText}>►</Text>
+
             </TouchableOpacity>
           </View>
 

@@ -480,7 +480,9 @@ const SnakeGameScreen = () => {
               style={styles.controlButton} 
               onPress={() => changeDirection({ x: -1, y: 0 })}
             >
-              <Text style={styles.controlButtonText}>◀</Text>
+
+              <Text style={styles.controlButtonText}>◄</Text>
+
             </TouchableOpacity>
             
             <View style={styles.centerButtons}>
@@ -503,7 +505,9 @@ const SnakeGameScreen = () => {
               style={styles.controlButton} 
               onPress={() => changeDirection({ x: 1, y: 0 })}
             >
-              <Text style={styles.controlButtonText}>▶</Text>
+
+              <Text style={styles.controlButtonText}>►</Text>
+
             </TouchableOpacity>
           </View>
         </View>
