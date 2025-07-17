@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Keyboard, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors, Gaps, FontSizes, FontWeights } from '@/styles/theme';
 import IconArrowBack from '@/assets/icons/IconArrowBack';
@@ -403,20 +403,27 @@ const SnakeGameScreen = () => {
           <IconArrowBack color={Colors.primaryLimo} />
         </TouchableOpacity>
         
-        <View style={styles.gameOverContainer}>
-          <Text style={styles.gameOverTitle}>
-            {gameState.score >= gameSettings.maxScore && gameSettings.maxScore > 0 ? 'You Won!' : 'Game Over!'}
-          </Text>
-          <Text style={styles.scoreText}>
-            Score: {gameState.score}
-          </Text>
-          {gameState.score > gameState.highscore && (
-            <Text style={styles.highscoreText}>New Highscore!</Text>
-          )}
-          <TouchableOpacity style={styles.restartButton} onPress={restartGame}>
-            <Text style={styles.restartButtonText}>Play Again</Text>
-          </TouchableOpacity>
-        </View>
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={true}
+          bounces={true}
+        >
+          <View style={styles.gameOverContainer}>
+            <Text style={styles.gameOverTitle}>
+              {gameState.score >= gameSettings.maxScore && gameSettings.maxScore > 0 ? 'You Won!' : 'Game Over!'}
+            </Text>
+            <Text style={styles.scoreText}>
+              Score: {gameState.score}
+            </Text>
+            {gameState.score > gameState.highscore && (
+              <Text style={styles.highscoreText}>New Highscore!</Text>
+            )}
+            <TouchableOpacity style={styles.restartButton} onPress={restartGame}>
+              <Text style={styles.restartButtonText}>Play Again</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -427,72 +434,80 @@ const SnakeGameScreen = () => {
         <IconArrowBack color={Colors.primaryLimo} />
       </TouchableOpacity>
 
-      <View style={styles.header}>
-        <View style={styles.scoreContainer}>
-          <View style={styles.spacer} />
-          <Text style={styles.scoreText}>Score: {gameState.score}</Text>
-          <Text style={styles.highscoreText}>Length: {gameState.snake.length}</Text>
-        </View>
-        
-        {/* Survival Mode Display */}
-        {gameSettings.gameMode === 'survival' && (
-          <View style={styles.survivalContainer}>
-            <Text style={styles.timeText}>
-              Time: {Math.floor(survivalState.gameTime / 1000).toString().padStart(2, '0')}:
-              {Math.floor((survivalState.gameTime % 1000) / 10).toString().padStart(2, '0')}
-            </Text>
-            <Text style={styles.speedText}>Speed: {survivalState.speedMultiplier.toFixed(1)}x</Text>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={true}
+        bounces={true}
+        scrollEnabled={true}
+      >
+        <View style={styles.header}>
+          <View style={styles.scoreContainer}>
+            <View style={styles.spacer} />
+            <Text style={styles.scoreText}>Score: {gameState.score}</Text>
+            <Text style={styles.highscoreText}>Length: {gameState.snake.length}</Text>
           </View>
-        )}
-      </View>
-
-      <View style={styles.gameContainer}>
-        {renderGame()}
-      </View>
-
-      {/* Pause button positioned under the game field, right-aligned */}
-      <View style={styles.pauseContainer}>
-        <TouchableOpacity style={styles.iconButton} onPress={toggleSound}>
-          {soundEnabled ? <IconVolume color={Colors.black} size={24} /> : <IconVolumeOff color={Colors.black} size={24} />}
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton} onPress={togglePause}>
-          {gameState.paused ? <IconPlay color={Colors.black} size={24} /> : <IconPause color={Colors.black} size={24} />}
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.controls}>
-        <View style={styles.directionControls}>
-          <TouchableOpacity 
-            style={styles.directionButton} 
-            onPress={() => changeDirection({ x: -1, y: 0 })}
-          >
-            <Text style={styles.directionButtonText}>◄</Text>
-          </TouchableOpacity>
           
-          <View style={styles.centerButtons}>
+          {/* Survival Mode Display */}
+          {gameSettings.gameMode === 'survival' && (
+            <View style={styles.survivalContainer}>
+              <Text style={styles.timeText}>
+                Time: {Math.floor(survivalState.gameTime / 1000).toString().padStart(2, '0')}:
+                {Math.floor((survivalState.gameTime % 1000) / 10).toString().padStart(2, '0')}
+              </Text>
+              <Text style={styles.speedText}>Speed: {survivalState.speedMultiplier.toFixed(1)}x</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.gameContainer}>
+          {renderGame()}
+        </View>
+
+        {/* Pause button positioned under the game field, right-aligned */}
+        <View style={styles.pauseContainer}>
+          <TouchableOpacity style={styles.iconButton} onPress={toggleSound}>
+            {soundEnabled ? <IconVolume color={Colors.black} size={24} /> : <IconVolumeOff color={Colors.black} size={24} />}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton} onPress={togglePause}>
+            {gameState.paused ? <IconPlay color={Colors.black} size={24} /> : <IconPause color={Colors.black} size={24} />}
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.controls}>
+          <View style={styles.directionControls}>
             <TouchableOpacity 
               style={styles.controlButton} 
-              onPress={() => changeDirection({ x: 0, y: -1 })}
+              onPress={() => changeDirection({ x: -1, y: 0 })}
             >
-              <Text style={styles.controlButtonText}>▲</Text>
+              <Text style={styles.controlButtonText}>◀</Text>
             </TouchableOpacity>
+            
+            <View style={styles.centerButtons}>
+              <TouchableOpacity 
+                style={styles.controlButton} 
+                onPress={() => changeDirection({ x: 0, y: -1 })}
+              >
+                <Text style={styles.controlButtonText}>▲</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.controlButton} 
+                onPress={() => changeDirection({ x: 0, y: 1 })}
+              >
+                <Text style={styles.controlButtonText}>▼</Text>
+              </TouchableOpacity>
+            </View>
             
             <TouchableOpacity 
               style={styles.controlButton} 
-              onPress={() => changeDirection({ x: 0, y: 1 })}
+              onPress={() => changeDirection({ x: 1, y: 0 })}
             >
-              <Text style={styles.controlButtonText}>▼</Text>
+              <Text style={styles.controlButtonText}>▶</Text>
             </TouchableOpacity>
           </View>
-          
-          <TouchableOpacity 
-            style={styles.directionButton} 
-            onPress={() => changeDirection({ x: 1, y: 0 })}
-          >
-            <Text style={styles.directionButtonText}>►</Text>
-          </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -513,6 +528,7 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: Gaps.g8,
+    marginTop: 40, // Added 40px margin to avoid overlap with back button
   },
   scoreContainer: {
     flexDirection: 'row',
@@ -670,6 +686,13 @@ const styles = StyleSheet.create({
   },
   spacer: {
     width: GAME_WIDTH / 2 - 80, // Adjust as needed to center the score text
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    alignItems: 'center',
+    paddingBottom: Gaps.g80, // Add padding at the bottom for the pause button
   },
 });
 
