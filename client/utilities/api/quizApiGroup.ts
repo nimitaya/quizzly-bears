@@ -108,16 +108,22 @@ const generatePrompt = (
   const difficultySpec = getDifficultyDescription(difficulty);
 
   // Create language entries for the JSON structure
-  const languageEntries = languageCodes.map(code => {
-    const name = getLanguageName(code);
-    return `"${code}": "Native ${name} question text"`;
-  }).join(',\n          ');
+  const languageEntries = languageCodes
+    .filter(code => code !== 'en') // Exclude English as it's already specified separately
+    .map(code => {
+      const name = getLanguageName(code);
+      return `"${code}": "Native ${name} question text"`;
+    })
+    .join(',\n          ');
 
   // Create language entries for answer options
-  const optionLanguageEntries = languageCodes.map(code => {
-    const name = getLanguageName(code);
-    return `"${code}": "Native ${name} answer"`;
-  }).join(',\n          ');
+  const optionLanguageEntries = languageCodes
+    .filter(code => code !== 'en') // Exclude English as it's already specified separately
+    .map(code => {
+      const name = getLanguageName(code);
+      return `"${code}": "Native ${name} answer"`;
+    })
+    .join(',\n          ');
 
   // Get all difficulty specs
   const difficultyChar = getDifficultyCharacteristics(difficulty);
