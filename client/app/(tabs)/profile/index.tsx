@@ -409,11 +409,11 @@ const styles = StyleSheet.create({
     maxWidth: "100%",
   },
   greetingsContainer: {
-    height: 60,
+    height: 50,
     justifyContent: "center",
     alignItems: "center",
     width: "100%",
-    marginBottom: Gaps.g24,
+    marginBottom: Gaps.g16,
   },
   toggleBox: {
     gap: Gaps.g8,
