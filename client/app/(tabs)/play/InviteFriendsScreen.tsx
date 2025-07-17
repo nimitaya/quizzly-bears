@@ -455,29 +455,28 @@ const InviteFriendsScreen = () => {
 
           <View style={styles.friendDetails}>
             <View style={styles.friendNameContainer}>
-              {/* Add online status indicator */}
+              <Text style={styles.friendName}>
+                {item.username || item.email.split("@")[0]}
+              </Text>
               <View
                 style={[
                   styles.statusIndicator,
                   {
                     backgroundColor: isOnline
-                      ? Colors.primaryLimo // Or use a specific color for online
-                      : Colors.bgGray, // Or use a specific color for offline
+                      ? Colors.primaryLimo
+                      : Colors.disable,
                   },
                 ]}
               />
-              <Text style={styles.friendName}>
-                {item.username || item.email.split("@")[0]}
-              </Text>
             </View>
-            <Text
+            {/* <Text
               style={[
                 styles.friendStatus,
                 isOnline ? styles.onlineStatus : styles.offlineStatus,
               ]}
             >
               {isOnline ? "Online" : "Offline"}
-            </Text>
+            </Text> */}
           </View>
         </View>
       </TouchableOpacity>
@@ -488,6 +487,7 @@ const InviteFriendsScreen = () => {
   const renderNonFriendItem = ({ item }: { item: User }) => {
     const isSelected = selectedFriends.includes(item._id);
     const requestAlreadySent = sentFriendRequests.includes(item._id);
+    const isOnline = onlineFriends.includes(item._id);
 
     return (
       <TouchableOpacity
@@ -512,20 +512,21 @@ const InviteFriendsScreen = () => {
 
           <View style={styles.friendDetails}>
             <View style={styles.friendNameContainer}>
-              {/* Status indicator - use neutral color for non-friends */}
-              <View
-                style={[
-                  styles.statusIndicator,
-                  { backgroundColor: Colors.bgGray },
-                ]}
-              />
               <Text style={styles.friendName}>
                 {item.username || item.email.split("@")[0]}
               </Text>
+              <View
+                style={[
+                  styles.statusIndicator,
+                  {
+                    backgroundColor: isOnline ? Colors.primaryLimo : Colors.disable,
+                  },
+                ]}
+              />
             </View>
-            <Text style={[styles.friendStatus, styles.offlineStatus]}>
+            {/* <Text style={[styles.friendStatus, styles.offlineStatus]}>
               {requestAlreadySent ? "Friend request sent" : "Found via search"}
-            </Text>
+            </Text> */}
           </View>
         </View>
 
@@ -779,7 +780,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginRight: Gaps.g8,
+    marginLeft: Gaps.g8,
     alignSelf: "center",
   },
   friendNameContainer: {

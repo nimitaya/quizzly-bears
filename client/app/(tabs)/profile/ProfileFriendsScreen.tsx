@@ -456,23 +456,22 @@ const ProfilFriendsScreen = () => {
         {/* Friends List */}
         {friendsState.friendList.friends.map((item) => (
           <View key={item._id} style={styles.friendRow}>
-            {/* Add this status indicator */}
-            <View
-              style={[
-                styles.statusIndicator,
-                {
-                  backgroundColor: onlineFriends.includes(item._id)
-                    ? Colors.primaryLimo
-                    : Colors.disable,
-                },
-              ]}
-            />
-
-            <Text style={styles.friendName}>
-              {(item.email ? item.email.split("@")[0] : item.username) ||
-                "Friend"}
-            </Text>
-
+            <View style={styles.friendNameStatusBox}>
+              <Text style={styles.friendName}>
+                {(item.email ? item.email.split("@")[0] : item.username) ||
+                  "Friend"}
+              </Text>
+              <View
+                style={[
+                  styles.statusIndicator,
+                  {
+                    backgroundColor: onlineFriends.includes(item._id)
+                      ? Colors.primaryLimo
+                      : Colors.disable,
+                  },
+                ]}
+              />
+            </View>
             <View style={styles.actionButtons}>
               <TouchableOpacity
                 onPress={() => handleRemoveFriend(item._id)}
@@ -586,11 +585,17 @@ const styles = StyleSheet.create({
   },
   friendName: {
     fontSize: FontSizes.TextLargeFs,
-    flex: 1,
+  },
+  friendNameStatusBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexShrink: 1,
   },
   actionButtons: {
     flexDirection: "row",
     gap: Gaps.g16,
+    flexShrink: 0,
+    minWidth: 48,
   },
   iconButton: {
     padding: Gaps.g4,
@@ -623,6 +628,10 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    marginRight: Gaps.g8,
+    marginLeft: Gaps.g8,
+  },
+  friendNameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
 });
