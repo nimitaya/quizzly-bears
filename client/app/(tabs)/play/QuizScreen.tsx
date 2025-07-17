@@ -101,7 +101,9 @@ const QuizLogic = () => {
   const handleRoundAgain = async () => {
     clearCacheData(cacheKey.questions);
     clearCacheData(cacheKey.points);
-    clearCacheData(cacheKey.settings);
+    if (gameState.playStyle === "solo") {
+      clearCacheData(cacheKey.settings);
+     }
 
     // in Multiplayer send gameState and pointsState to socket server
     if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
