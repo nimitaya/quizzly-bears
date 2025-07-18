@@ -29,7 +29,7 @@ const PREDEFINED_CATEGORIES = [
   "Geography",
   "Media",
   "Culture",
-  "Daily life",
+  "Daily Life",
 ];
 
 const cacheKey = CACHE_KEY.quizSettings;
@@ -211,8 +211,8 @@ const CategoryScreen = () => {
             onPress={() => handleChosenCategory("Culture")}
           />
           <ButtonSecondary
-            text="Daily life"
-            onPress={() => handleChosenCategory("Daily life")}
+            text="Daily Life"
+            onPress={() => handleChosenCategory("Daily Life")}
           />
         </View>
       </ScrollView>
