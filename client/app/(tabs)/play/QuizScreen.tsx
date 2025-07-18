@@ -84,20 +84,7 @@ const QuizLogic = () => {
     };
   }, [gameState.playStyle]);
 
-  // ~~~~~~~~~~~~~ Effect to handle cleanup when component unmounts ~~~~~~~~~~~~~~~~~~~~~~~
-  // useEffect(() => {
-  //   return () => {
-  //     // Cleanup function that runs when component unmounts
-  //     const cleanupSocketRoom = async () => {
-  //       if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
-  //         await leaveSocketRoom();
-  //       }
-  //     };
-
-  //     cleanupSocketRoom();
-  //   };
-  // }, [gameState.playStyle, userData]);
-
+  // ----- Handler Play again -----
   const handleRoundAgain = async () => {
     clearCacheData(cacheKey.questions);
     clearCacheData(cacheKey.points);
@@ -124,7 +111,6 @@ const QuizLogic = () => {
               totalAnswers: pointsState.totalAnswers,
             }
           );
-          // Navigate to the multiplayer results screen
           router.push("./MultiplayerResultScreen");
         } else {
           console.error("Missing room info or user data");
@@ -137,6 +123,7 @@ const QuizLogic = () => {
     router.push("./CategoryScreen");
   };
 
+  // ----- Handler go back Home -----
   const handleHome = async () => {
     clearCacheData(cacheKey.questions);
     clearCacheData(cacheKey.points);
@@ -150,16 +137,19 @@ const QuizLogic = () => {
     router.push("./");
   };
 
+  // ----- Handler Back Button -----
   const handleBackButton = () => {
     if (!showResult) {
       setShowAlert(true);
     }
   };
 
+  // ----- Handler close Alert -----
   const handleCloseAlert = () => {
     setShowAlert(false);
   };
 
+  /// ----- Handler confirm Alert -----
   const handleConfirmAlert = async () => {
     setShowAlert(false);
     clearCacheData(cacheKey.questions);
@@ -201,17 +191,13 @@ const QuizLogic = () => {
     }
   };
 
-  // Language utility functions
+  // ~~~~~ Language utility functions ~~~~~
   const getQuestionText = () => {
     if (!currentQuestionData?.question) return "";
     const result = getLocalizedText(
       currentQuestionData.question,
       currentLanguage.code
     );
-    //console.log("getQuestionText input:", currentQuestionData.question);
-    //console.log("getQuestionText currentLanguage:", currentLanguage.code);
-    //console.log("getQuestionText result:", result);
-
     return result;
   };
 
@@ -325,7 +311,7 @@ const QuizLogic = () => {
                   key={`timer-${currQuestionIndex}`}
                   duration={30}
                   delay={0}
-                  width={timerBarWidth} // Gleiche Breite wie die Antworten
+                  width={timerBarWidth}
                   isPaused={answerState.isSubmitted}
                 />
               </View>
@@ -334,9 +320,7 @@ const QuizLogic = () => {
                   {/* show one quiz button for each option */}
                   {options &&
                     options.map(({ key, data }) => {
-                      // console.log(`Processing option ${key}:`, data);
                       const optionText = getOptionText(data);
-                      // console.log(`Option ${key} text:`, optionText);
                       return (
                         <QuizButton
                           key={key}
