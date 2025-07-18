@@ -13,7 +13,7 @@ const categoryStatSchema = new Schema(
         "Sports",
         "Media",
         "Culture",
-        "Daily Life",
+        "Daily life",
       ],
     },
     correctAnswers: { type: Number, default: 0 },
