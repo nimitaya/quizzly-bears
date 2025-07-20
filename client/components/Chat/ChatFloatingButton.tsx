@@ -14,10 +14,29 @@ const ChatFloatingButton: React.FC<ChatFloatingButtonProps> = ({
   unreadCount = 0,
   isVisible = true,
 }) => {
-  if (!isVisible) return null;
+  // Add logging to see what's happening
+  React.useEffect(() => {
+    console.log(
+      "ChatFloatingButton: unreadCount =",
+      unreadCount,
+      "isVisible =",
+      isVisible
+    );
+  }, [unreadCount, isVisible]);
+
+  if (!isVisible) {
+    console.log("ChatFloatingButton hidden because isVisible=false");
+    return null;
+  }
 
   return (
-    <TouchableOpacity style={styles.floatingButton} onPress={onPress}>
+    <TouchableOpacity
+      style={styles.floatingButton}
+      onPress={() => {
+        console.log("Chat button pressed with unread count:", unreadCount);
+        onPress();
+      }}
+    >
       <View style={styles.buttonContent}>
         <IconChat width={46} height={46} />
         {unreadCount > 0 && (
@@ -53,7 +72,7 @@ const styles = StyleSheet.create({
   },
   // Commented out since we're using IconChat component now
   // chatIcon: {
-  //   fontSize: 24,
+  // fontSize: 24,
   // },
   badge: {
     position: "absolute",

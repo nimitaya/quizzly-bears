@@ -1,5 +1,6 @@
 import { io, Socket } from "socket.io-client";
 import { navigationState } from "@/utilities/navigationStateManager";
+import { getDatabase, ref, remove } from "firebase/database";
 
 // Types (can be moved to a separate file)
 export interface QuizRoom {
@@ -162,7 +163,7 @@ class SocketService {
     return new Promise((resolve, reject) => {
       this.socket = io(url, {
         transports: ["websocket", "polling"],
-        timeout: 2000, 
+        timeout: 2000,
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionAttempts: 2, // Reduced for faster fallback
@@ -175,7 +176,7 @@ class SocketService {
           this.socket = null;
         }
         reject(new Error("Connection timeout"));
-      }, 2500); 
+      }, 2500);
 
       this.socket.on("connect", () => {
         clearTimeout(timeout);
@@ -306,7 +307,7 @@ class SocketService {
     } else {
       console.error("Cannot request room state - socket is null");
     }
-    
+
     // Add a direct error listener to catch any errors
     const errorListener = (error: any) => {
       console.error("Socket error during room state request:", error);
@@ -696,6 +697,55 @@ class SocketService {
     console.log("Clearing pending socket operations");
     this.pendingUserOnline = null;
     // Add other pending operations here if you have any
+  }
+
+  /**
+   * Deletes the Firebase chat data for a specific room
+   * This is a completely separate method from your game socket logic
+   * @param roomId The room ID for which chat data should be deleted
+   * @returns Promise that resolves when deletion is complete
+   */
+  deleteRoomChat(roomId: string): Promise<void> {
+    console.log(`Deleting Firebase chat data for room: ${roomId}`);
+
+    return new Promise((resolve, reject) => {
+      try {
+        const db = getDatabase();
+
+        // Delete chat messages
+        const chatRef = ref(db, `chats/${roomId}`);
+        remove(chatRef)
+          .then(() => {
+            console.log(`Deleted chat messages for room ${roomId}`);
+
+            // Delete typing indicators
+            const typingRef = ref(db, `typing/${roomId}`);
+            return remove(typingRef);
+          })
+          .then(() => {
+            console.log(`Deleted typing indicators for room ${roomId}`);
+            resolve();
+          })
+          .catch((error) => {
+            console.error(
+              `Error deleting chat data for room ${roomId}:`,
+              error
+            );
+            reject(error);
+          });
+      } catch (error) {
+        console.error(`Error accessing Firebase for room ${roomId}:`, error);
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Registers a listener for room deletion events
+   * @param callback Function to call when a room is deleted
+   */
+  onRoomDeleted(callback: (data: { roomId: string }) => void): void {
+    this.on("room-deleted", callback);
   }
 }
 
