@@ -1,4 +1,4 @@
-import { Tabs } from "expo-router";
+import { Tabs, router } from "expo-router";
 import { Text, View, StyleSheet } from "react-native";
 import React, { useContext, useEffect, useState } from "react";
 import IconBearTab from "@/assets/icons/IconBearTab";
@@ -182,6 +182,12 @@ const _Layout = () => {
       >
         <Tabs.Screen
           name="statistics"
+          listeners={{
+            tabPress: (e) => {
+              e.preventDefault();
+              router.navigate("/(tabs)/statistics");
+            },
+          }}
           options={{
             title: "Statistics",
             headerShown: false,
@@ -197,6 +203,12 @@ const _Layout = () => {
         />
         <Tabs.Screen
           name="play"
+          listeners={{
+            tabPress: (e) => {
+              e.preventDefault();
+              router.navigate("/(tabs)/play");
+            },
+          }}
           options={{
             headerShown: false,
             tabBarIcon: ({ focused }) => (
@@ -210,6 +222,12 @@ const _Layout = () => {
         />
         <Tabs.Screen
           name="profile"
+          listeners={{
+            tabPress: (e) => {
+              e.preventDefault();
+              router.navigate("/(tabs)/profile");
+            },
+          }}
           options={{
             title: "Profile",
             headerShown: false,
