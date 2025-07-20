@@ -7,6 +7,10 @@ import {
   FlatList,
   ScrollView,
 } from "react-native";
+// Add these imports for the chat feature
+import { ChatProvider, useChat } from "@/providers/ChatProvider";
+import ChatWindow from "@/components/Chat/ChatWindow";
+import ChatFloatingButton from "@/components/Chat/ChatFloatingButton";
 import { useRouter } from "expo-router";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
@@ -44,6 +48,54 @@ interface RoomInfo {
   selectedCategory?: string;
   selectedTopic?: string;
 }
+
+// Create a LobbyChat component to wrap with ChatProvider
+const LobbyChat: React.FC<{ roomId: string; currentUserId: string }> = ({
+  roomId,
+  currentUserId,
+}) => {
+  const {
+    messages,
+    sendMessage,
+    typingUsers,
+    setTyping,
+    unreadCount,
+    isChatVisible,
+    toggleChat,
+  } = useChat();
+
+  const handleSendMessage = (message: string) => {
+    sendMessage(message);
+  };
+
+  const handleTyping = (isTyping: boolean) => {
+    setTyping(isTyping);
+  };
+
+  return (
+    <>
+      {/* Chat floating button - only visible when chat is not open */}
+      <ChatFloatingButton
+        onPress={toggleChat}
+        unreadCount={unreadCount}
+        isVisible={!isChatVisible}
+      />
+
+      {/* Chat window */}
+      {isChatVisible && (
+        <ChatWindow
+          isVisible={true}
+          onClose={toggleChat}
+          messages={messages}
+          onSendMessage={handleSendMessage}
+          onTyping={handleTyping}
+          typingUsers={typingUsers}
+          currentUserId={currentUserId}
+        />
+      )}
+    </>
+  );
+};
 
 const MultiplayerLobby = () => {
   const router = useRouter();
@@ -711,6 +763,24 @@ const MultiplayerLobby = () => {
         console.log("Quiz settings saved to cache");
       }
     });
+
+    socketService.onRoomDeleted((data) => {
+      if (roomInfo && data.roomId === roomInfo.roomId) {
+        console.log(
+          `Room ${roomInfo.roomId} was deleted, cleaning up chat data`
+        );
+        socketService
+          .deleteRoomChat(roomInfo.roomId)
+          .then(() =>
+            console.log(
+              `Chat data cleaned up for deleted room ${roomInfo.roomId}`
+            )
+          )
+          .catch((error) =>
+            console.error(`Error cleaning up chat data: ${error}`)
+          );
+      }
+    });
   };
 
   // ----- Start Game -----
@@ -965,7 +1035,7 @@ const MultiplayerLobby = () => {
     setGameStarted(true);
 
     if (roomInfo && currentRoom) {
-      // Get player ID and leave room
+      // Get player ID
       const playerId = currentRoom.players.find(
         (p) => p.socketId === socketService.getSocketId()
       )?.id;
@@ -976,15 +1046,26 @@ const MultiplayerLobby = () => {
         roomRefreshIntervalRef.current = null;
       }
 
+      // Delete chat data when canceling room (if admin)
+      if (roomInfo.isAdmin) {
+        socketService
+          .deleteRoomChat(roomInfo.roomId)
+          .then(() =>
+            console.log(
+              `Chat data deleted for canceled room ${roomInfo.roomId}`
+            )
+          )
+          .catch((error) =>
+            console.error(`Error deleting chat data: ${error}`)
+          );
+      }
+
+      // Continue with existing logic
       if (playerId) {
         socketService.leaveRoom(roomInfo.roomId, playerId);
       }
-      // socketService.disconnect();
-      // Clear cache for current room
       saveDataToCache(CACHE_KEY.currentRoom, null);
-      // Remove all sent invitations
       handleRemoveAllInvites();
-      // Go back to QuizTypeSelectionScreen
       router.push("/(tabs)/play/QuizTypeSelectionScreen");
     }
     setShowCancelRoomAlert(false);
@@ -996,6 +1077,7 @@ const MultiplayerLobby = () => {
       const playerId = currentRoom.players.find(
         (p) => p.socketId === socketService.getSocketId()
       )?.id;
+
       if (playerId) {
         // Clear the room refresh interval to prevent further requests
         if (roomRefreshIntervalRef.current) {
@@ -1006,12 +1088,29 @@ const MultiplayerLobby = () => {
         // Set gameStarted to true to prevent any new requestRoomState calls
         setGameStarted(true);
 
+        // Check if this is the last player in the room
+        const isLastPlayer =
+          currentRoom.players.length === 1 &&
+          currentRoom.players[0]?.id === playerId;
+
+        // If this is the last player, delete the chat data
+        if (isLastPlayer) {
+          socketService
+            .deleteRoomChat(roomInfo.roomId)
+            .then(() =>
+              console.log(
+                `Chat data deleted as last player left room ${roomInfo.roomId}`
+              )
+            )
+            .catch((error) =>
+              console.error(`Error deleting chat data: ${error}`)
+            );
+        }
+
+        // Continue with existing logic
         socketService.leaveRoom(roomInfo.roomId, playerId);
-        // socketService.disconnect();
-        // Clear cache for current room
         saveDataToCache(CACHE_KEY.currentRoom, null);
         clearCacheData(CACHE_KEY.quizSettings);
-        // Remove all sent invitations
         handleRemoveAllInvites();
         router.push("/(tabs)/play");
       }
@@ -1211,8 +1310,8 @@ const MultiplayerLobby = () => {
 
       <View style={styles.buttonContainer}>
         {/* {!roomInfo.isAdmin && (
-          <ButtonSecondary text={"Waiting for admin bear..."} disabled />
-        )} */}
+<ButtonSecondary text={"Waiting for admin bear..."} disabled />
+)} */}
 
         {roomInfo.isAdmin && !roomInfo.selectedCategory && (
           <>
@@ -1262,6 +1361,16 @@ const MultiplayerLobby = () => {
         onConfirm={handleCancelRoomConfirm}
         noInternet={false}
       />
+
+      {/* Add the chat component wrapped in a ChatProvider */}
+      {userData && roomInfo && (
+        <ChatProvider roomId={roomInfo.roomId}>
+          <LobbyChat
+            roomId={roomInfo.roomId}
+            currentUserId={userData.clerkUserId || ""}
+          />
+        </ChatProvider>
+      )}
     </View>
   );
 };
