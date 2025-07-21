@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
+import { useQuizContext } from "@/providers/QuizProvider";
 import {
   ScrollView,
   View,
@@ -29,6 +30,7 @@ const MultiplayerResultScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { userData } = useContext(UserContext);
+  const { setIsQuizActive } = useQuizContext();
 
   const [players, setPlayers] = useState<Player[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,6 +40,7 @@ const MultiplayerResultScreen = () => {
   // ========== useEffect ==========
 
   useEffect(() => {
+    setIsQuizActive(true);
     const loadRoom = async () => {
       try {
         const room = await loadCacheData(CACHE_KEY.currentRoom);
@@ -73,7 +76,7 @@ const MultiplayerResultScreen = () => {
     return () => {
       socketService.off("game-results");
     };
-  }, []);
+  }, [setIsQuizActive]);
 
   // ========== Functions ==========
 
@@ -116,26 +119,6 @@ const MultiplayerResultScreen = () => {
         console.error("Error sending medals:", err);
       }
     }
-    // OLD code
-    // if (!medalsSent && roomInfo && players.length > 0) {
-    //   setMedalsSent(true);
-    //   try {
-    //     const awarded = new Set();
-    //     for (let i = 0; i < 3 && i < players.length; i++) {
-    //       const player = players[i];
-    //       if (!awarded.has(player.id)) {
-    //         await sendMedal({
-    //           clerkUserId: player.id,
-    //           place: i + 1,
-    //           roomId: roomInfo.roomId,
-    //         });
-    //         awarded.add(player.id);
-    //       }
-    //     }
-    //   } catch (err) {
-    //     console.error("Error sending medals:", err);
-    //   }
-    // }
   };
 
   const handlePlayAgain = async () => {
@@ -152,6 +135,7 @@ const MultiplayerResultScreen = () => {
     clearCacheData(CACHE_KEY.aiQuestions);
     clearCacheData(CACHE_KEY.gameData);
     clearCacheData(CACHE_KEY.quizSettings);
+    setIsQuizActive(false);
 
     if (roomInfo && userData) {
       const onRoomLeft = () => {
@@ -223,10 +207,7 @@ const MultiplayerResultScreen = () => {
             {players.map((player, index) => (
               <View key={player.id} style={styles.playerCard}>
                 <View style={styles.playerRankRow}>
-                  <View style={styles.playerIcon}>
-                    {renderTrophy(index)}
-                    {/* <IconBearTab /> */}
-                  </View>
+                  <View style={styles.playerIcon}>{renderTrophy(index)}</View>
                   <Text style={styles.playerName}>
                     {player.name}{" "}
                     {player.id === userData?.clerkUserId ? "(You)" : ""}
@@ -329,9 +310,7 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.TextLargeFs,
     flexGrow: 1,
   },
-  scoreDetails: {
-    // marginLeft: Gaps.g32,
-  },
+  scoreDetails: {},
   pointsRow: {
     flexDirection: "row",
     alignItems: "center",
