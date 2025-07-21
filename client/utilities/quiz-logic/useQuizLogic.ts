@@ -13,10 +13,7 @@ import {
   PointsState,
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import socketService from "@/utilities/socketService";
-import {
-  aiQuestions,
-  QuestionStructure,
-} from "@/utilities/quiz-logic/data";
+import { aiQuestions, QuestionStructure } from "@/utilities/quiz-logic/data";
 import { useUser } from "@clerk/clerk-expo";
 import { Audio } from "expo-av";
 import { useSound } from "@/providers/SoundProvider";
@@ -24,7 +21,7 @@ import { useSound } from "@/providers/SoundProvider";
 // ========================================================== START OF HOOK ==========================================================
 export function useQuizLogic() {
   const key = CACHE_KEY;
-  // Timer duration/ delays 
+  // Timer duration/ delays
   const READ_TIMER_DURATION = 2000;
   const ANSWER_TIMER_DURATION = 30000;
   const NEXT_QUESTION_DELAY = 3000;
@@ -36,9 +33,8 @@ export function useQuizLogic() {
   const nextQuestionTimeout = useRef<number | null>(null);
   // Ref to store current points data between state updates
   const currentPointsRef = useRef({ total: 0, chosenCorrect: 0 });
-  // Track if a question transition is already scheduled for multiplayer
   const isTransitionScheduled = useRef<boolean>(false);
-  
+
   // Audio refs for feedback sounds
   const correctSound = useRef<Audio.Sound | null>(null);
   const errorSound = useRef<Audio.Sound | null>(null);
@@ -51,6 +47,7 @@ export function useQuizLogic() {
   const [currentQuestionData, setCurrentQuestionData] =
     useState<QuestionStructure | null>(null);
   const [currQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
+  const [gameInfoLoaded, setGameInfoLoaded] = useState<boolean>(false);
   const [gameState, setGameState] = useState<GameState>({
     difficulty: "medium",
     category: "",
@@ -81,8 +78,6 @@ export function useQuizLogic() {
   useEffect(() => {
     const loadFeedbackSounds = async () => {
       try {
-        console.log('useQuizLogic: Loading feedback sounds');
-        
         // Initialize audio mode for mobile devices
         await Audio.setAudioModeAsync({
           allowsRecordingIOS: false,
@@ -94,27 +89,24 @@ export function useQuizLogic() {
 
         // Load correct answer sound
         const { sound: correctSnd } = await Audio.Sound.createAsync(
-          require('@/assets/Sounds/richtig.mp3'),
-          { 
+          require("@/assets/Sounds/richtig.mp3"),
+          {
             volume: 0.8,
-            shouldPlay: false
+            shouldPlay: false,
           }
         );
         correctSound.current = correctSnd;
 
         // Load error answer sound
         const { sound: errorSnd } = await Audio.Sound.createAsync(
-          require('@/assets/Sounds/error.mp3'),
-          { 
+          require("@/assets/Sounds/error.mp3"),
+          {
             volume: 0.8,
-            shouldPlay: false
+            shouldPlay: false,
           }
         );
         errorSound.current = errorSnd;
-        
-        console.log('useQuizLogic: Feedback sounds loaded successfully');
       } catch (error) {
-        console.error('useQuizLogic: Error loading feedback sounds:', error);
         correctSound.current = null;
         errorSound.current = null;
       }
@@ -138,23 +130,19 @@ export function useQuizLogic() {
   // Play feedback sound based on answer correctness
   const playFeedbackSound = async (isCorrect: boolean) => {
     if (!soundEnabled) {
-      console.log('useQuizLogic: Sound not enabled, skipping feedback sound');
       return;
     }
-    
+
     const soundToPlay = isCorrect ? correctSound.current : errorSound.current;
-    const soundType = isCorrect ? 'richtig' : 'error';
-    
+    const soundType = isCorrect ? "richtig" : "error";
+
     if (!soundToPlay) {
-      console.log(`useQuizLogic: Cannot play ${soundType} sound - not loaded`);
       return;
     }
-    
+
     try {
-      console.log(`useQuizLogic: Playing ${soundType} sound`);
       await soundToPlay.setPositionAsync(0);
       await soundToPlay.playAsync();
-      console.log(`useQuizLogic: ${soundType} sound played successfully`);
     } catch (error) {
       console.error(`useQuizLogic: Error playing ${soundType} sound:`, error);
     }
@@ -180,17 +168,24 @@ export function useQuizLogic() {
     try {
       const cachedInfo = await loadCacheData(key.quizSettings);
       if (cachedInfo) {
-        setGameState((prev) => ({
-          ...prev,
-          difficulty: cachedInfo.quizLevel,
-          category: cachedInfo.quizCategory,
-          playStyle: cachedInfo.quizPlayStyle,
-        }));
+        setGameState((prev) => {
+          const newGameState = {
+            ...prev,
+            difficulty: cachedInfo.quizLevel,
+            category: cachedInfo.quizCategory,
+            playStyle: cachedInfo.quizPlayStyle,
+          };
+          return newGameState;
+        });
       } else {
-        console.log("No cached quiz settings found");
+        console.error("No cached quiz settings found");
       }
+      // Mark game info as loaded
+      setGameInfoLoaded(true);
     } catch (error) {
       console.error("Error loading settings:", error);
+      // Even on error, mark as loaded to prevent infinite waiting
+      setGameInfoLoaded(true);
     }
   };
 
@@ -201,7 +196,7 @@ export function useQuizLogic() {
       if (cachedInfo) {
         setCurrQuestionsArray(cachedInfo.questionArray);
       } else {
-        console.log("No cached AI questions found");
+        console.error("No cached AI questions found");
       }
     } catch (error) {
       console.error("Error loading questions:", error);
@@ -215,15 +210,13 @@ export function useQuizLogic() {
       // fetch questions from cache
       let questions = await fetchFromCache(key.aiQuestions);
       if (!questions) {
-        // Fallback to dummy data if cache is empty TODO delete later
-        console.log("No questions in cache, using dummy data");
+        // Fallback to dummy data if cache is empty
         questions = aiQuestions;
         setCurrQuestionsArray(questions.questionArray);
       } else {
-        console.log("Questions loaded from cache:", questions.questionArray?.length, "questions");
         setCurrQuestionsArray(questions.questionArray);
       }
-      
+
       if (currQuestionIndex < questions.questionArray.length) {
         // Check if questions have the right structure
         // Reset
@@ -256,7 +249,7 @@ export function useQuizLogic() {
   const timingQuestions = (): void => {
     // Reset the transition flag for new question
     isTransitionScheduled.current = false;
-    
+
     readTimeout.current = setTimeout(() => {
       // Set read timer to true after 2 seconds to show the answers
       setReadTimer(true);
@@ -265,13 +258,13 @@ export function useQuizLogic() {
         // Lock the answers when time is up
         setAnswerState((prevState) => ({ ...prevState, isLocked: true }));
         handleAnswerCheck();
-        
+
         // For multiplayer modes, notify server about timeout
         if ((gameState.playStyle === "group" || gameState.playStyle === "duel") && !isTransitionScheduled.current) {
           try {
             // Get current room info
             const roomInfo = await loadCacheData(CACHE_KEY.currentRoom);
-            
+
             if (roomInfo && roomInfo.roomId && user?.id) {
               // Notify the server that this player has timed out
               socketService.playerAnswerSubmitted(
@@ -282,7 +275,7 @@ export function useQuizLogic() {
             }
           } catch (error) {
             console.error("Error notifying timeout:", error);
-            
+
             // Fallback: If we can't communicate with server, proceed locally
             if (!isTransitionScheduled.current) {
               isTransitionScheduled.current = true;
@@ -291,12 +284,6 @@ export function useQuizLogic() {
               }, NEXT_QUESTION_DELAY);
             }
           }
-        } else if (gameState.playStyle === "solo" && !isTransitionScheduled.current) {
-          // Solo mode: move to next question after delay
-          isTransitionScheduled.current = true;
-          nextQuestionTimeout.current = setTimeout(() => {
-            handleNextQuestion();
-          }, NEXT_QUESTION_DELAY);
         }
       }, ANSWER_TIMER_DURATION);
     }, READ_TIMER_DURATION);
@@ -340,24 +327,27 @@ export function useQuizLogic() {
   const handleAnswerSubmit = async () => {
     // Store the chosen answer before updating state
     const selectedAnswer = answerState.chosenAnswer;
-    
+
     setAnswerState((prevState) => ({
       ...prevState,
       isSubmitted: true,
       isLocked: true,
     }));
-    
+
     // Check the answer and update points
     handleAnswerCheck();
-    
+
     // Clear the answer timeout since we've manually submitted
-    if ((gameState.playStyle === "group" || gameState.playStyle === "duel") && !isTransitionScheduled.current) {
+    if (
+      (gameState.playStyle === "group" || gameState.playStyle === "duel") &&
+      !isTransitionScheduled.current
+    ) {
       // Clear any existing timers
       if (answerTimeout.current) {
         clearTimeout(answerTimeout.current);
         answerTimeout.current = null;
       }
-      
+
       // Schedule the next question after the fixed delay
       isTransitionScheduled.current = true;
       nextQuestionTimeout.current = setTimeout(() => {
@@ -412,7 +402,6 @@ export function useQuizLogic() {
   // ----- Handle ANSWER CHECK -----
   const handleAnswerCheck = (): void => {
     const isCorrect = getIsCorrect();
-
     // Play feedback sound based on answer correctness
     playFeedbackSound(isCorrect);
 
@@ -435,8 +424,8 @@ export function useQuizLogic() {
         allCorrect,
         totalQuestions,
         correctAnswers,
-      });      
-      
+      });
+
       // Early exit if null
       if (!gainedPoints) {
         return;
@@ -481,12 +470,49 @@ export function useQuizLogic() {
         readTimeout.current = null;
       }
     }
+
+    // IMPORTANT new
+    // if (!isCorrect) {
+    const newTotal = pointsState.total + 0;
+    setPointsState((prevPoints) => {
+      const updatedState = {
+        ...prevPoints,
+        score: prevPoints.score + 0,
+        timePoints: prevPoints.timePoints + 0,
+        perfectGame: prevPoints.perfectGame + 0,
+        total: newTotal,
+        chosenCorrect: pointsState.chosenCorrect + 0,
+      };
+
+      // Update ref with current data
+      currentPointsRef.current = {
+        total: updatedState.total,
+        chosenCorrect: updatedState.chosenCorrect,
+      };
+
+      // IMPORTANT new
+      // Logic for Multiplayer Play
+      if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
+        // Clear any existing timers
+        if (answerTimeout.current) {
+          clearTimeout(answerTimeout.current);
+          answerTimeout.current = null;
+        }
+
+        // Schedule the next question after the fixed delay
+        isTransitionScheduled.current = true;
+        nextQuestionTimeout.current = setTimeout(() => {
+          handleNextQuestion();
+        }, NEXT_QUESTION_DELAY);
+      }
+      return updatedState;
+    });
+    // }
   };
 
   // ----- Handle NEXT QUESTION -----
   const handleNextQuestion = (): void => {
     const newTotalAnswers = pointsState.totalAnswers + 1;
-
     // Fix Race Condition: use current data from ref
     setPointsState((prevPoints) => {
       const updatedPoints = {
@@ -526,12 +552,11 @@ export function useQuizLogic() {
     }
     // Logic for Group Play
     else if (
-      (currQuestionIndex < currQuestionsArray.length - 1 &&
-        (gameState.playStyle === "group" ||
-      gameState.playStyle === "duel")) 
-    ) {     
+      currQuestionIndex < currQuestionsArray.length - 1 &&
+      (gameState.playStyle === "group" || gameState.playStyle === "duel")
+    ) {
       // For multiplayer, we simply advance to the next question without additional delay
-      setCurrentQuestionIndex(prevIndex => prevIndex + 1);
+      setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
       setReadTimer(false);
     }
     // if last question done
@@ -554,14 +579,14 @@ export function useQuizLogic() {
       try {
         await correctSound.current.stopAsync();
       } catch (error) {
-        console.log('Error stopping correct sound:', error);
+        console.error("Error stopping correct sound:", error);
       }
     }
     if (errorSound.current) {
       try {
         await errorSound.current.stopAsync();
       } catch (error) {
-        console.log('Error stopping error sound:', error);
+        console.error("Error stopping error sound:", error);
       }
     }
 
@@ -591,18 +616,27 @@ export function useQuizLogic() {
   // ========================================================== USE EFFECTS ==========================================================
   // ----- START check and loading
   useEffect(() => {
-    // check if points need to be uploaded to DB
-    if (user?.id) {
-      checkCache(user.id);
-    }
-    // get Game Settings
-    fetchGameInfo();
-    fetchAiData();
+    const initialize = async () => {
+      // check if points need to be uploaded to DB
+      if (user?.id) {
+        checkCache(user.id);
+      }
+      // get Game Settings FIRST
+      await fetchGameInfo();
+      // then get AI data
+      await fetchAiData();
+    };
+
+    initialize();
   }, []);
 
   // ----- INITIALIZE questions loading on mount and when currQuestionIndex changes -----
   useEffect(() => {
-    loadQuestions();
+    // Only load questions after game info has been loaded
+    if (gameInfoLoaded) {
+      loadQuestions();
+    }
+
     // clear the timeout if the component unmounts or new question is loaded
     return () => {
       if (answerTimeout.current) {
@@ -620,21 +654,18 @@ export function useQuizLogic() {
       // Reset the transition flag
       isTransitionScheduled.current = false;
     };
-  }, [currQuestionIndex]);
-  
+  }, [currQuestionIndex, gameInfoLoaded]);
+
   // ----- Setup for multiplayer mode -----
   useEffect(() => {
     if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
-      console.log("Setting up multiplayer game");
-      
       // Handle when all players in a room have answered
       const handleAllPlayersAnswered = (data: any) => {
-        console.log("All players have answered:", data);
-        
         // Proceed to next question only if we're on the same question index
-        if (data.questionIndex === currQuestionIndex && !isTransitionScheduled.current) {
-          console.log("Moving to next question after all players answered");
-          
+        if (
+          data.questionIndex === currQuestionIndex &&
+          !isTransitionScheduled.current
+        ) {
           // Schedule transition to next question
           isTransitionScheduled.current = true;
           nextQuestionTimeout.current = setTimeout(() => {
@@ -642,19 +673,16 @@ export function useQuizLogic() {
           }, NEXT_QUESTION_DELAY);
         }
       };
-      
+
       // Listen for game results at the end
-      const handleGameResults = (data: any) => {
-        console.log("Received game results from server:", data);
-      };
-      
+      const handleGameResults = (data: any) => {};
+
       // Register the listeners
       socketService.on("all-players-answered", handleAllPlayersAnswered);
       socketService.on("game-results", handleGameResults);
-      
+
       // Clean up the listeners when component unmounts or playStyle changes
       return () => {
-        console.log("Cleaning up multiplayer listeners");
         socketService.off("all-players-answered", handleAllPlayersAnswered);
         socketService.off("game-results", handleGameResults);
       };
