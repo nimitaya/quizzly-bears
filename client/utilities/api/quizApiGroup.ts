@@ -601,7 +601,7 @@ export const categorizeTopic = async (userInput: string): Promise<string> => {
   try {
     const prompt = `Categorize this topic into exactly one category: "${userInput}"
 
-Categories: History, Science, Sports, Geography, Media, Culture, Daily life
+Categories: History, Science, Sports, Geography, Media, Culture, Daily Life
 
 Examples:
 - "Dinosaurs" → "Science"

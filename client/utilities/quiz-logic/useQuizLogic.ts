@@ -13,9 +13,7 @@ import {
   PointsState,
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import socketService from "@/utilities/socketService";
-// Dummy data: TODO
 import {
-  AiQuestions,
   aiQuestions,
   QuestionStructure,
 } from "@/utilities/quiz-logic/data";
@@ -26,9 +24,9 @@ import { useSound } from "@/providers/SoundProvider";
 // ========================================================== START OF HOOK ==========================================================
 export function useQuizLogic() {
   const key = CACHE_KEY;
-  // Timer duration/ delays TODO
+  // Timer duration/ delays 
   const READ_TIMER_DURATION = 2000;
-  const ANSWER_TIMER_DURATION = 30000; // 30 seconds for answers
+  const ANSWER_TIMER_DURATION = 30000;
   const NEXT_QUESTION_DELAY = 3000;
   // get current user from Clerk:
   const { user } = useUser();
@@ -36,7 +34,7 @@ export function useQuizLogic() {
   const readTimeout = useRef<number | null>(null);
   const answerTimeout = useRef<number | null>(null);
   const nextQuestionTimeout = useRef<number | null>(null);
-  // Fix: ref to store current points data between state updates
+  // Ref to store current points data between state updates
   const currentPointsRef = useRef({ total: 0, chosenCorrect: 0 });
   // Track if a question transition is already scheduled for multiplayer
   const isTransitionScheduled = useRef<boolean>(false);
@@ -468,17 +466,6 @@ export function useQuizLogic() {
       });
     }
 
-    // OLD CODE (COMMENTED):
-    // // Add correct points to state
-    // setPointsState((prevPoints) => ({
-    //   ...prevPoints,
-    //   score: prevPoints.score + gainedPoints?.basePoints,
-    //   timePoints: prevPoints.timePoints + gainedPoints?.timeBonus,
-    //   perfectGame: prevPoints.perfectGame + gainedPoints?.bonusAllCorrect,
-    //   total: prevPoints.total + gainedPoints?.totalPoints,
-    //   chosenCorrect: newChosenCorrect,
-    // }));
-
     // Logic for SOLO Play
     if (
       currQuestionIndex < currQuestionsArray.length - 1 &&
@@ -523,20 +510,6 @@ export function useQuizLogic() {
       return updatedPoints;
     });
 
-    // OLD CODE (COMMENTED - RACE CONDITION):
-    // // update totalAnswers
-    // setPointsState((prevPoints) => ({
-    //   ...prevPoints,
-    //   totalAnswers: newTotalAnswers,
-    // }));
-    // // Cache current points & information
-    // cachePoints({
-    //   gameCategory: gameState.category,
-    //   score: pointsState.total,              // PROBLEM: old data
-    //   correctAnswers: pointsState.chosenCorrect,  // PROBLEM: old data
-    //   totalAnswers: newTotalAnswers,
-    // });
-
     // Clear timer
     if (answerTimeout.current) {
       clearTimeout(answerTimeout.current);
@@ -558,11 +531,9 @@ export function useQuizLogic() {
       gameState.playStyle === "duel")) 
     ) {     
       // For multiplayer, we simply advance to the next question without additional delay
-      // since the delay was already applied either in handleAnswerSubmit or timingQuestions
       setCurrentQuestionIndex(prevIndex => prevIndex + 1);
       setReadTimer(false);
     }
-    // ---------------------------------
     // if last question done
     else {
       setShowResult(true);
@@ -661,7 +632,6 @@ export function useQuizLogic() {
         console.log("All players have answered:", data);
         
         // Proceed to next question only if we're on the same question index
-        // This prevents issues if messages arrive out of order
         if (data.questionIndex === currQuestionIndex && !isTransitionScheduled.current) {
           console.log("Moving to next question after all players answered");
           

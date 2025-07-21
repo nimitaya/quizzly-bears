@@ -1,6 +1,6 @@
 import { io, Socket } from "socket.io-client";
-import { Platform } from "react-native";
 import { navigationState } from "@/utilities/navigationStateManager";
+import { getDatabase, ref, remove } from "firebase/database";
 
 // Types (can be moved to a separate file)
 export interface QuizRoom {
@@ -93,63 +93,6 @@ export interface PlayerTypingStatusData {
 }
 
 // Configuration
-
-// ========== IMPORTANT not needed anymore ==========
-// Platform-specific URLs for React Native development
-// const getSocketUrls = () => {
-//   // Priority 1: Platform-specific primary URLs (fastest and most reliable)
-//   const primaryUrls = [];
-//   if (Platform.OS === "android") {
-//     primaryUrls.push("http://10.0.2.2:3000"); // Android emulator
-//   } else if (Platform.OS === "ios") {
-//     primaryUrls.push("http://localhost:3000"); // iOS simulator
-//   } else {
-//     primaryUrls.push("http://localhost:3000"); // Web
-//   }
-
-//   // Priority 2: Smart IP detection - try to find the development server
-//   // This works by testing common development IP patterns in the current network
-//   const smartDetectionUrls: string[] = [];
-
-//   // Try to detect current network range by testing common router IPs
-//   const networkRanges = [
-//     "192.168.0",
-//     "192.168.2",
-//     "192.168.178",
-//     "192.168.1",
-//     // "10.0.0",
-//     // "10.0.1",
-//     // "172.16.0",
-//   ];
-
-//   // Common development server IPs within each network (most likely first)
-//   const commonDevHosts = [
-//     // Team-specific IPs (most likely)
-//     21, 226, 113, 3, 34,
-//   ];
-
-//   // Generate smart detection URLs
-//   networkRanges.forEach((range) => {
-//     commonDevHosts.forEach((host) => {
-//       smartDetectionUrls.push(`http://${range}.${host}:3000`);
-//     });
-//   });
-
-//   // Priority 3: Try additional common patterns
-//   const additionalUrls = ["http://127.0.0.1:3000", "http://0.0.0.0:3000"];
-
-//   // Create final URL list with smart priority
-//   const finalUrls = [
-//     ...primaryUrls, // Platform-specific (localhost, 10.0.2.2)
-//     ...smartDetectionUrls.slice(0, 20), // First 20 most likely IPs
-//     ...additionalUrls, // Additional common patterns
-//   ];
-//   return finalUrls;
-// };
-
-// const SOCKET_URLS = getSocketUrls();
-// ========== IMPORTANT not needed anymore ==========
-
 const PRODUCTION_URL =
   process.env.EXPO_PUBLIC_SOCKET_URL || "https://quizzly-bears.onrender.com";
 const SOCKET_URL = PRODUCTION_URL;
@@ -206,55 +149,6 @@ class SocketService {
 
   connect(): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      // ========== IMPORTANT not needed anymore ==========
-      // if (__DEV__) {
-      //   const urls = SOCKET_URLS;
-      //   console.log(`🔌 Platform: ${Platform.OS}`);
-      //   console.log(`🔌 Trying ${urls.length} auto-generated URLs...`);
-
-      //   // Try priority URLs first (platform-specific + first few smart detection)
-      //   const priorityUrls = urls.slice(0, 10); // localhost + first 9 smart detection URLs (увеличено с 6)
-      //   console.log(`Priority URLs: ${JSON.stringify(priorityUrls)}`);
-
-      //   for (let i = 0; i < priorityUrls.length; i++) {
-      //     try {
-      //       console.log(
-      //         ` Priority ${i + 1}/${priorityUrls.length}: ${priorityUrls[i]}...`
-      //       );
-      //       await this.connectToUrl(priorityUrls[i]);
-      //       console.log(`Connected via priority: ${priorityUrls[i]}`);
-      //       resolve();
-      //       return;
-      //     } catch (error) {
-      //       console.warn(`Priority failed: ${priorityUrls[i]}`);
-      //       continue;
-      //     }
-      //   }
-
-      //   // Try remaining URLs if priority fails
-      //   const remainingUrls = urls.slice(10);
-      //   console.log(`Trying ${remainingUrls.length} fallback URLs...`);
-
-      //   for (let i = 0; i < remainingUrls.length; i++) {
-      //     try {
-      //       console.log(
-      //         `Fallback ${i + 1}/${remainingUrls.length}: ${
-      //           remainingUrls[i]
-      //         }...`
-      //       );
-      //       await this.connectToUrl(remainingUrls[i]);
-      //       console.log(`Connected via fallback: ${remainingUrls[i]}`);
-      //       resolve();
-      //       return;
-      //     } catch (error) {
-      //       console.warn(`Fallback failed: ${remainingUrls[i]}`);
-      //       continue;
-      //     }
-      //   }
-
-      //   reject(new Error("Could not connect to any Socket.IO server"));
-      // } else {
-      // ========== IMPORTANT not needed anymore ==========
       try {
         await this.connectToUrl(SOCKET_URL);
         resolve();
@@ -269,7 +163,7 @@ class SocketService {
     return new Promise((resolve, reject) => {
       this.socket = io(url, {
         transports: ["websocket", "polling"],
-        timeout: 2000, // Very fast timeout for quick fallback
+        timeout: 2000,
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionAttempts: 2, // Reduced for faster fallback
@@ -282,7 +176,7 @@ class SocketService {
           this.socket = null;
         }
         reject(new Error("Connection timeout"));
-      }, 2500); // Very fast timeout for quick fallback
+      }, 2500);
 
       this.socket.on("connect", () => {
         clearTimeout(timeout);
@@ -413,7 +307,7 @@ class SocketService {
     } else {
       console.error("Cannot request room state - socket is null");
     }
-    
+
     // Add a direct error listener to catch any errors
     const errorListener = (error: any) => {
       console.error("Socket error during room state request:", error);
@@ -449,10 +343,6 @@ class SocketService {
 
     this.emit("leave-room", { roomId, playerId });
   }
-
-  // togglePlayerReady(roomId: string, playerId: string) {
-  //   this.emit("player-ready", { roomId, playerId });
-  // }
 
   startGame(roomId: string, questions: QuizQuestion[]) {
     this.emit("start-game", { roomId, questions });
@@ -807,6 +697,55 @@ class SocketService {
     console.log("Clearing pending socket operations");
     this.pendingUserOnline = null;
     // Add other pending operations here if you have any
+  }
+
+  /**
+   * Deletes the Firebase chat data for a specific room
+   * This is a completely separate method from your game socket logic
+   * @param roomId The room ID for which chat data should be deleted
+   * @returns Promise that resolves when deletion is complete
+   */
+  deleteRoomChat(roomId: string): Promise<void> {
+    console.log(`Deleting Firebase chat data for room: ${roomId}`);
+
+    return new Promise((resolve, reject) => {
+      try {
+        const db = getDatabase();
+
+        // Delete chat messages
+        const chatRef = ref(db, `chats/${roomId}`);
+        remove(chatRef)
+          .then(() => {
+            console.log(`Deleted chat messages for room ${roomId}`);
+
+            // Delete typing indicators
+            const typingRef = ref(db, `typing/${roomId}`);
+            return remove(typingRef);
+          })
+          .then(() => {
+            console.log(`Deleted typing indicators for room ${roomId}`);
+            resolve();
+          })
+          .catch((error) => {
+            console.error(
+              `Error deleting chat data for room ${roomId}:`,
+              error
+            );
+            reject(error);
+          });
+      } catch (error) {
+        console.error(`Error accessing Firebase for room ${roomId}:`, error);
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Registers a listener for room deletion events
+   * @param callback Function to call when a room is deleted
+   */
+  onRoomDeleted(callback: (data: { roomId: string }) => void): void {
+    this.on("room-deleted", callback);
   }
 }
 

@@ -801,7 +801,9 @@ const SpaceInvadersScreen = () => {
               onPressIn={() => handleTouch('left')}
               onPressOut={() => handleTouchEnd('left')}
             >
+
               <Text style={styles.controlText}>◄</Text>
+
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.controlButton}
@@ -814,7 +816,9 @@ const SpaceInvadersScreen = () => {
               onPressIn={() => handleTouch('right')}
               onPressOut={() => handleTouchEnd('right')}
             >
+
               <Text style={styles.controlText}>►</Text>
+
             </TouchableOpacity>
           </View>
 
