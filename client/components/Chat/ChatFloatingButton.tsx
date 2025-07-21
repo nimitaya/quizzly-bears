@@ -14,7 +14,6 @@ const ChatFloatingButton: React.FC<ChatFloatingButtonProps> = ({
   unreadCount = 0,
   isVisible = true,
 }) => {
-  // Add logging to see what's happening
   React.useEffect(() => {
     console.log(
       "ChatFloatingButton: unreadCount =",
@@ -58,8 +57,6 @@ const styles = StyleSheet.create({
     right: 20,
     width: 56,
     height: 56,
-    // borderRadius: 28,
-    //backgroundColor: Colors.primaryLimo,
     justifyContent: "center",
     alignItems: "center",
     elevation: 8,
@@ -70,10 +67,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  // Commented out since we're using IconChat component now
-  // chatIcon: {
-  // fontSize: 24,
-  // },
+
   badge: {
     position: "absolute",
     top: -8,
