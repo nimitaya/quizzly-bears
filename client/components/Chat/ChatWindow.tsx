@@ -27,7 +27,7 @@ interface ChatWindowProps {
 }
 
 const { height: screenHeight } = Dimensions.get("window");
-const CHAT_HEIGHT = screenHeight * 0.7; // 70% of screen height
+const CHAT_HEIGHT = screenHeight * 0.65; // 65% of screen height
 
 const ChatWindow: React.FC<ChatWindowProps> = ({
   isVisible,
@@ -137,6 +137,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isOwnMessage = item.playerId === currentUserId;
 
+    // Show only the part of the email before '@' if playerName looks like an email
+    const displayName =
+      !isOwnMessage && item.playerName && item.playerName.includes("@")
+        ? item.playerName.split("@")[0]
+        : item.playerName;
+
     return (
       <View
         style={[
@@ -147,7 +153,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         ]}
       >
         {!isOwnMessage && (
-          <Text style={styles.messageSender}>{item.playerName}</Text>
+          <Text style={styles.messageSender}>{displayName}</Text>
         )}
 
         <View
@@ -207,8 +213,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         {typingUsers.length > 0 && (
           <View style={styles.typingContainer}>
             <Text style={styles.typingText}>
-              {typingUsers.join(", ")} {typingUsers.length === 1 ? "is" : "are"}{" "}
-              typing...
+              {typingUsers
+                .map((name) =>
+                  name && name.includes("@") ? name.split("@")[0] : name
+                )
+                .join(", ")}{" "}
+              {typingUsers.length === 1 ? "is" : "are"} typing...
             </Text>
           </View>
         )}
@@ -217,11 +227,17 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
-            placeholder="Type a message..."
+            placeholder="type a message..."
+            placeholderTextColor={Colors.disable}
             value={inputText}
             onChangeText={handleTextChange}
             multiline
             maxLength={500}
+            blurOnSubmit={true}
+            onSubmitEditing={() => {
+              if (inputText.trim().length > 0) handleSend();
+            }}
+            returnKeyType="send"
           />
 
           <TouchableOpacity
@@ -248,29 +264,23 @@ const styles = StyleSheet.create({
     right: 0,
     height: CHAT_HEIGHT,
     backgroundColor: Colors.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 10,
+    borderTopLeftRadius: Gaps.g40,
+    borderTopRightRadius: Gaps.g40,
     zIndex: 1000,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 16,
+    padding: Gaps.g16,
     borderBottomWidth: 1,
     borderBottomColor: Colors.bgGray,
   },
   headerTitle: {
     fontSize: FontSizes.TextLargeFs,
-    fontWeight: "bold",
   },
   closeButton: {
-    padding: 4,
+    padding: Gaps.g4,
   },
   content: {
     flex: 1,
@@ -279,11 +289,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   messageListContent: {
-    padding: 16,
-    paddingBottom: 16,
+    padding: Gaps.g16,
+    paddingBottom: Gaps.g16,
   },
   messageContainer: {
-    marginBottom: 16,
+    marginBottom: Gaps.g16,
     maxWidth: "80%",
   },
   ownMessageContainer: {
@@ -294,12 +304,12 @@ const styles = StyleSheet.create({
   },
   messageSender: {
     fontSize: FontSizes.TextSmallFs,
-    fontWeight: "bold",
-    marginBottom: 4,
+    marginBottom: Gaps.g4,
   },
   messageBubble: {
-    borderRadius: 16,
-    padding: 12,
+    borderRadius: Gaps.g16,
+    paddingVertical: Gaps.g8,
+    paddingHorizontal: Gaps.g16,
     maxWidth: "100%",
   },
   ownMessageBubble: {
@@ -312,32 +322,29 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.TextMediumFs,
   },
   messageTime: {
-    fontSize: FontSizes.TextSmallFs,
-    color: Colors.darkGreen,
-    marginTop: 4,
+    fontSize: FontSizes.CaptionFS,
     alignSelf: "flex-end",
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    padding: Gaps.g16,
     borderTopWidth: 1,
     borderTopColor: Colors.bgGray,
   },
   input: {
     flex: 1,
     backgroundColor: Colors.bgGray,
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    borderRadius: Gaps.g16,
+    paddingVertical: Gaps.g16,
+    paddingHorizontal: Gaps.g16,
     maxHeight: 100,
+    textAlignVertical: "center",
   },
   sendButton: {
-    marginLeft: 8,
+    marginLeft: Gaps.g8,
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.primaryLimo,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -349,17 +356,15 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   typingText: {
-    fontSize: FontSizes.TextSmallFs,
-    fontStyle: "italic",
-    color: Colors.darkGreen,
+    fontSize: FontSizes.CaptionFS,
+    color: Colors.black,
   },
   emptyContainer: {
-    padding: 16,
+    padding: Gaps.g16,
     alignItems: "center",
   },
   emptyText: {
     fontSize: FontSizes.TextMediumFs,
-    fontWeight: "bold",
     marginBottom: 8,
   },
   emptySubText: {
