@@ -10,7 +10,7 @@ import React, {
   useCallback,
   useContext,
 } from "react";
-import { Gaps, Colors } from "@/styles/theme";
+import { Gaps } from "@/styles/theme";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Loading from "@/app/Loading";
@@ -22,7 +22,6 @@ import GreetingsScreen from "./GreetngsScreen";
 import { useMusic } from "@/providers/MusicProvider";
 import { useSound } from "@/providers/SoundProvider";
 import { useUser } from "@clerk/clerk-expo";
-import { resetOnboarding } from "@/providers/OnboardingProvider";
 import LanguageDropdown from "@/app/(tabs)/profile/LanguageDropdown";
 import { useLanguage } from "@/providers/LanguageContext";
 import { UserContext } from "@/providers/UserProvider";
@@ -45,7 +44,6 @@ const ProfileScreen = () => {
 
   const { musicEnabled, toggleMusic } = useMusic();
   const { soundEnabled, toggleSound } = useSound();
-  const { playSound } = useSound();
   const { user } = useUser();
   const {
     userData,
@@ -55,7 +53,7 @@ const ProfileScreen = () => {
     setReceivedInviteRequests,
   } = useContext(UserContext);
 
-  //========= Funktion to handle language change=========
+  //Funktion to handle language change
   const handleLanguageChange = async (language: any) => {
     console.log("Language changed to:", language);
     await changeLanguage(language);
@@ -197,24 +195,9 @@ const ProfileScreen = () => {
         console.log("Friend request sent:", data);
 
         getReceivedFriendRequests(userData.clerkUserId).then((received) => {
-          // Debug the structure
-          console.log(
-            "Friend request structure:",
-            received.friendRequests.length > 0
-              ? received.friendRequests[0]
-              : "No requests"
-          );
-
           // Only count PENDING requests
           const pendingRequests = received.friendRequests.filter(
             (request) => request.status === "pending"
-          );
-
-          console.log(
-            "Friend requests - Total:",
-            received.friendRequests.length,
-            "Pending:",
-            pendingRequests.length
           );
 
           setReceivedRequestsCount(pendingRequests.length);
@@ -222,8 +205,6 @@ const ProfileScreen = () => {
       };
 
       const handleInviteRequestSent = (data: any) => {
-        console.log("Invite request sent:", data);
-
         if (!userData?.clerkUserId) {
           console.warn("clerkUserId is missing");
           return;
@@ -240,14 +221,9 @@ const ProfileScreen = () => {
             const pendingInvites = allInvites.filter(
               (i) => i.status === "pending"
             );
-            // Log all invite requests for debugging
-            console.log("All invite requests:", allInvites);
-            console.log("Total requests:", allInvites.length);
-            console.log("Pending:", pendingInvites.length);
 
             if (typeof setReceivedInviteRequests === "function") {
               setReceivedInviteRequests(pendingInvites.length);
-              console.log("State updated");
             } else {
               console.warn("setReceivedInviteRequests is not a function");
             }
@@ -279,8 +255,6 @@ const ProfileScreen = () => {
   useEffect(() => {
     if (!userData?.clerkUserId) return;
 
-    console.log("🔄 Loading initial counts...");
-
     // Load initial friend request count
     getReceivedFriendRequests(userData.clerkUserId)
       .then((received) => {
@@ -293,21 +267,12 @@ const ProfileScreen = () => {
           (request) => request.status === "pending"
         );
 
-        console.log(
-          "📊 Initial friend requests - Total:",
-          received.friendRequests.length,
-          "Pending:",
-          pendingRequests.length
-        );
-
         setReceivedRequestsCount(pendingRequests.length);
       })
       .catch((error) => {
         console.error("❌ Error loading initial friend requests:", error);
       });
 
-    // ADD THIS CODE - Load initial invitation count
-    console.log("🔄 Loading initial invitation count...");
     getReceivedInviteRequests(userData.clerkUserId)
       .then((response) => {
         if (!response?.inviteRequests) {
@@ -319,19 +284,8 @@ const ProfileScreen = () => {
           (invite) => invite.status === "pending"
         );
 
-        console.log(
-          "📊 Initial invitations - Total:",
-          response.inviteRequests.length,
-          "Pending:",
-          pendingInvites.length
-        );
-
         if (typeof setReceivedInviteRequests === "function") {
           setReceivedInviteRequests(pendingInvites.length);
-          console.log(
-            "✅ Invitation badge count updated:",
-            pendingInvites.length
-          );
         } else {
           console.warn("⚠️ setReceivedInviteRequests is not a function");
         }
