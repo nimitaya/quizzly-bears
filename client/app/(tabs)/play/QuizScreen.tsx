@@ -311,8 +311,10 @@ const QuizLogic = () => {
                   key={`timer-${currQuestionIndex}`}
                   duration={30}
                   delay={0}
-                  width={timerBarWidth}
-                  isPaused={answerState.isSubmitted}
+
+                  width={timerBarWidth} // Gleiche Breite wie die Antworten
+                  isPaused={answerState.isSubmitted || showResult}
+
                 />
               </View>
               <View style={styles.questionAnswerContainer}>

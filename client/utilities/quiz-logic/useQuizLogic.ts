@@ -549,6 +549,22 @@ export function useQuizLogic() {
   };
 
   const endGame = async () => {
+    // Stop all feedback sounds when game ends
+    if (correctSound.current) {
+      try {
+        await correctSound.current.stopAsync();
+      } catch (error) {
+        console.log('Error stopping correct sound:', error);
+      }
+    }
+    if (errorSound.current) {
+      try {
+        await errorSound.current.stopAsync();
+      } catch (error) {
+        console.log('Error stopping error sound:', error);
+      }
+    }
+
     // Fixed version - pass callback for setOnChanges:
     if (user?.id) {
       await sendPointsToDatabase(user.id, () => {});
