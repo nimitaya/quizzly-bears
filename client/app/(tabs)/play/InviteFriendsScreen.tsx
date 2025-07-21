@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -7,19 +7,31 @@ import {
   FlatList,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
+import { ButtonPrimary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
 import IconArrowBack from "@/assets/icons/IconArrowBack";
-import { FontSizes, Gaps } from "@/styles/theme";
-import { loadCacheData, CACHE_KEY } from "@/utilities/cacheUtils";
+import { Colors, FontSizes, Gaps } from "@/styles/theme";
+import {
+  loadCacheData,
+  saveDataToCache,
+  CACHE_KEY,
+} from "@/utilities/cacheUtils";
 import CustomAlert from "@/components/CustomAlert";
-
-interface Friend {
-  id: string;
-  name: string;
-  avatar?: string;
-  isOnline: boolean;
-}
+import {
+  searchUserByEmail,
+  sendInviteRequest,
+  removeAllInvites,
+  getSentInviteRequests,
+} from "@/utilities/invitationApi";
+import { getFriends, sendFriendRequest } from "@/utilities/friendRequestApi";
+import { FriendsResponse, User } from "@/utilities/friendInterfaces";
+import { SearchFriendInput } from "@/components/Inputs";
+import IconAddFriend from "@/assets/icons/IconAddFriend";
+import { UserContext } from "@/providers/UserProvider";
+import { Checkbox } from "@/components/Checkbox";
+import { RadioButton } from "@/components/RadioButton";
+import { socketService } from "@/utilities/socketService";
+import { InviteRequest } from "@/utilities/invitationInterfaces";
 
 interface RoomInfo {
   roomId: string;
@@ -30,16 +42,210 @@ interface RoomInfo {
 
 const InviteFriendsScreen = () => {
   const router = useRouter();
+  const { userData, onlineFriends = [] } = useContext(UserContext);
+
   const [showNoFriendsAlert, setShowNoFriendsAlert] = useState(false);
+  const [showErrorAlert, setShowErrorAlert] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
-  const [friends, setFriends] = useState<Friend[]>([]);
+  const [friends, setFriends] = useState<FriendsResponse>({ friends: [] });
 
-  useEffect(() => {
-    loadRoomInfo();
-    loadFriendsList();
-  }, []);
+  const [nonFriends, setNonFriends] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [gameStyle, setGameStyle] = useState<"duel" | "group" | null>(null);
+  const [searchState, setSearchState] = useState<{
+    email: string;
+    result: User | null;
+    error: string;
+  }>({
+    email: "",
+    result: null,
+    error: "",
+  });
 
+  const [sentInvites, setSentInvites] = useState<InviteRequest[]>([]);
+
+  // Add this state to track friend request status
+  const [sentFriendRequests, setSentFriendRequests] = useState<string[]>([]);
+
+  // =========== Functions ==========
+  // ----- Handler Fetch Friendlist -----
+  const fetchFriends = async () => {
+    try {
+      if (!userData) return;
+      setIsLoading(true);
+      const clerkUserId = userData.clerkUserId;
+
+      const friends = await getFriends(clerkUserId);
+
+      setFriends(friends);
+    } catch (error) {
+      console.error("Error fetching friends:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchSentInvites = async () => {
+    try {
+      if (!userData) return;
+      const clerkUserId = userData.clerkUserId;
+
+      const sent = await getSentInviteRequests(clerkUserId);
+      setSentInvites(sent.inviteRequests || []);
+      if (sent.inviteRequests && sent.inviteRequests.length === 0) {
+        router.replace("/(tabs)/play/InviteFriendsScreen");
+      }
+      console.log("Updated sent invites:", sent.inviteRequests || []);
+    } catch (error) {
+      console.error("Error fetching sent invites:", error);
+    }
+  };
+
+  const handleInviteDeclined = (data: any) => {
+    console.log("Invite request declined:", data);
+
+    fetchSentInvites();
+  };
+  // ----- Handler Search User -----
+  const handleSearchUser = async (email: string) => {
+    if (!email.trim() || !userData) {
+      setSearchState((prev) => ({
+        ...prev,
+        error: "Please enter a valid email",
+      }));
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setSearchState((prev) => ({ ...prev, result: null, error: "" }));
+
+      const result = await searchUserByEmail(email, userData.clerkUserId);
+
+      if (result.user) {
+        setSearchState((prev) => ({
+          ...prev,
+          result: result.user,
+          email: "", // Clear the input field after successful search
+        }));
+
+        // Check if user is already a friend
+        const isAlreadyFriend = friends.friends.some(
+          (friend) => friend._id === result.user._id
+        );
+
+        if (isAlreadyFriend) {
+          // User is already a friend - select them for invitation
+          setSelectedFriends((prev) => {
+            if (gameStyle === "duel") {
+              // In duel mode, replace any existing selection
+              return [result.user._id];
+            } else {
+              // In group mode, add to selection if not already included
+              if (!prev.includes(result.user._id)) {
+                return [...prev, result.user._id];
+              }
+              return prev;
+            }
+          });
+        } else {
+          // User is not a friend - add to nonFriends list and select for invitation
+          setNonFriends((prev) => {
+            const isAlreadyInNonFriends = prev.some(
+              (user) => user._id === result.user._id
+            );
+            if (!isAlreadyInNonFriends) {
+              return [...prev, result.user];
+            }
+            return prev;
+          });
+
+          // Add to selected friends for invitation
+          setSelectedFriends((prev) => {
+            if (gameStyle === "duel") {
+              // In duel mode, replace any existing selection
+              return [result.user._id];
+            } else {
+              // In group mode, add to selection if not already included
+              if (!prev.includes(result.user._id)) {
+                return [...prev, result.user._id];
+              }
+              return prev;
+            }
+          });
+        }
+      }
+    } catch (error: any) {
+      setSearchState((prev) => ({
+        ...prev,
+        result: null,
+        error: "Not a quizzly bear",
+      }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ----- Handler Send Friend Request -----
+  const handleSendFriendRequest = async (targetUserId: string) => {
+    if (!userData) return;
+
+    try {
+      setIsLoading(true);
+      await sendFriendRequest(userData.clerkUserId, targetUserId);
+
+      // Add user to sent requests list
+      setSentFriendRequests((prev) => [...prev, targetUserId]);
+
+      // Clear search result after sending request
+      setSearchState((prev) => ({ ...prev, email: "", result: null }));
+    } catch (error: any) {
+      setSearchState((prev) => ({
+        ...prev,
+        error: error.message || "Failed to send friend request",
+      }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ----- Handler Send Invite Request -----
+  const handleSendInviteRequest = async (targetUserId: string) => {
+    if (!userData) return;
+
+    try {
+      setIsLoading(true);
+      await sendInviteRequest(
+        userData.clerkUserId,
+        targetUserId,
+        roomInfo?.roomId || ""
+      );
+
+      // Clear search result after sending request
+      setSearchState((prev) => ({ ...prev, email: "", result: null }));
+    } catch (error: any) {
+      setSearchState((prev) => ({
+        ...prev,
+        error: error.message || "Failed to send friend request",
+      }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ----- Handler Remove ALL Invitations -----
+  const handleRemoveAllInvites = async () => {
+    try {
+      if (!userData) return;
+      await removeAllInvites(userData.clerkUserId);
+    } catch (error) {
+      console.error("Error removing all invitations:", error);
+    }
+  };
+
+  // ----- Load Room Info -----
   const loadRoomInfo = async () => {
     try {
       const cachedRoomInfo = await loadCacheData(CACHE_KEY.currentRoom);
@@ -51,84 +257,290 @@ const InviteFriendsScreen = () => {
     }
   };
 
-  // Mock friends list - in real app this would come from your friends API
-  const loadFriendsList = () => {
-    const mockFriends: Friend[] = [
-      { id: "1", name: "Alice Johnson", isOnline: true },
-      { id: "2", name: "Bob Smith", isOnline: false },
-      { id: "3", name: "Charlie Brown", isOnline: true },
-      { id: "4", name: "Diana Prince", isOnline: true },
-      { id: "5", name: "Eva Martinez", isOnline: false },
-      { id: "6", name: "Frank Wilson", isOnline: true },
-    ];
-    setFriends(mockFriends);
+  // ----- Load Game Style -----
+  const loadGameStyle = async () => {
+    try {
+      const cachedQuizSettings = await loadCacheData(CACHE_KEY.quizSettings);
+      if (cachedQuizSettings && cachedQuizSettings.quizPlayStyle) {
+        setGameStyle(cachedQuizSettings.quizPlayStyle);
+      }
+    } catch (error) {
+      console.error("Error loading game style:", error);
+    }
   };
 
+  // ----- Toggle Friend Selection -----
   const toggleFriendSelection = (friendId: string) => {
     setSelectedFriends((prev) => {
-      if (prev.includes(friendId)) {
-        return prev.filter((id) => id !== friendId);
+      if (gameStyle === "duel") {
+        // For duel mode, only allow one selection
+        return prev.includes(friendId) ? [] : [friendId];
       } else {
-        return [...prev, friendId];
+        // For group mode, allow multiple selections
+        if (prev.includes(friendId)) {
+          return prev.filter((id) => id !== friendId);
+        } else {
+          return [...prev, friendId];
+        }
       }
     });
   };
 
-  //Custom Alert handlers
+  // ----- Custom Alert handlers -----
   const handleNoFriendsAlertClose = () => {
     setShowNoFriendsAlert(false);
   };
 
-  const handleInviteFriends = () => {
+  const handleErrorAlertClose = () => {
+    setShowErrorAlert(false);
+    setErrorMessage("");
+  };
+
+  // ----- Handle Invite Friends -----
+  const handleInviteFriends = async () => {
     if (selectedFriends.length === 0) {
       setShowNoFriendsAlert(true);
       return;
     }
 
-    // TODO: Send invitations to selected friends!!!!!!!!!!!!!===================
-    // For now, we'll just proceed directly to lobby
-    const selectedFriendNames = friends
-      .filter((friend) => selectedFriends.includes(friend.id))
-      .map((friend) => friend.name)
-      .join(", ");
+    if (gameStyle === "duel" && selectedFriends.length > 1) {
+      // This shouldn't happen due to our selection logic, but just in case
+      setErrorMessage("You can only challenge one player in duel mode");
+      setShowErrorAlert(true);
+      return;
+    }
 
-    // Log invited friends for debugging
-    console.log(`Invitations sent to: ${selectedFriendNames}`);
-    
-    // Go directly to lobby
-    router.push("/(tabs)/play/MultiplayerLobby");
+    try {
+      setIsLoading(true);
+      // Send invitations to all selected users (both friends and non-friends)
+      const invitePromises = selectedFriends.map((userId) =>
+        handleSendInviteRequest(userId)
+      );
+      await Promise.all(invitePromises);
+      // Go to lobby after sending invitations
+      router.push("/(tabs)/play/MultiplayerLobby");
+    } catch (error) {
+      console.error("Error sending invitations:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }; // ----- Leave Room -----
+  const leaveRoom = async () => {
+    try {
+      // If we have room info and user data, leave the socket room
+      if (roomInfo && userData) {
+        if (socketService.isConnected()) {
+          socketService.leaveRoom(roomInfo.roomId, userData.clerkUserId);
+        }
+      }
+      // Clear cache for current room
+      await saveDataToCache(CACHE_KEY.currentRoom, null);
+      // Delete sent invitations
+      await handleRemoveAllInvites();
+      // Navigate back
+      router.push("/(tabs)/play");
+    } catch (error) {
+      console.error("Error leaving room:", error);
+      // Still navigate back even if there's an error
+      router.push("/(tabs)/play");
+    }
   };
 
-  const renderFriendItem = ({ item }: { item: Friend }) => {
-    const isSelected = selectedFriends.includes(item.id);
+  // =========== UseEffect ==========
+  useEffect(() => {
+    loadRoomInfo();
+    loadGameStyle();
+    fetchFriends();
+  }, []);
+
+  useEffect(() => {
+    // Register socket listener for declined invitations
+    socketService.on("inviteRequestDeclined", handleInviteDeclined);
+
+    // Cleanup socketService listener on unmount
+    return () => {
+      socketService.off("inviteRequestDeclined", handleInviteDeclined);
+    };
+  }, [userData]);
+
+  // Auto-hide error message after 5 seconds
+  useEffect(() => {
+    if (searchState.error) {
+      const timer = setTimeout(() => {
+        setSearchState((prev) => ({ ...prev, error: "" }));
+      }, 5000); // 5 seconds
+
+      return () => clearTimeout(timer); // Cleanup timer on unmount or error change
+    }
+  }, [searchState.error]);
+
+  // Auto-hide search result message after 3 seconds
+  useEffect(() => {
+    if (searchState.result) {
+      const timer = setTimeout(() => {
+        setSearchState((prev) => ({ ...prev, result: null }));
+      }, 5000); // 5 seconds
+
+      return () => clearTimeout(timer); // Cleanup timer on unmount or result change
+    }
+  }, [searchState.result]);
+
+  // Add this useEffect to request and update online status
+  useEffect(() => {
+    if (!userData || !friends.friends.length) return;
+
+    const friendIds = friends.friends.map((friend) => friend._id);
+    if (friendIds.length > 0) {
+      console.log("Requesting online status for friends");
+      socketService.getFriendsStatus(userData._id, friendIds);
+    }
+
+    // Set up periodic refresh
+    const refreshInterval = setInterval(() => {
+      if (friendIds.length > 0 && userData._id) {
+        socketService.getFriendsStatus(userData._id, friendIds);
+      }
+    }, 30000); // Every 30 seconds
+
+    return () => clearInterval(refreshInterval);
+  }, [userData, friends.friends]);
+
+  // Add socket reconnection handling
+  useEffect(() => {
+    if (!userData || !friends.friends.length) return;
+
+    const handleSocketReconnect = () => {
+      console.log("Socket reconnected, refreshing online status");
+      const friendIds = friends.friends.map((friend) => friend._id);
+
+      if (friendIds.length > 0 && userData._id) {
+        socketService.getFriendsStatus(userData._id, friendIds);
+      }
+    };
+
+    // Listen for socket reconnection
+    socketService.on("connect", handleSocketReconnect);
+
+    return () => {
+      socketService.off("connect", handleSocketReconnect);
+    };
+  }, [userData, friends.friends]);
+
+  // ========== Render Functions ==========
+  // ----- Render Friend Item -----
+  const renderFriendItem = ({ item }: { item: User }) => {
+    const isSelected = selectedFriends.includes(item._id);
+    const isOnline = onlineFriends.includes(item._id);
 
     return (
       <TouchableOpacity
         style={[styles.friendItem, isSelected && styles.friendItemSelected]}
-        onPress={() => toggleFriendSelection(item.id)}
-        disabled={!item.isOnline}
+        onPress={() => toggleFriendSelection(item._id)}
       >
         <View style={styles.friendInfo}>
-          <View style={[styles.avatar, !item.isOnline && styles.avatarOffline]}>
-            <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
-          </View>
+          {/* Show appropriate selection component based on game style */}
+          {gameStyle === "duel" ? (
+            <RadioButton
+              label=""
+              selected={isSelected}
+              onChange={() => toggleFriendSelection(item._id)}
+            />
+          ) : (
+            <Checkbox
+              label=""
+              checked={isSelected}
+              onChange={() => toggleFriendSelection(item._id)}
+            />
+          )}
+
           <View style={styles.friendDetails}>
-            <Text
+            <View style={styles.friendNameContainer}>
+              <Text style={styles.friendName}>
+                {item.username || item.email.split("@")[0]}
+              </Text>
+              <View
+                style={[
+                  styles.statusIndicator,
+                  {
+                    backgroundColor: isOnline
+                      ? Colors.primaryLimo
+                      : Colors.disable,
+                  },
+                ]}
+              />
+            </View>
+            {/* <Text
               style={[
-                styles.friendName,
-                !item.isOnline && styles.friendNameOffline,
+                styles.friendStatus,
+                isOnline ? styles.onlineStatus : styles.offlineStatus,
               ]}
             >
-              {item.name}
-            </Text>
-            <Text style={styles.friendStatus}>
-              {item.isOnline ? "Online" : "Offline"}
-            </Text>
+              {isOnline ? "Online" : "Offline"}
+            </Text> */}
           </View>
         </View>
-        {isSelected && (
-          <View style={styles.selectedIndicator}>
-            <Text style={styles.selectedText}>✓</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  // ----- Render Non-Friend Item (with Add Friend button) -----
+  const renderNonFriendItem = ({ item }: { item: User }) => {
+    const isSelected = selectedFriends.includes(item._id);
+    const requestAlreadySent = sentFriendRequests.includes(item._id);
+    const isOnline = onlineFriends.includes(item._id);
+
+    return (
+      <TouchableOpacity
+        style={[styles.friendItem, isSelected && styles.friendItemSelected]}
+        onPress={() => toggleFriendSelection(item._id)}
+      >
+        <View style={styles.friendInfo}>
+          {/* Selection component (unchanged) */}
+          {gameStyle === "duel" ? (
+            <RadioButton
+              label=""
+              selected={isSelected}
+              onChange={() => toggleFriendSelection(item._id)}
+            />
+          ) : (
+            <Checkbox
+              label=""
+              checked={isSelected}
+              onChange={() => toggleFriendSelection(item._id)}
+            />
+          )}
+
+          <View style={styles.friendDetails}>
+            <View style={styles.friendNameContainer}>
+              <Text style={styles.friendName}>
+                {item.username || item.email.split("@")[0]}
+              </Text>
+              <View
+                style={[
+                  styles.statusIndicator,
+                  {
+                    backgroundColor: isOnline
+                      ? Colors.primaryLimo
+                      : Colors.disable,
+                  },
+                ]}
+              />
+            </View>
+            {/* <Text style={[styles.friendStatus, styles.offlineStatus]}>
+              {requestAlreadySent ? "Friend request sent" : "Found via search"}
+            </Text> */}
+          </View>
+        </View>
+
+        {/* Only show add button if request not already sent */}
+        {!requestAlreadySent && (
+          <View style={styles.rightSection}>
+            <TouchableOpacity
+              onPress={() => handleSendFriendRequest(item._id)}
+              disabled={isLoading}
+            >
+              <IconAddFriend />
+            </TouchableOpacity>
           </View>
         )}
       </TouchableOpacity>
@@ -147,7 +559,7 @@ const InviteFriendsScreen = () => {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.backButton}
-        onPress={() => router.back()}
+        onPress={leaveRoom}
         accessibilityLabel="Go back"
       >
         <IconArrowBack />
@@ -157,30 +569,66 @@ const InviteFriendsScreen = () => {
         <Logo size="small" />
       </View>
 
-      <Text style={styles.title}>Invite Friends</Text>
+      <Text style={styles.title}>
+        {gameStyle === "duel"
+          ? "Challenge a Quizzly Bear"
+          : "Invite Quizzly Bears"}
+      </Text>
       <Text style={styles.subtitle}>Room ID: {roomInfo.roomId}</Text>
 
-      <View style={styles.selectionInfo}>
-        <Text style={styles.selectionText}>
-          Selected: {selectedFriends.length} friends
-        </Text>
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <SearchFriendInput
+          placeholder="e-mail..."
+          value={searchState.email}
+          onChangeText={(text: string) => {
+            setSearchState((prev) => ({ ...prev, email: text }));
+          }}
+          onSearch={(email) => handleSearchUser(email)}
+          clerkUserId={userData?.clerkUserId}
+        />
+
+        {/* Fixed space for error message */}
+        <View style={styles.errorContainer}>
+          {searchState.error ? (
+            <Text style={styles.errorText}>{searchState.error}</Text>
+          ) : null}
+        </View>
+
+        {/* Search Result */}
+        {searchState.result && (
+          <View style={styles.searchResultContainer}>
+            <Text style={styles.searchResultText}>User found and added</Text>
+          </View>
+        )}
       </View>
 
       <FlatList
-        data={friends}
-        renderItem={renderFriendItem}
-        keyExtractor={(item) => item.id}
+        data={[...nonFriends, ...friends.friends]}
+        renderItem={({ item }) => {
+          const isFriend = friends.friends.some(
+            (friend) => friend._id === item._id
+          );
+          return isFriend
+            ? renderFriendItem({ item })
+            : renderNonFriendItem({ item });
+        }}
+        keyExtractor={(item) => item._id}
         style={styles.friendsList}
         showsVerticalScrollIndicator={false}
       />
 
       <View style={styles.buttonContainer}>
-        <ButtonSecondary
-          text="Skip & Continue"
-          onPress={() => router.push("/(tabs)/play/MultiplayerLobby")}
-        />
         <ButtonPrimary
-          text={`Invite ${selectedFriends.length} Friends`}
+          text={
+            gameStyle === "duel"
+              ? `Challenge ${selectedFriends.length} Quizzly Bear${
+                  selectedFriends.length !== 1 ? "s" : ""
+                }`
+              : `Invite ${selectedFriends.length} Quizzly Bear${
+                  selectedFriends.length !== 1 ? "s" : ""
+                }`
+          }
           onPress={handleInviteFriends}
         />
       </View>
@@ -189,11 +637,26 @@ const InviteFriendsScreen = () => {
       <CustomAlert
         visible={showNoFriendsAlert}
         onClose={handleNoFriendsAlertClose}
-        title="No Friends Selected"
-        message="Please select at least one friend to invite"
+        title="No Quizzly Bear Selected"
+        message={
+          gameStyle === "duel"
+            ? "Please select a Quizzly Bear to challenge"
+            : "Please select at least one Quizzly Bear to invite"
+        }
         cancelText={null}
         confirmText="OK"
         onConfirm={handleNoFriendsAlertClose}
+        noInternet={false}
+      />
+
+      <CustomAlert
+        visible={showErrorAlert}
+        onClose={handleErrorAlertClose}
+        title="Error"
+        message={errorMessage}
+        cancelText={null}
+        confirmText="OK"
+        onConfirm={handleErrorAlertClose}
         noInternet={false}
       />
     </View>
@@ -205,7 +668,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: Gaps.g80,
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: Gaps.g24,
   },
   backButton: {
     position: "absolute",
@@ -215,13 +678,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: FontSizes.H1Fs,
-    fontWeight: "bold",
     marginBottom: Gaps.g8,
   },
   subtitle: {
     fontSize: FontSizes.TextMediumFs,
     marginBottom: Gaps.g24,
-    color: "#666",
+    color: Colors.black,
   },
   selectionInfo: {
     alignSelf: "flex-start",
@@ -229,7 +691,6 @@ const styles = StyleSheet.create({
   },
   selectionText: {
     fontSize: FontSizes.TextMediumFs,
-    fontWeight: "500",
   },
   friendsList: {
     flex: 1,
@@ -239,66 +700,30 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: Gaps.g16,
+    paddingVertical: Gaps.g8,
+    paddingHorizontal: Gaps.g8,
     marginBottom: Gaps.g8,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "transparent",
   },
-  friendItemSelected: {
-    backgroundColor: "#e3f2fd",
-    borderColor: "#2196f3",
-  },
+  friendItemSelected: {},
   friendInfo: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#2196f3",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: Gaps.g16,
-  },
-  avatarOffline: {
-    backgroundColor: "#bdbdbd",
-  },
-  avatarText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: FontSizes.TextMediumFs,
-  },
+
   friendDetails: {
     flex: 1,
   },
   friendName: {
     fontSize: FontSizes.TextMediumFs,
-    fontWeight: "500",
-    marginBottom: 2,
+    marginBottom: Gaps.g4,
   },
   friendNameOffline: {
-    color: "#999",
+    color: Colors.systemRed,
   },
   friendStatus: {
     fontSize: FontSizes.TextSmallFs,
-    color: "#666",
-  },
-  selectedIndicator: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#4caf50",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  selectedText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 12,
+    color: Colors.darkGreen,
   },
   buttonContainer: {
     width: "100%",
@@ -306,8 +731,70 @@ const styles = StyleSheet.create({
     paddingBottom: Gaps.g24,
   },
   errorText: {
-    fontSize: FontSizes.TextLargeFs,
-    color: "#666",
+    fontSize: FontSizes.TextSmallFs,
+    color: Colors.systemRed,
+  },
+
+  searchContainer: {
+    marginBottom: Gaps.g16,
+  },
+  errorContainer: {
+    minHeight: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: Gaps.g8,
+  },
+  friendRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: Gaps.g4,
+    paddingHorizontal: Gaps.g16,
+    marginBottom: 1,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    gap: Gaps.g16,
+  },
+  iconButton: {
+    padding: Gaps.g4,
+  },
+
+  nonFriendStatus: {
+    color: Colors.systemOrange,
+  },
+  rightSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Gaps.g8,
+  },
+
+  searchResultContainer: {},
+  searchResultText: {
+    fontSize: FontSizes.TextSmallFs,
+    color: Colors.darkGreen,
+  },
+  searchResultSubtext: {
+    fontSize: FontSizes.TextSmallFs,
+    color: Colors.darkGreen,
+    marginTop: Gaps.g4,
+  },
+  statusIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginLeft: Gaps.g8,
+    alignSelf: "center",
+  },
+  friendNameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  onlineStatus: {
+    color: Colors.darkGreen,
+  },
+  offlineStatus: {
+    color: Colors.systemRed,
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   StyleSheet,
   TextInput,
@@ -6,11 +6,15 @@ import {
   View,
   useWindowDimensions,
   TouchableOpacity,
+  Text,
+  FlatList,
+  Keyboard,
 } from "react-native";
 import { Colors, FontSizes, Gaps } from "../styles/theme";
 import { ButtonSearchFriend } from "./Buttons";
 import IconEye from "@/assets/icons/IconEye";
 import IconEyeClose from "@/assets/icons/IconEyeClose";
+import { searchEmailsAutocomplete } from "@/utilities/friendRequestApi";
 
 // 1. Universal Search Input
 type SearchInputProps = TextInputProps & {
@@ -41,38 +45,155 @@ export function SearchInput(props: SearchInputProps) {
   );
 }
 
-// 2. Input with search button
+//==============Types for autocomplete
+interface EmailSuggestion {
+  _id: string;
+  email: string;
+}
+
+//==============Input with search button (AUTOCOMPLETE)
 type SearchFriendInputProps = TextInputProps & {
   onSearch?: (value: string) => void;
+  clerkUserId?: string; 
 };
 
-export function SearchFriendInput({ onSearch, value, onChangeText, ...props }: SearchFriendInputProps) {
+export function SearchFriendInput({
+  onSearch,
+  value,
+  onChangeText,
+  clerkUserId,
+  ...props
+}: SearchFriendInputProps) {
   const inputRef = useRef<string>(value || "");
   
+  //===========States für Autocomplete
+  const [suggestions, setSuggestions] = useState<EmailSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleChangeText = (text: string) => {
     inputRef.current = text;
     onChangeText?.(text);
   };
 
   const handleSearch = () => {
+    setShowSuggestions(false);
+    Keyboard.dismiss();
     onSearch?.(inputRef.current);
   };
+  
+  //=============== Function to search suggestions
+    const searchSuggestions = async (query: string) => {
+      if (!clerkUserId || query.length < 2) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+  
+      try {
+        setIsLoading(true);
+        const result = await searchEmailsAutocomplete(query, clerkUserId);
+        setSuggestions(result.users);
+        setShowSuggestions(result.users.length > 0);
+      } catch (error) {
+        console.error("Error fetching suggestions:", error);
+        setSuggestions([]);
+        setShowSuggestions(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+  
+    //======Debounce: wartet 300ms nach der letzten Eingabe
+    useEffect(() => {
+      if (!clerkUserId) return;
+  
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+  
+      debounceRef.current = setTimeout(() => {
+        if (value) {
+          searchSuggestions(value);
+        } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      }, 300);
+  //====== Cleanup function to clear the timeout
+      return () => {
+        if (debounceRef.current) {
+          clearTimeout(debounceRef.current);
+        }
+      };
+    }, [value, clerkUserId]);
+  
+    //======Email suggestion selection,dropdown wird geschlossen
+    const handleSuggestionPress = (email: string) => {
+      handleChangeText(email);
+      setShowSuggestions(false);
+      Keyboard.dismiss();
+      onSearch?.(email);
+    };
+  
+    //========Blur event to close suggestions
+    const handleBlur = () => {
+      setTimeout(() => {
+        setShowSuggestions(false);
+      }, 150);
+    };
+  
+    //======Render function for each email suggestion
+    const renderSuggestion = ({ item }: { item: EmailSuggestion }) => (
+      <TouchableOpacity
+        style={styles.suggestionItem}
+        onPress={() => handleSuggestionPress(item.email)}
+      >
+        <Text style={styles.suggestionText}>{item.email}</Text>
+      </TouchableOpacity>
+    );
+  
 
   return (
-    <View style={styles.containerSearchFriend}>
-      <TextInput
-        style={styles.inputSearchFriend}
-        placeholderTextColor={Colors.disable}
-        autoComplete="email"
-        keyboardType="email-address"
-        autoCapitalize="none"
-        textContentType="emailAddress"
-        value={value}
-        onChangeText={handleChangeText}
-        {...props}
-      />
-      <View style={{ width: 8 }} />
-      <ButtonSearchFriend onPress={handleSearch} />
+    <View style={styles.containerSearchFriendWrapper}>
+      <View style={styles.containerSearchFriend}>
+        <TextInput
+          style={styles.inputSearchFriend}
+          placeholderTextColor={Colors.disable}
+          autoComplete="email"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          textContentType="emailAddress"
+          value={value}
+          onChangeText={handleChangeText}
+          onBlur={handleBlur}
+          onFocus={() => {
+            if (suggestions.length > 0 && clerkUserId) {
+              setShowSuggestions(true);
+            }
+          }}
+          {...props}
+        />
+        <View style={{ width: 8 }} />
+        <ButtonSearchFriend onPress={handleSearch} />
+      </View>
+
+      {/* Email Suggest nur wenn die in Clerk sind*/}
+      {clerkUserId && showSuggestions && suggestions.length > 0 && (
+        <View style={styles.suggestionsContainer}>
+          <FlatList
+            data={suggestions}
+            renderItem={renderSuggestion}
+            keyExtractor={(item) => item._id}
+            style={styles.suggestionsList}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            removeClippedSubviews={false} 
+  disableVirtualization={true}
+          />
+        </View>
+      )}
     </View>
   );
 }
@@ -131,6 +252,13 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.TextLargeFs,
     textAlign: "center",
   },
+  containerSearchFriendWrapper: {
+    width: "100%",
+    alignSelf: "center",
+    position: "relative",
+    maxWidth: 348,
+    zIndex: 9999,
+  },
   containerSearchFriend: {
     width: "100%",
     alignSelf: "center",
@@ -165,5 +293,37 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: "center",
     zIndex: 1,
+  },
+  suggestionsContainer: {
+    position: "absolute",
+    top: 64, 
+    left: 0,
+    right: 0,
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.primaryLimo,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 10,
+    maxHeight: 200,
+    zIndex: 10000,
+  },
+  suggestionsList: {
+    flexGrow: 0,
+  },
+  suggestionItem: {
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.disable,
+  },
+  suggestionText: {
+    fontSize: FontSizes.TextLargeFs,
   },
 });

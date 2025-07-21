@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { View, StyleSheet } from "react-native";
 import { Colors } from "@/styles/theme";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
@@ -7,65 +7,33 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import QuizLoader from "@/components/QuizLoader";
 
 const LoadingOverlay = () => {
-  const { isGloballyLoading, showLoading } = useGlobalLoading();
+  const { isGloballyLoading } = useGlobalLoading();
   const router = useRouter();
   const params = useLocalSearchParams();
   const returnTo = (params.returnTo as string) || null;
 
-  const handleLoaderComplete = async () => {
-    // Get the lastScreen from storage if no returnTo is provided
-    let destination = returnTo;
-    if (!destination) {
-      try {
-        destination =
-          (await AsyncStorage.getItem("last_screen")) || "/(tabs)/play";
-      } catch (err) {
-        destination = "/(tabs)/play";
-      }
+  // Unified function to get destination
+  const getDestination = async (): Promise<string> => {
+    if (returnTo) {
+      return returnTo;
     }
-    
-    setTimeout(() => {
-      router.replace(destination as any);
-    }, 1500);
+
+    try {
+      const lastScreen = await AsyncStorage.getItem("last_screen");
+      return lastScreen || "/(tabs)/play";
+    } catch (err) {
+      return "/(tabs)/play";
+    }
   };
-
-  useEffect(() => {
-    let isMounted = true;
-    let timer: ReturnType<typeof setTimeout>;
-
-    const checkAndNavigate = async () => {
-      if (!isGloballyLoading && isMounted) {
-        // Get the lastScreen from storage if no returnTo is provided
-        let destination = returnTo;
-        if (!destination) {
-          try {
-            destination =
-              (await AsyncStorage.getItem("last_screen")) || "/(tabs)/play";
-          } catch (err) {
-            destination = "/(tabs)/play";
-          }
-        }
-        timer = setTimeout(() => {
-          if (isMounted) {
-            router.replace(destination as any);
-          }
-        }, 1500);
-      }
-    };
-    checkAndNavigate();
-
-    return () => {
-      isMounted = false;
-      if (timer) clearTimeout(timer);
-    };
-  }, [isGloballyLoading, router, returnTo]);
+  // Unified navigation function - called only when QuizLoader is completed
+  const handleLoaderComplete = async () => {
+    const destination = await getDestination();
+    router.replace(destination as any);
+  };
 
   return (
     <View style={styles.overlay}>
-      <QuizLoader
-        onComplete={handleLoaderComplete}
-        minDuration={3000} // 3 Sekunden für den Loader
-      />
+      <QuizLoader onComplete={handleLoaderComplete} minDuration={3000} />
     </View>
   );
 };
@@ -79,7 +47,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.bgGray,
     zIndex: 9999,
   },
 });

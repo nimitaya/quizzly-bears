@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { User, IUser } from "../models/User";
 import { FriendRequest, IFriendRequest } from "../models/FriendRequest";
+import { io } from "../server";
 
 // ==================== Search user by email ====================
 export const searchUser = async (
@@ -138,11 +139,28 @@ export const sendRequest = async (
       to: targetUser._id,
       status: "pending",
     });
+
     // Save request to database
     await friendRequest.save();
     // Add friend request to target user's friendRequests array
     await User.findByIdAndUpdate(targetUser._id, {
       $push: { friendRequests: friendRequest._id },
+    });
+
+    // Emit event to notify the target user about the new friend request
+    io.emit("friendRequestSent", {
+      from: {
+        _id: requestingUser._id,
+        username: requestingUser.username,
+        email: requestingUser.email,
+      },
+      to: {
+        _id: targetUser._id,
+        username: targetUser.username,
+        email: targetUser.email,
+      },
+      status: friendRequest.status,
+      createdAt: friendRequest.createdAt,
     });
 
     // TODO: Send push notification to target user
@@ -303,6 +321,12 @@ export const acceptRequest = async (
       $pull: { friendRequests: friendRequestId },
     });
 
+    // Emit event to notify both users about the accepted friend request
+    io.emit("friendRequestAccepted", {
+      from: friendRequest.from,
+      to: friendRequest.to,
+    });
+
     // TODO: Send push notification to the requester?
 
     // ----- Response -----
@@ -362,6 +386,12 @@ export const declineRequest = async (
     // Remove friend request from user's friendRequests array
     await User.findByIdAndUpdate(user._id, {
       $pull: { friendRequests: friendRequestId },
+    });
+
+    // Emit event to notify the requester about the declined friend request
+    io.emit("friendRequestDeclined", {
+      from: friendRequest.from,
+      to: friendRequest.to,
     });
 
     // ----- Response -----
@@ -440,14 +470,87 @@ export const removeFriend = async (
     await FriendRequest.findOneAndDelete({
       $or: [
         { from: user._id, to: friendId, status: "accepted" },
-        { from: friendId, to: user._id, status: "accepted" }
-      ]
+        { from: friendId, to: user._id, status: "accepted" },
+      ],
+    });
+
+    // Emit event to notify both users about the removed friendship
+    io.emit("friendRemoved", {
+      user: user._id,
+      friend: friend._id,
     });
 
     // ----- Response -----
     res.json({ message: "Friend removed successfully" });
   } catch (error) {
     console.error("Error removing friend:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// ==================== Search emails for autocomplete ====================
+export const searchEmailsAutocomplete = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { query, clerkUserId } = req.query;
+
+    if (!query || !clerkUserId) {
+      res.status(400).json({ error: "Query and clerkUserId are required" });
+      return;
+    }
+
+    // Find the requesting user
+    const requestingUser = await User.findOne({ clerkUserId });
+    if (!requestingUser) {
+      res.status(404).json({ error: "Requesting user not found" });
+      return;
+    }
+
+    // Search for users with emails that start with the query
+    // Exclude the requesting user and limit to 5 results
+    const users = await User.find({
+      email: { 
+        $regex: `^${query.toString().toLowerCase()}`, 
+        $options: 'i' 
+      },
+      _id: { $ne: requestingUser._id },
+    })
+    .select("email")
+    .limit(5);
+
+    // Filter out users who are already friends or have pending requests
+    const filteredUsers = [];
+    
+    for (const user of users) {
+      // Check if already friends
+      const isAlreadyFriend = requestingUser.friends.some(
+        (friendId) => friendId.toString() === user._id.toString()
+      );
+      
+      if (!isAlreadyFriend) {
+        // Check if friend request already exists
+        const existingRequest = await FriendRequest.findOne({
+          $or: [
+            { from: requestingUser._id, to: user._id },
+            { from: user._id, to: requestingUser._id },
+          ],
+          status: "pending",
+        });
+        
+        if (!existingRequest) {
+          filteredUsers.push({
+            _id: user._id,
+            email: user.email,
+          });
+        }
+      }
+    }
+
+    res.json({ users: filteredUsers });
+  } catch (error) {
+    console.error("Error searching emails:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

@@ -1,47 +1,47 @@
 import express, { Request, Response } from "express";
 import { User, IUser } from "../models/User";
+import { io } from "../server";
 
 const pointsRouter = express.Router();
 
-const sendPoints = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+const sendPoints = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { 
-      clerkUserId,
-      totalPoints,
-      correctAnswers,
-      totalAnswers,
-      category 
-    } = req.body;
+    const { clerkUserId, totalPoints, correctAnswers, totalAnswers, category } =
+      req.body;
 
     // Validate required fields
-    if (!clerkUserId || totalPoints === undefined || correctAnswers === undefined || totalAnswers === undefined || !category) {
-      res.status(400).json({ 
-        error: "ClerkUserId, totalPoints, correctAnswers, totalAnswers and category are required" 
+    if (
+      !clerkUserId ||
+      totalPoints === undefined ||
+      correctAnswers === undefined ||
+      totalAnswers === undefined ||
+      !category
+    ) {
+      res.status(400).json({
+        error:
+          "ClerkUserId, totalPoints, correctAnswers, totalAnswers and category are required",
       });
       return;
     }
 
     // Validate that the numbers are non-negative
     if (totalPoints < 0 || correctAnswers < 0 || totalAnswers < 0) {
-      res.status(400).json({ 
-        error: "Points and answer counts must be non-negative numbers" 
+      res.status(400).json({
+        error: "Points and answer counts must be non-negative numbers",
       });
       return;
     }
 
     // Validate that correctAnswers <= totalAnswers
     if (correctAnswers > totalAnswers) {
-      res.status(400).json({ 
-        error: "Correct answers cannot exceed total answers" 
+      res.status(400).json({
+        error: "Correct answers cannot exceed total answers",
       });
       return;
     }
 
     // Find current user
-    const user = await User.findOne({ clerkUserId }) as IUser;
+    const user = (await User.findOne({ clerkUserId })) as IUser;
     if (!user) {
       res.status(404).json({ error: "User not found" });
       return;
@@ -54,7 +54,7 @@ const sendPoints = async (
 
     // Find and update the specific category statistics
     const categoryIndex = user.categoryStats.findIndex(
-      stat => stat.categoryName === category
+      (stat) => stat.categoryName === category
     );
 
     if (categoryIndex !== -1) {
@@ -66,11 +66,14 @@ const sendPoints = async (
       user.categoryStats.push({
         categoryName: category,
         correctAnswers: correctAnswers,
-        totalAnswers: totalAnswers
+        totalAnswers: totalAnswers,
       });
     }
 
+    // Emit updated points to all connected clients
+    io.emit("pointsUpdated");
     // Save the updated user
+
     await user.save();
 
     // Return success response with updated data
@@ -80,14 +83,15 @@ const sendPoints = async (
         totalPoints: user.points.totalPoints,
         correctAnswers: user.points.correctAnswers,
         totalAnswers: user.points.totalAnswers,
-        categoryStats: user.categoryStats.find(stat => stat.categoryName === category)
-      }
+        categoryStats: user.categoryStats.find(
+          (stat) => stat.categoryName === category
+        ),
+      },
     });
-
   } catch (error) {
     console.error("Error updating points:", error);
-    res.status(500).json({ 
-      error: "Internal server error while updating points" 
+    res.status(500).json({
+      error: "Internal server error while updating points",
     });
   }
 };

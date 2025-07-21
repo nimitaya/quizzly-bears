@@ -3,8 +3,14 @@ import ClerkSettings, {
   ClerkSettingsRefType,
 } from "@/app/(auth)/ClerkSettings";
 import { useFocusEffect } from "expo-router";
-import React, { useRef, useState, useEffect, useCallback } from "react";
-import { FontSizes, Gaps } from "@/styles/theme";
+import React, {
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+  useContext,
+} from "react";
+import { Gaps, Colors } from "@/styles/theme";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Loading from "@/app/Loading";
@@ -17,11 +23,18 @@ import { useMusic } from "@/providers/MusicProvider";
 import { useSound } from "@/providers/SoundProvider";
 import { useUser } from "@clerk/clerk-expo";
 import { resetOnboarding } from "@/providers/OnboardingProvider";
+import LanguageDropdown from "@/app/(tabs)/profile/LanguageDropdown";
+import { useLanguage } from "@/providers/LanguageContext";
+import { UserContext } from "@/providers/UserProvider";
+import { getReceivedFriendRequests } from "@/utilities/friendRequestApi";
+import { getReceivedInviteRequests } from "@/utilities/invitationApi";
+import socketService from "@/utilities/socketService";
 
 const ProfileScreen = () => {
   const router = useRouter();
   const { isAuthenticated, refreshGlobalState, isGloballyLoading } =
     useGlobalLoading();
+  const { changeLanguage } = useLanguage();
   const isMounted = useRef(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const hasFocusedRef = useRef(false);
@@ -34,17 +47,18 @@ const ProfileScreen = () => {
   const { soundEnabled, toggleSound } = useSound();
   const { playSound } = useSound();
   const { user } = useUser();
+  const {
+    userData,
+    receivedRequestsCount,
+    setReceivedRequestsCount,
+    receivedInviteRequests,
+    setReceivedInviteRequests,
+  } = useContext(UserContext);
 
-  // Function to test onboarding
-  const handleShowOnboarding = async () => {
-    try {
-      await resetOnboarding();
-      router.push({
-        pathname: "/onboarding",
-      } as any);
-    } catch (error) {
-      console.error("Error resetting onboarding:", error);
-    }
+  //========= Funktion to handle language change=========
+  const handleLanguageChange = async (language: any) => {
+    console.log("Language changed to:", language);
+    await changeLanguage(language);
   };
 
   // Check for password reset flag on mount and refresh
@@ -56,6 +70,7 @@ const ProfileScreen = () => {
         const resetFlag = await AsyncStorage.getItem("password_recently_reset");
         if (isMounted) {
           setPasswordResetFlag(resetFlag);
+          console.log("receivedRequestsCount:", receivedRequestsCount);
         }
       } catch (err) {
         console.log("Error checking password reset flag:", err);
@@ -66,7 +81,7 @@ const ProfileScreen = () => {
     return () => {
       isMounted = false;
     };
-  }, [refreshKey]);
+  }, [refreshKey, receivedRequestsCount]);
 
   // IMPORTANT: Trigger manual refresh via ref when auth state changes
   useEffect(() => {
@@ -101,7 +116,7 @@ const ProfileScreen = () => {
     if (hasFocusedRef.current) {
       const timer = setTimeout(() => {
         hasFocusedRef.current = false;
-      }, 5000); // Reset after 5 seconds to allow future focus events
+      }, 1000);
       return () => clearTimeout(timer);
     }
   });
@@ -145,13 +160,186 @@ const ProfileScreen = () => {
         }
       }, 100);
 
+      // Add this to refresh counts when tab is focused
+      if (userData?.clerkUserId) {
+        console.log("Tab focused - refreshing friend request counts");
+        getReceivedFriendRequests(userData.clerkUserId).then((received) => {
+          const pendingRequests = received.friendRequests.filter(
+            (request) => request.status === "pending"
+          );
+          setReceivedRequestsCount(pendingRequests.length);
+        });
+      }
+
+      // Add this to also refresh invitation counts when tab is focused
+      if (userData?.clerkUserId) {
+        getReceivedInviteRequests(userData.clerkUserId)
+          .then((response) => {
+            if (!response?.inviteRequests) return;
+
+            const pendingInvites = response.inviteRequests.filter(
+              (invite) => invite.status === "pending"
+            );
+
+            if (typeof setReceivedInviteRequests === "function") {
+              setReceivedInviteRequests(pendingInvites.length);
+            }
+          })
+          .catch((error) => console.error("Error refreshing invites:", error));
+      }
+
       return () => clearTimeout(timer);
     }, [])
   );
+  useEffect(() => {
+    if (userData) {
+      const handleFriendRequestSent = (data: any) => {
+        console.log("Friend request sent:", data);
 
-  if (isGloballyLoading) {
-    return <Loading />;
-  }
+        getReceivedFriendRequests(userData.clerkUserId).then((received) => {
+          // Debug the structure
+          console.log(
+            "Friend request structure:",
+            received.friendRequests.length > 0
+              ? received.friendRequests[0]
+              : "No requests"
+          );
+
+          // Only count PENDING requests
+          const pendingRequests = received.friendRequests.filter(
+            (request) => request.status === "pending"
+          );
+
+          console.log(
+            "Friend requests - Total:",
+            received.friendRequests.length,
+            "Pending:",
+            pendingRequests.length
+          );
+
+          setReceivedRequestsCount(pendingRequests.length);
+        });
+      };
+
+      const handleInviteRequestSent = (data: any) => {
+        console.log("Invite request sent:", data);
+
+        if (!userData?.clerkUserId) {
+          console.warn("clerkUserId is missing");
+          return;
+        }
+
+        getReceivedInviteRequests(userData.clerkUserId)
+          .then((response) => {
+            if (!response?.inviteRequests) {
+              console.warn("No inviteRequests field in response:", response);
+              return;
+            }
+
+            const allInvites = response.inviteRequests;
+            const pendingInvites = allInvites.filter(
+              (i) => i.status === "pending"
+            );
+            // Log all invite requests for debugging
+            console.log("All invite requests:", allInvites);
+            console.log("Total requests:", allInvites.length);
+            console.log("Pending:", pendingInvites.length);
+
+            if (typeof setReceivedInviteRequests === "function") {
+              setReceivedInviteRequests(pendingInvites.length);
+              console.log("State updated");
+            } else {
+              console.warn("setReceivedInviteRequests is not a function");
+            }
+          })
+          .catch((error) => {
+            console.error("getReceivedInviteRequests error:", error);
+          });
+      };
+
+      socketService.on("friendRequestSent", handleFriendRequestSent);
+      socketService.on("friendRequestAccepted", handleFriendRequestSent);
+      socketService.on("friendRequestDeclined", handleFriendRequestSent);
+      socketService.on("inviteRequestSent", handleInviteRequestSent);
+      socketService.on("inviteRequestAccepted", handleInviteRequestSent);
+      socketService.on("inviteRequestDeclined", handleInviteRequestSent);
+
+      return () => {
+        socketService.off("friendRequestSent", handleFriendRequestSent);
+        socketService.off("friendRequestAccepted", handleFriendRequestSent);
+        socketService.off("friendRequestDeclined", handleFriendRequestSent);
+        socketService.off("inviteRequestSent", handleInviteRequestSent);
+        socketService.off("inviteRequestAccepted", handleInviteRequestSent);
+        socketService.off("inviteRequestDeclined", handleInviteRequestSent);
+      };
+    }
+  }, [userData]);
+
+  // Add this useEffect to load initial counts
+  useEffect(() => {
+    if (!userData?.clerkUserId) return;
+
+    console.log("🔄 Loading initial counts...");
+
+    // Load initial friend request count
+    getReceivedFriendRequests(userData.clerkUserId)
+      .then((received) => {
+        if (!received?.friendRequests) {
+          console.warn("⚠️ Invalid response format:", received);
+          return;
+        }
+
+        const pendingRequests = received.friendRequests.filter(
+          (request) => request.status === "pending"
+        );
+
+        console.log(
+          "📊 Initial friend requests - Total:",
+          received.friendRequests.length,
+          "Pending:",
+          pendingRequests.length
+        );
+
+        setReceivedRequestsCount(pendingRequests.length);
+      })
+      .catch((error) => {
+        console.error("❌ Error loading initial friend requests:", error);
+      });
+
+    // ADD THIS CODE - Load initial invitation count
+    console.log("🔄 Loading initial invitation count...");
+    getReceivedInviteRequests(userData.clerkUserId)
+      .then((response) => {
+        if (!response?.inviteRequests) {
+          console.warn("⚠️ Invalid invitation response:", response);
+          return;
+        }
+
+        const pendingInvites = response.inviteRequests.filter(
+          (invite) => invite.status === "pending"
+        );
+
+        console.log(
+          "📊 Initial invitations - Total:",
+          response.inviteRequests.length,
+          "Pending:",
+          pendingInvites.length
+        );
+
+        if (typeof setReceivedInviteRequests === "function") {
+          setReceivedInviteRequests(pendingInvites.length);
+          console.log(
+            "✅ Invitation badge count updated:",
+            pendingInvites.length
+          );
+        } else {
+          console.warn("⚠️ setReceivedInviteRequests is not a function");
+        }
+      })
+      .catch((error) => {
+        console.error("❌ Error loading initial invitations:", error);
+      });
+  }, [userData?.clerkUserId]);
 
   return (
     <ScrollView
@@ -162,27 +350,28 @@ const ProfileScreen = () => {
       <View style={{ marginBottom: Gaps.g24 }}>
         <Logo size="small" />
       </View>
-      <GreetingsScreen ref={clerkSettingsRef} refreshKey={refreshKey} />
+      <View style={styles.greetingsContainer}>
+        {isGloballyLoading ? (
+          <Loading />
+        ) : (
+          <GreetingsScreen ref={clerkSettingsRef} refreshKey={refreshKey} />
+        )}
+      </View>
       <View style={styles.toggleBox}>
         <Toggle label="Sound" onToggle={toggleSound} enabled={soundEnabled} />
         <Toggle label="Music" enabled={musicEnabled} onToggle={toggleMusic} />
-        <Text
-          style={{
-            fontSize: FontSizes.H3Fs,
-            paddingHorizontal: Gaps.g32,
-          }}
-        >
-          Language !!!! create
-        </Text>
+        <LanguageDropdown onLanguageChange={handleLanguageChange} />
       </View>
       <View style={styles.buttonsBox}>
         <ButtonSecondary
           text="Invitations"
+          showBadge={(receivedInviteRequests ?? 0) > 0}
           onPress={() => router.push("/profile/ProfileInvitationsScreen")}
         />
         {user ? (
           <ButtonSecondary
             text="Friends"
+            showBadge={(receivedRequestsCount ?? 0) > 0}
             onPress={() => router.push("/profile/ProfileFriendsScreen")}
           />
         ) : (
@@ -196,13 +385,8 @@ const ProfileScreen = () => {
         <ButtonSecondary
           text="FAQ"
           onPress={() => {
-            playSound("custom");
             router.push("/profile/FaqScreen");
           }}
-        />
-        <ButtonSecondary
-          text="Show Onboarding"
-          onPress={handleShowOnboarding}
         />
       </View>
     </ScrollView>
@@ -215,13 +399,28 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     marginTop: Gaps.g80,
+    maxWidth: 440,
+    alignSelf: "center",
   },
   contentContainer: {
     alignItems: "center",
     paddingBottom: Gaps.g24,
+    width: "100%",
+    maxWidth: "100%",
+  },
+  greetingsContainer: {
+    height: 50,
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+    marginBottom: Gaps.g16,
   },
   toggleBox: {
     gap: Gaps.g8,
+    width: "100%",
+    alignSelf: "stretch",
+    flexDirection: "column",
+    alignItems: "stretch",
   },
   buttonsBox: {
     marginTop: Gaps.g40,

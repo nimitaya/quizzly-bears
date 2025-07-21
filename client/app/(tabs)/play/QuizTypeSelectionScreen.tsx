@@ -5,13 +5,15 @@ import { Logo } from "@/components/Logos";
 import { Gaps } from "@/styles/theme";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { saveDataToCache, CACHE_KEY } from "@/utilities/cacheUtils";
+import { saveDataToCache, CACHE_KEY, loadCacheData } from "@/utilities/cacheUtils";
 import {
   QuizSettings,
   PlayStyle,
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { socketService } from "@/utilities/socketService";
 import { useUser } from "@clerk/clerk-expo";
+import { useLanguage } from "@/providers/LanguageContext";
+import { useSound } from "@/providers/SoundProvider";
 
 // Use the cache key for quiz settings
 const cacheKey = CACHE_KEY.quizSettings;
@@ -20,6 +22,8 @@ const QuizTypeSelectionScreen = () => {
   const router = useRouter();
   const [playStyle, setPlayStyle] = useState<PlayStyle>("solo");
   const { user } = useUser();
+  const { currentLanguage } = useLanguage();
+  const { soundEnabled } = useSound();
 
   // ---------- FUNCTIONS ----------
   // send selected Playstyle to cache
@@ -46,7 +50,7 @@ const QuizTypeSelectionScreen = () => {
       }
 
       const roomName = style === "duel" ? "Duel Room" : "Group Room";
-      const hostName = user?.username || "Player";
+      const hostName = user?.username || (user?.emailAddresses[0]?.emailAddress?.split("@")[0]) || "Player";
       const hostId = user?.id || "anonymous-" + Date.now();
 
       const roomSettings = {
@@ -76,7 +80,14 @@ const QuizTypeSelectionScreen = () => {
       });
 
       // Create the room
-      socketService.createRoom(roomName, hostName, hostId, roomSettings);
+      // Get host's language from context or cache
+      let hostLanguage = currentLanguage?.code;
+      if (!hostLanguage) {
+        const cachedLanguage = await loadCacheData("selected_language");
+        hostLanguage = cachedLanguage || "en"; // Default to English
+      }
+      
+      socketService.createRoom(roomName, hostName, hostId, roomSettings, hostLanguage);
     } catch (error) {
       console.error("Failed to create multiplayer room:", error);
       Alert.alert("Error", "Failed to create multiplayer room");
@@ -102,6 +113,7 @@ const QuizTypeSelectionScreen = () => {
       await createMultiplayerRoom(style);
     }
   };
+
   // ----------------------------------------
 
   return (
@@ -129,7 +141,14 @@ const QuizTypeSelectionScreen = () => {
           text="Play in group"
           onPress={() => handlePlayStyleChoice("group")}
         />
-        <ButtonSecondary text="Mini games" />
+        <ButtonSecondary
+          text="Mini games"
+          onPress={() => router.push("/(tabs)/play/MiniGamesScreen")}
+        />
+        {/* <ButtonSecondary
+          text="Test Results"
+          onPress={() => router.push("/(tabs)/play/ResultsMultiplayerScreen")}
+        /> */}
       </View>
     </View>
   );

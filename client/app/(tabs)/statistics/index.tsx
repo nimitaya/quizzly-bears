@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { Logo } from "@/components/Logos";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { FontSizes, Gaps } from "@/styles/theme";
 import IconMedal1PlaceWebp from "@/assets/icons-webp/IconMedal1PlaceWebp";
 import IconMedal2PlaceWebp from "@/assets/icons-webp/IconMedal2PlaceWebp";
@@ -12,11 +12,38 @@ import Loading from "../../Loading";
 import CustomAlert from "@/components/CustomAlert";
 import { useUser } from "@clerk/clerk-expo";
 import ClerkSettings from "@/app/(auth)/ClerkSettings";
+import socketService from "@/utilities/socketService";
 
 const StatisticsScreen = () => {
-  const { userData, loading, userRank, totalUsers } = useStatistics();
+  const { userData, loading, userRank, totalUsers, refetch } = useStatistics();
   const [showForm, setShowForm] = useState(false);
   const { user } = useUser();
+
+  useEffect(() => {
+    socketService.on("pointsUpdated", () => {
+      console.log("pointsUpdated received - outside");
+      refetch &&
+        refetch.forEach((fn) => {
+          console.log("pointsUpdated received - inside");
+          fn();
+        });
+    });
+
+    return () => {
+      socketService.off("pointsUpdated");
+      socketService.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+    if (!userData && !loading) {
+      timeout = setTimeout(() => {
+        setShowForm(true);
+      }, 3000);
+    }
+    return () => clearTimeout(timeout);
+  }, [userData, loading]);
 
   if (!user) {
     return (
@@ -28,12 +55,6 @@ const StatisticsScreen = () => {
       </View>
     );
   }
-
-  useEffect(() => {
-    if (!userData && !loading) {
-      setShowForm(true);
-    }
-  }, [userData, loading]);
 
   if (loading) return <Loading />;
   if (!userData && !loading) {
@@ -162,7 +183,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     alignItems: "center",
-    paddingBottom: 32,
+    paddingBottom: Gaps.g32,
     paddingHorizontal: 0,
   },
   CategoryPerformanceContainer: {
@@ -177,11 +198,11 @@ const styles = StyleSheet.create({
   allMedalenBlock: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Gaps.g16,
+    gap: Gaps.g24,
   },
   MedalenBlock: {
     flexDirection: "row",
-    gap: Gaps.g4,
+    gap: Gaps.g8,
     alignItems: "center",
   },
   accuracyBlock: {

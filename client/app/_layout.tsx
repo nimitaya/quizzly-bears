@@ -1,9 +1,10 @@
 import React, { useEffect } from "react";
+import { AppState, AppStateStatus, Text, TextInput, View } from "react-native";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { Slot } from "expo-router";
-import { View, Text, TextInput } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+
 import { Colors } from "@/styles/theme";
 import { useCustomFonts } from "@/hooks/useCustomFonts";
 import NetworkAlertProvider from "@/providers/NetworkAlertProvider";
@@ -13,9 +14,10 @@ import { UserProvider } from "@/providers/UserProvider";
 import { MusicProvider } from "@/providers/MusicProvider";
 import { SoundProvider } from "@/providers/SoundProvider";
 import { OnboardingProvider } from "@/providers/OnboardingProvider";
+import { LanguageProvider } from "@/providers/LanguageContext";
+import { SocketProvider } from "@/providers/SocketProvider";
 
-
-// Override with safe type casting
+// ========== Override system fonts globally ==========
 const overrideDefaultFont = () => {
   const textRender = (Text as any).render;
   (Text as any).render = function (...args: any[]) {
@@ -38,34 +40,40 @@ export default function RootLayout() {
   const [fontsLoaded] = useCustomFonts();
 
   useEffect(() => {
-    if (fontsLoaded) {
-      overrideDefaultFont();
-    }
+    if (fontsLoaded) overrideDefaultFont();
   }, [fontsLoaded]);
 
   if (!fontsLoaded) return null;
 
   return (
-    <ClerkProvider tokenCache={tokenCache}>
-      <UserProvider>
-         <OnboardingProvider>
-        <GlobalLoadingProvider>
-          <NetworkAlertProvider>
-            <SafeAreaProvider>
-              <MusicProvider>
-                <SoundProvider>
-                  <View style={{ flex: 1, backgroundColor: Colors.bgGray }}>
-                    <AuthNavigationHelper />
-                    <Slot />
-                  </View>
-                </SoundProvider>
-              </MusicProvider>
-            </SafeAreaProvider>
-          </NetworkAlertProvider>
-        </GlobalLoadingProvider>
+    <ClerkProvider
+      publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!}
+      tokenCache={tokenCache}
+    >
+      <SocketProvider>
+        <UserProvider>
+          <LanguageProvider>
+            <OnboardingProvider>
+              <GlobalLoadingProvider>
+                <NetworkAlertProvider>
+                  <SafeAreaProvider>
+                    <MusicProvider>
+                      <SoundProvider>
+                        <View
+                          style={{ flex: 1, backgroundColor: Colors.bgGray }}
+                        >
+                          <AuthNavigationHelper />
+                          <Slot />
+                        </View>
+                      </SoundProvider>
+                    </MusicProvider>
+                  </SafeAreaProvider>
+                </NetworkAlertProvider>
+              </GlobalLoadingProvider>
             </OnboardingProvider>
-
-      </UserProvider>
+          </LanguageProvider>
+        </UserProvider>
+      </SocketProvider>
     </ClerkProvider>
   );
 }

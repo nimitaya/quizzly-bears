@@ -108,7 +108,7 @@ export const checkCache = async (clerkUserId: string) => {
         totalPoints: storedData.points,
         correctAnswers: storedData.correctAnswers,
         totalAnswers: storedData.totalAnswers,
-        category: storedData.category
+        category: storedData.category,
       });
       // Clear cache after successful send
       await clearCachePoints();
@@ -120,24 +120,33 @@ export const checkCache = async (clerkUserId: string) => {
 };
 
 // ---------- SEND cached data TO DATABASE ----------
-export const sendPointsToDatabase = async (clerkUserId: string) => {
+// Fixed version - accepts callback for setOnChanges:
+export const sendPointsToDatabase = async (
+  clerkUserId: string,
+  onSuccess?: () => void
+) => {
   try {
     const finalGameData: GameInformation = await loadCacheData(cacheKey);
     if (!finalGameData) {
       console.log("No cached data found to send");
       return;
     }
-    
+
     // Send data to database
     await sendPoints({
       clerkUserId,
       totalPoints: finalGameData.points,
       correctAnswers: finalGameData.correctAnswers,
       totalAnswers: finalGameData.totalAnswers,
-      category: finalGameData.category
+      category: finalGameData.category,
     });
-    
+
     console.log("Points successfully sent to database");
+
+    // Call the success callback if provided
+    if (onSuccess) {
+      onSuccess();
+    }
   } catch (error) {
     console.error("Failed to send points to database:", error);
     throw error;

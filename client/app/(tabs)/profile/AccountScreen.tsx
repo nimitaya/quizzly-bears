@@ -12,6 +12,7 @@ import { useFocusEffect } from "expo-router";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Loading from "@/app/Loading";
+import { navigationState } from "@/utilities/navigationStateManager";
 
 const AccountScreen = () => {
   const router = useRouter();

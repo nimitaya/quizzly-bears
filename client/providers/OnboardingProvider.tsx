@@ -55,8 +55,15 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     }
   };
 
-  const markOnboardingCompleted = () => {
-    setShouldShow(false);
+  const markOnboardingCompleted = async () => {
+    try {
+      await AsyncStorage.setItem(ONBOARDING_COMPLETED_KEY, "true");
+      setShouldShow(false);
+      console.log("Onboarding marked as completed");
+    } catch (error) {
+      console.error("Error marking onboarding as completed:", error);
+      setShouldShow(false); // Still update state even if AsyncStorage fails
+    }
   };
 
   const value: OnboardingContextType = {

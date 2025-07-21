@@ -9,21 +9,39 @@ import React, { useEffect, useState } from "react";
 import Loading from "../../Loading";
 import CustomAlert from "@/components/CustomAlert";
 import { useUser } from "@clerk/clerk-expo";
+import socketService from "@/utilities/socketService";
 
 const PlayScreen = () => {
-  const { topPlayers, loading, totalUsers, userRank } = useStatistics();
+  const { topPlayers, loading, totalUsers, userRank, refetch } =
+    useStatistics();
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const { user } = useUser();
 
   useEffect(() => {
-    if (!topPlayers && !loading) {
+    socketService.on("pointsUpdated", () => {
+      console.log("🔁 pointsUpdated received - outside");
+      refetch &&
+        refetch.forEach((fn) => {
+          console.log("🔁 pointsUpdated received - inside");
+          fn();
+        });
+    });
+
+    return () => {
+      socketService.off("pointsUpdated");
+      socketService.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (topPlayers.length === 0 && !loading) {
       setShowForm(true);
     }
   }, [topPlayers, loading]);
 
   if (loading) return <Loading />;
-  if (!topPlayers && !loading) {
+  if (topPlayers.length === 0 && !loading) {
     return (
       <CustomAlert
         visible={showForm}
@@ -37,12 +55,15 @@ const PlayScreen = () => {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
+    <ScrollView
+      contentContainerStyle={styles.scrollContainer}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.container}>
         <View style={{ marginBottom: Gaps.g40 }}>
           <Logo size="big" />
         </View>
-        <View style={{ marginBottom: Gaps.g32 }}>
+        <View style={{ marginBottom: Gaps.g24 }}>
           <ButtonPrimary
             text="Go Play"
             onPress={() => router.push("/(tabs)/play/QuizTypeSelectionScreen")}
@@ -58,29 +79,29 @@ const PlayScreen = () => {
 
           {/* ============ List of top players ============= */}
           <View style={styles.listTopPlayers}>
-            <View>
+            <View style={{ gap: Gaps.g4 }}>
               {topPlayers.slice(0, 5).map((player, idx) => {
                 const emailName = player.email
-                  ? player.email.split("@")[0].slice(0, 12)
+                  ? player.email.split("@")[0].slice(0, 10)
                   : "";
                 return (
                   <Text key={idx} style={{ fontSize: FontSizes.TextLargeFs }}>
-                    {idx + 1}. {emailName} ({player.totalPoints})
+                    {idx + 1}. {emailName} - {player.totalPoints}
                   </Text>
                 );
               })}
             </View>
-            <View>
+            <View style={{ gap: Gaps.g4 }}>
               {topPlayers.slice(5, 10).map((player, idx) => {
                 const emailName = player.email
-                  ? player.email.split("@")[0].slice(0, 12)
+                  ? player.email.split("@")[0].slice(0, 10)
                   : "";
                 return (
                   <Text
                     key={idx + 5}
                     style={{ fontSize: FontSizes.TextLargeFs }}
                   >
-                    {idx + 6}. {emailName} ({player.totalPoints})
+                    {idx + 6}. {emailName} - {player.totalPoints}
                   </Text>
                 );
               })}
@@ -106,9 +127,10 @@ const styles = StyleSheet.create({
   },
   myRankBlock: {
     color: Colors.black,
-    marginVertical: Gaps.g32,
+    marginVertical: Gaps.g24,
   },
   topPlayersBlock: {
+    marginTop: Gaps.g16,
     alignItems: "center",
     width: "100%",
   },
@@ -117,5 +139,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: Gaps.g32,
     marginTop: Gaps.g16,
+    paddingHorizontal: Gaps.g16,
+    marginBottom: Gaps.g40,
   },
 });

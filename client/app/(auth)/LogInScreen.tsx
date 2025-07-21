@@ -5,9 +5,16 @@ import { Gaps, FontSizes, Colors } from "@/styles/theme";
 import { ButtonSecondary, ButtonSkip } from "@/components/Buttons";
 import Fontisto from "@expo/vector-icons/Fontisto";
 import { useRouter } from "expo-router";
+import { useEffect } from "react";
+import { navigationState } from "@/utilities/navigationStateManager";
 
 const LogInScreen = () => {
   const router = useRouter();
+
+  // Reset navigation state when auth screen mounts
+  useEffect(() => {
+    navigationState.endAuthNavigation();
+  }, []);
 
   // Navigation handlers
   const EmailLogIn = () => {

@@ -21,10 +21,21 @@ import {
 import CustomAlert from "@/components/CustomAlert";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { PasswordInput } from "@/components/Inputs";
+import { navigationState } from "@/utilities/navigationStateManager";
 
 export default function SignUpScreen() {
   const { isLoaded, signUp, setActive } = useSignUp();
   const router = useRouter();
+
+  // Add this useEffect hook to end auth navigation when component mounts
+  React.useEffect(() => {
+    console.log("📱 SignUp screen mounted - ending auth navigation state");
+    navigationState.endAuthNavigation();
+
+    return () => {
+      console.log("📱 SignUp screen unmounting");
+    };
+  }, []);
 
   // State management
   const [emailAddress, setEmailAddress] = React.useState("");

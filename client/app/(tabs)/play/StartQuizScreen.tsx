@@ -1,9 +1,9 @@
-import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
-import IconArrowBack from "@/assets/icons/IconArrowBack";
+import { View, TouchableOpacity, Text, StyleSheet, Image } from "react-native";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
 import { FontSizes, Gaps } from "@/styles/theme";
 import { useRouter } from "expo-router";
+import IconArrowBack from "@/assets/icons/IconArrowBack";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
 import { useState, useEffect } from "react";
 import { loadCacheData, saveDataToCache } from "@/utilities/cacheUtils";
@@ -14,6 +14,7 @@ import { CACHE_KEY } from "@/utilities/cacheUtils";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import Countdown from "@/components/Countdown";
 import QuizLoader from "@/components/QuizLoader";
+import CustomAlert from "@/components/CustomAlert";
 
 const StartQuizScreen = () => {
   const router = useRouter();
@@ -27,6 +28,8 @@ const StartQuizScreen = () => {
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [showCountdown, setShowCountdown] = useState(false);
   const [showLocalLoader, setShowLocalLoader] = useState(false);
+  const [showErrorAlert, setShowErrorAlert] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const { withLoading, isGloballyLoading, showLoading } = useGlobalLoading();
 
   // ---------- Functions ----------
@@ -45,7 +48,7 @@ const StartQuizScreen = () => {
     }
   };
 
-  // IMPORTANT - Función handleStartQuiz corregida
+  // IMPORTANT - Corrected handleStartQuiz function
   const handleStartQuiz = async (
     topic: string,
     level: Difficulty,
@@ -56,7 +59,7 @@ const StartQuizScreen = () => {
       setIsGeneratingQuestions(true);
       setShowLocalLoader(true);
 
-      // wir benutzen die Data aus dem Cache, um das Thema zu bekommen
+      // we use the data from the cache to get the topic
       const cachedInfo = await loadCacheData(cacheKey);
       const specificTopic = cachedInfo?.chosenTopic || topic;
 
@@ -64,27 +67,34 @@ const StartQuizScreen = () => {
         `Generiere Fragen für das spezifische Thema: "${specificTopic}"`
       );
 
-      //  WICHTIG: IA muss fertig sein, um weiter zu gehenm
+      // IMPORTANT: AI must finish before proceeding
       const questionsData = await generateMultipleQuizQuestions(
         specificTopic,
         level,
         rounds
       );
 
+      console.log("🌐 AI raw content received!");
       console.log("Generated Questions Data:", questionsData);
-      console.log("Questions array length:", questionsData.questionArray?.length);
-      
-      // Die API gibt bereits AiQuestions zurück, speichere direkt
+
+      // The API already returns AiQuestions, save directly
       await saveDataToCache(cacheAi, questionsData);
       console.log("Questions saved to cache successfully");
 
-      // Starte direkt den Countdown nach der KI-Generierung
+      // Only after receiving data from AI, hide the loader and show countdown
       setShowLocalLoader(false);
+      setIsGeneratingQuestions(false);
       setShowCountdown(true);
     } catch (error) {
       console.error("Error generating questions:", error);
-      setIsGeneratingQuestions(false);
+
+      // Show error to user
       setShowLocalLoader(false);
+      setIsGeneratingQuestions(false);
+      setErrorMessage(
+        "Failed to generate questions. Please try again or check your internet connection — or play the mini games in the meantime."
+      );
+      setShowErrorAlert(true);
     }
   };
 
@@ -94,6 +104,23 @@ const StartQuizScreen = () => {
     setIsGeneratingQuestions(false);
     // Navigation zur Quiz-Screen nach dem Countdown
     router.push("/(tabs)/play/QuizScreen");
+  };
+
+  const handleErrorAlertClose = () => {
+    setShowErrorAlert(false);
+    setErrorMessage("");
+  };
+
+  const handleErrorAlertConfirm = () => {
+    setShowErrorAlert(false);
+    setErrorMessage("");
+    // You can try again or go back
+  };
+
+  const handleMiniGamesPress = () => {
+    setShowErrorAlert(false);
+    setErrorMessage("");
+    router.push("/(tabs)/play");
   };
 
   // ---------- USE EFFECT ----------
@@ -109,16 +136,18 @@ const StartQuizScreen = () => {
     setIsGeneratingQuestions(false);
   }, []);
 
-  // Zeige den lokalen Loader wenn aktiv
-  if (showLocalLoader) {
+  // Show the local loader when AI is generating questions
+  if (showLocalLoader && isGeneratingQuestions) {
     return (
       <QuizLoader
-        key={`local-loader-${Date.now()}`}
+        key={`ai-questions-loader-${Date.now()}`}
         onComplete={() => {
-          setShowLocalLoader(false);
-          setShowCountdown(true);
+          console.log(
+            "QuizLoader animation cycle completed, but waiting for AI..."
+          );
         }}
-        minDuration={3000} // 3 Sekunden für den Loader
+        minDuration={1000} // Minimum display duration for the loader
+        waitForExternal={true} // Wait for external signal (AI generation completion)
       />
     );
   }
@@ -144,6 +173,25 @@ const StartQuizScreen = () => {
       >
         <IconArrowBack />
       </TouchableOpacity>
+
+      {/* Error Alert */}
+      <CustomAlert
+        visible={showErrorAlert}
+        onClose={handleErrorAlertClose}
+        title="Generation Failed"
+        message={errorMessage}
+        cancelText="Back"
+        confirmText="Try Again"
+        onConfirm={() => {
+          handleErrorAlertConfirm();
+          handleStartQuiz(topic, level, rounds);
+        }}
+        noInternet={false}
+        //showMiniGamesButton={true}
+        onMiniGamesPress={handleMiniGamesPress}
+        // imageSource={require("@/assets/images/Bear-green-black-ooh.webp")}
+      />
+
       <View style={{ marginBottom: Gaps.g40 }}>
         <Logo size="big" />
       </View>
@@ -203,8 +251,10 @@ const styles = StyleSheet.create({
   },
   summaryContainer: {
     marginBottom: Gaps.g48,
-    alignSelf: "flex-start",
-    marginLeft: Gaps.g32,
+    paddingLeft: Gaps.g24,
+    maxWidth: 440,
+    alignSelf: "center",
+    width: "100%",
   },
   button: {
     marginTop: Gaps.g32,

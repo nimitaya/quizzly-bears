@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Pressable, Text, View, StyleSheet } from "react-native";
-import { Colors, FontSizes } from "@/styles/theme";
+import { Colors, FontSizes, Gaps } from "@/styles/theme";
 
 type RadioButtonProps = {
   label: string;
@@ -39,9 +39,7 @@ const radioStyles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 5,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
+    paddingHorizontal: Gaps.g4,
   },
   outerCircle: {
     height: 24,
@@ -51,15 +49,20 @@ const radioStyles = StyleSheet.create({
     borderColor: Colors.black,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 10,
+    marginRight: 8,
   },
   innerCircle: {
-    height: 12,
-    width: 12,
+    height: 11,
+    width: 11,
     borderRadius: 6,
     backgroundColor: Colors.primaryLimo,
     borderColor: Colors.black,
     borderWidth: 1,
+    alignSelf: "center",
   },
-  label: { fontSize: FontSizes.TextLargeFs },
+  label: {
+    fontSize: FontSizes.TextLargeFs,
+    color: Colors.black,
+    alignSelf: "center",
+  },
 });

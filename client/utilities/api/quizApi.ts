@@ -1,245 +1,477 @@
 import axios from "axios";
-import Config from "react-native-config";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Category, Difficulty } from "../types";
 import { QuestionStructure, AiQuestions } from "@/utilities/quiz-logic/data";
+import { LANGUAGES } from "../languages";
 
+// ==================== API CONFIGURATION =============================================
 const GROQ_API_URL =
-  Config.GROQ_API_URL || "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_API_KEY =
-  Config.GROQ_API_KEY || "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";
-  console.log("GROQ_API_KEY:", Config.GROQ_API_KEY);
-  
+  process.env.EXPO_PUBLIC_GROQ_API_URL ||
+  "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY?.trim() || "";
+
+const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_API_KEY =
+  process.env.EXPO_PUBLIC_OPENROUTER_API_KEY?.trim() || "";
+
+// ==================== CONSTANTS ==========================================================
+const DELAY_MS = 5000;
+
+// ==================== UTILITY FUNCTIONS =====================================================
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const optionKeys = ["optionA", "optionB", "optionC", "optionD"];
-let lastCorrectIndex = -1;
-let repeatCount = 0;
-
-function getNextCorrectOption(): string {
-  let nextIndex: number;
-  do {
-    nextIndex = Math.floor(Math.random() * 4);
-    if (nextIndex === lastCorrectIndex) {
-      repeatCount++;
-    } else {
-      repeatCount = 0;
-    }
-  } while (repeatCount > 1); // Vermeide zu viele Wiederholungen
-
-  lastCorrectIndex = nextIndex;
-  return optionKeys[nextIndex];
-}
-
-//========================Funktion zum Generieren mehrerer Quizfragen==================
-export const generateMultipleQuizQuestions = async (
-  topic: string, // NEU: Thema anstelle von Kategorie
-  difficulty: Difficulty,
-  questionCount: number = 10 | 11
-): Promise<AiQuestions> => {
-  await delay(5000); // Warte 1 Sekunde vor der Anfrage
+// ==================== LANGUAGE FUNCTIONS ====================================================
+const getCurrentLanguage = async (): Promise<string> => {
   try {
-    const randomSeed = Math.floor(Math.random() * 10000);
-    const timestamp = Date.now();
-    const questionTypes = [
-      "konzeptionell",
-      "praktisch",
-      "analytisch",
-      "anwendungsbezogen",
-    ];
-
-    const prompt = `Du bist ein Generator für Bildungsquiz-Fragen.
-  SPEZIFISCHE ANWEISUNGEN:
-  - Erstelle GENAU ${questionCount} völlig NEUE UND EINZIGARTIGE Fragen über das spezifische Thema: "${topic}"
-  - Schwierigkeitsgrad: ${difficulty}
-  
-  - SCHWIERIGKEITSGRADE (ERKLÄRUNG):
-  
-  - easy (einfach):
-  • Zielgruppe: Anfänger:innen, Kinder, Laien
-  • Fragen mit offensichtlicher Antwort oder Basiswissen
-  • Antwort erkennbar ohne Fachwissen
-  • Keine Fachbegriffe, keine Mehrdeutigkeit
-  • Beispiele: „Wie viele Beine hat ein Hund?“ oder „Wer war der erste Mensch auf dem Mond?“
-  
-  - medium (mittel):
-  • Zielgruppe: Fortgeschrittene, interessierte Laien
-  • Allgemeinbildung, schulisches Wissen, kontextbezogen
-  • Braucht etwas Nachdenken oder Kontextkenntnis
-  • Beispiele: „Welche chemische Formel hat Wasser?“ oder „In welchem Jahr fiel die Berliner Mauer?“
-  
-  - hard (schwierig):
-  • Zielgruppe: Expert:innen, Studierende, Fachleute
-  • Komplexes Fachwissen, seltene Details, tiefes Verständnis
-  • Erfordert Analyse, Vergleich oder konkretes Wissen über Teilaspekte
-  • Beispiele: „Welche Rolle spielte das Phlogiston in der frühen Chemietheorie?“ oder „Was unterscheidet den Utilitarismus von der Deontologie?“
-  - Verwende verschiedene Fragetypen: ${questionTypes.join(", ")}
-  - Referenznummer: ${randomSeed}
-  - Zeitstempel: ${timestamp}
-  
-  WICHTIGE FOKUSSIERUNG:
-  - ALLE Fragen müssen DIREKT mit "${topic}" zu tun haben
-  - Verwende spezifische Details, Charaktere, Ereignisse oder Aspekte von "${topic}"
-  - Die Fragen sollen das Wissen über "${topic}" testen, nicht nur allgemeine Kenntnisse
-  - Korrekte option muss immer in einer anderen Position sein
-  
-  VALIDIERUNGSCHECK:
-  Bevor du antwortest, überprüfe:
-  - Haben alle ${questionCount} Fragen nur EINE korrekte Antwort?
-  - Sind die korrekten Antworten auf optionA, optionB, optionC, optionD verteilt?
-  - Steht NICHT jede korrekte Antwort bei optionA?
-  WEITERE REGELN:
-  - Jede Frage muss VÖLLIG ANDERS sein als alle anderen
-  - Die Frage darf maximal 120 Zeichen lang sein
-  - Die Antwortoptionen müssen klar und eindeutig sein. Weniger als 50 Zeichen pro Option
-  - Alle falschen Antworten müssen plausibel aber eindeutig falsch sein
-  
-  FORMAT:
-  Antworte NUR mit einem JSON-Objekt im folgenden Format:
-  {
-  "category": "${topic}",
-  "questionArray": [
-  {
-  "question": {
-  "de": "Frage auf Deutsch",
-  "en": "Question in English"
-  },
-  "optionA": { "isCorrect": true/false, "en": "Antwort in Englisch", "de": "Antwort auf Deutsch" },
-  "optionB": { "isCorrect": true/false, "en": "Antwort in Englisch", "de": "Antwort auf Deutsch" },
-  "optionC": { "isCorrect": true/false, "en": "Antwort in Englisch", "de": "Antwort auf Deutsch" },
-  "optionD": { "isCorrect": true/false, "en": "Antwort in Englisch", "de": "Antwort auf Deutsch" }
-  },
-  ...
-  ]
-  }
-
-  REGELN:
-  - Generiere GENAU ${questionCount} Fragen im Array
-  - RANDOMISIERE die Position der korrekten Antwort in jeder Frage
-  - Verteile die korrekten Antworten ungefähr gleichmäßig auf optionA, optionB, optionC, optionD
-  - Alle Optionen müssen unterschiedlich und plausibel sein
-  - Jede Frage muss völlig originell und unterschiedlich sein
-  - Konzentriere dich ausschließlich auf "${topic}"
-  - Antworte NUR mit dem JSON-Array, ohne zusätzlichen Text am ende des Arrays
-  - WICHTIG: Kopiere NICHT einfach die Struktur aus den Beispielen. Generiere jede Frage ORIGINAL, mit zufälliger aber kontrollierter Platzierung der richtigen Antwort gemäß der obigen Tabelle.
-  - Keine zusätzlichen Erklärungen oder Kommentare`;
-
-    const response = await axios.post(
-      GROQ_API_URL,
-      {
-        model: "llama3-8b-8192",
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        temperature: 0.9,
-        max_tokens: 3000,
-        top_p: 0.9,
-        frequency_penalty: 0.8,
-        presence_penalty: 0.6,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${GROQ_API_KEY?.trim() || ""}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    let responseContent = response.data.choices[0].message.content;
-
-// Log the raw response content for debugging
-console.log("Response Content:", responseContent);
-
-// Zusätzliche Bereinigung des Outputs
-responseContent = responseContent.replace(/```json\n?/g, "");
-responseContent = responseContent.replace(/```\n?/g, "");
-
-// JSON-Array extrahieren
-const jsonMatch = responseContent.match(/\[\s*{[\s\S]*?}\s*\]/);
-
-if (!jsonMatch) {
-  console.error("Kein gültiges JSON-Array im Modell-Output gefunden:", responseContent);
-  throw new Error(`Ungültige Antwort vom Modell: ${responseContent}`);
-}
-
-const cleanJson = jsonMatch[0].trim();
-console.log("Sauberes JSON:", cleanJson);
-
-const questionsData = JSON.parse(cleanJson);
-
-// ist JSON ein Array?
-if (!Array.isArray(questionsData)) {
-  throw new Error("Response ist kein Array");
-}
-
-    // Validierung jeder Frage
-    const validatedQuestions: QuestionStructure[] = [];
-    for (let i = 0; i < questionsData.length; i++) {
-      const questionData = questionsData[i];
-      if (
-        !questionData.question ||
-        typeof questionData.question.de !== "string" ||
-        typeof questionData.question.en !== "string" ||
-        !questionData.optionA ||
-        !questionData.optionB ||
-        !questionData.optionC ||
-        !questionData.optionD ||
-        typeof questionData.optionA.de !== "string" ||
-        typeof questionData.optionA.en !== "string" ||
-        typeof questionData.optionB.de !== "string" ||
-        typeof questionData.optionB.en !== "string" ||
-        typeof questionData.optionC.de !== "string" ||
-        typeof questionData.optionC.en !== "string" ||
-        typeof questionData.optionD.de !== "string" ||
-        typeof questionData.optionD.en !== "string"
-      ) {
-        console.warn(`Frage ${i + 1} hat ungültiges Format, überspringe...`);
-        continue;
-      }
-      const correctKey = getNextCorrectOption();
-
-      const question = {
-        question: questionData.question,
-        optionA: {
-          ...questionData.optionA,
-          isCorrect: correctKey === "optionA",
-        },
-        optionB: {
-          ...questionData.optionB,
-          isCorrect: correctKey === "optionB",
-        },
-        optionC: {
-          ...questionData.optionC,
-          isCorrect: correctKey === "optionC",
-        },
-        optionD: {
-          ...questionData.optionD,
-          isCorrect: correctKey === "optionD",
-        },
-      };
-
-      validatedQuestions.push(question);
-    }
-//=================immer 10 Fragen und nicht 11
-    const finalQuestions = validatedQuestions.slice(0, questionCount);
-    console.log(
-      `${finalQuestions.length} valide Fragen generiert für Thema: ${topic}`
-    );
-    return {
-      category: topic, // NEUIGKEIT: Kategorie ist jetzt das Thema
-      questionArray: validatedQuestions,
-    };
+    const savedLanguage = await AsyncStorage.getItem("selected_language");
+    return savedLanguage || "en";
   } catch (error) {
-    console.error("Fehler beim Generieren mehrerer Fragen:", error);
-    throw new Error(
-      "Mehrere Fragen konnten nicht generiert werden. Versuche es erneut."
-    );
+    console.error("Error getting current language", error);
+    return "en";
   }
 };
 
-// Kategorien für die Kategorisierung
+const getLanguageName = (code: string): string => {
+  const language = LANGUAGES.find((lang) => lang.code === code);
+  return language?.name || "English";
+};
+
+// ==================== DIFFICULTY LEVELS CONFIGURATION ================================
+const getDifficultyDescription = (difficulty: Difficulty): string => {
+  const difficultyLevels = {
+    easy: {
+      description: "Basic knowledge and common facts",
+      characteristics: "Simple recall, well-known information, straightforward concepts",
+      examples: "What is the capital of France? Which planet is closest to the Sun?",
+      complexity: "Elementary level understanding required"
+    },
+    medium: {
+      description: "Moderate complexity requiring some analysis",
+      characteristics: "Application of knowledge, moderate reasoning, connections between concepts",
+      examples: "Why does water boil at different temperatures at different altitudes? How do photosynthesis and respiration relate?",
+      complexity: "Intermediate level understanding and basic analysis required"
+    },
+    hard: {
+      description: "Advanced knowledge requiring deep understanding",
+      characteristics: "Complex analysis, synthesis of multiple concepts, expert-level knowledge",
+      examples: "What are the implications of quantum entanglement for computing? How do monetary policies affect international trade dynamics?",
+      complexity: "Advanced level critical thinking and specialized knowledge required"
+    }
+  };
+
+  return difficultyLevels[difficulty]?.description || difficultyLevels.medium.description;
+};
+
+// ==================== CONSISTENT PROMPT GENERATOR ========================================
+const generatePrompt = (
+  topic: string,
+  difficulty: Difficulty,
+  questionCount: number,
+  currentLanguageCode: string,
+  currentLanguageName: string
+): string => {
+  // ID generation for uniqueness
+  const timestamp = Date.now();
+  const randomSeed = Math.floor(Math.random() * 1000000);
+  const sessionId = Math.random().toString(36).substring(2, 15);
+  const topicHash = topic.toLowerCase().replace(/\s+/g, "-").substring(0, 10);
+  const uniqueId = `${topicHash}-${difficulty}-${timestamp}-${randomSeed}-${sessionId}`;
+  const difficultySpec = getDifficultyDescription(difficulty);
+
+  
+  return `Generate EXACTLY ${questionCount} unique multiple-choice quiz questions about "${topic}" at ${difficulty.toUpperCase()} difficulty level.
+
+  DIFFICULTY SPECIFICATIONS FOR ${difficulty.toUpperCase()}:
+  - Level: ${difficultySpec}
+  - Characteristics: ${difficultySpec}
+  - Complexity: ${difficultySpec}
+  - Examples: ${difficultySpec}
+  
+  REQUIRED JSON FORMAT (respond with this structure only):
+  {
+    "category": "${topic}",
+    "questionArray": [
+      {
+        "question": {
+          "en": "English question text"${currentLanguageCode !== 'en' ? `,
+          "${currentLanguageCode}": "Native ${currentLanguageName} question text"` : ''}
+        },
+        "optionA": {
+          "isCorrect": true/false,
+          "en": "English answer"${currentLanguageCode !== 'en' ? `,
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"` : ''}
+        },
+        "optionB": {
+          "isCorrect": true/false,
+          "en": "English answer"${currentLanguageCode !== 'en' ? `,
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"` : ''}
+        },
+        "optionC": {
+          "isCorrect": true/false,
+          "en": "English answer"${currentLanguageCode !== 'en' ? `,
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"` : ''}
+        },
+        "optionD": {
+          "isCorrect": true/false,
+          "en": "English answer"${currentLanguageCode !== 'en' ? `,
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"` : ''}
+        }
+      }
+    ]
+  }
+  
+  CONTENT REQUIREMENTS:
+  - Create ${questionCount} completely unique questions about different aspects of "${topic}"
+  ${currentLanguageCode !== 'en' ? `- Include questions in both English and ${currentLanguageName} (${currentLanguageCode})` : '- Include questions in English'}
+  - Use only factual, verifiable information with specific names, dates, and data
+  - Mix question types: factual recall, analysis, comparison, and application
+  - IMPORTANt: All questions must match ${difficulty.toUpperCase()} difficulty level: ${difficultySpec}
+  - Question complexity should require: ${difficultySpec}
+  
+  CHARACTER LIMITS:
+  - Question text: maximum 120 characters per language
+  - Answer options: maximum 40 characters per language
+  - Count includes spaces and punctuation
+  
+  ANSWER STRUCTURE:
+  - Provide exactly 4 options: A, B, C, D for each question
+  - Set "isCorrect": true for exactly ONE option per question
+  - Set "isCorrect": false for the other three options
+  - Make incorrect options believable but clearly wrong
+  - Use precise, unambiguous language in all options
+  - All answer must be different from each other, no same text.
+
+  CRITICAL ANTI-DUPLICATION REQUIREMENTS:
+- ALL 4 options must be completely different in meaning and wording
+- NO two options can be similar, even if slightly different
+- NO options like: "Paris", "Paris, France", "The city of Paris", "Capital Paris"
+- NO number sequences like: "1", "2", "3", "4" or "2020", "2021", "2022", "2023"
+- NO synonyms or near-synonyms: "Big", "Large", "Huge", "Enormous"
+- NO options that are subsets of others: "Spain" vs "Spain and Portugal"
+- Each option must represent a DISTINCT, UNIQUE concept or answer
+- Vary option types: mix names, numbers, concepts, places appropriately
+
+EXAMPLES OF FORBIDDEN DUPLICATES:
+❌ BAD: ["Red", "Blue", "Green", "Yellow"] - too similar category
+❌ BAD: ["1995", "1996", "1997", "1998"] - consecutive numbers
+❌ BAD: ["Madrid", "Madrid, Spain", "Capital Madrid", "City of Madrid"] - same concept
+❌ BAD: ["Cat", "Dog", "Bird", "Fish"] - all animals, too similar
+
+✅ GOOD: ["Paris", "Tokyo", "1889", "Iron"] - completely different concepts
+✅ GOOD: ["Shakespeare", "1969", "Pacific", "Democracy"] - diverse answer types
+  
+  ANSWER DISTRIBUTION:
+  - Distribute correct answers across all options (A, B, C, D)
+  - Target 25% of questions with each option as correct
+  - Never place correct answer in same position more than 2 consecutive times
+  - Example: if questions 1-2 have correct answer A, question 3 must be B, C, or D
+  
+  QUALITY STANDARDS:
+  - No duplicate questions or similar phrasings
+  - Each question must test different knowledge
+  - All answer options within each question must be unique
+  - Use proper UTF-8 encoding for ${currentLanguageName}
+  - Escape JSON special characters: quotes, backslashes, etc.
+  
+  OUTPUT FORMAT:
+  - Return ONLY the JSON structure above
+  - No additional text, explanations, or comments
+  - No markdown formatting or code blocks
+  - Maintain consistent structure across all generations
+  
+  Session ID: ${uniqueId}`;
+  };
+
+// ==================== API FUNCTIONS ==================================================
+const apiKeys = [
+  GROQ_API_KEY,
+  process.env.EXPO_PUBLIC_BEAR_KEY_1,
+  process.env.EXPO_PUBLIC_BEAR_KEY_2,
+  process.env.EXPO_PUBLIC_BEAR_KEY_3,
+  process.env.EXPO_PUBLIC_BEAR_KEY_4,
+  process.env.EXPO_PUBLIC_BEAR_KEY_5,
+].filter(Boolean);
+
+const callGroqAPI = async (prompt: string) => {
+  console.log("Calling GROQ API with fallback keys...");
+
+  for (const key of apiKeys) {
+    try {
+      const response = await axios.post(
+        GROQ_API_URL,
+        {
+          model: "llama-3.1-8b-instant",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.5,
+          max_tokens: 4000,
+          top_p: 0.3,
+          frequency_penalty: 0,
+          presence_penalty: 0,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${key}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log(`GROQ API successful`);
+      return response.data.choices[0].message.content;
+    } catch (error: any) {
+      console.warn(`Groq failed, trying next key...`, error.message || error);
+      if (error.response && error.response.status !== 401) {
+        throw error;
+      }
+    }
+  }
+
+  throw new Error(
+    "All keys for GROQ API failed. Could not generate questions."
+  );
+};
+
+const callOpenRouterAPI = async (prompt: string) => {
+  console.log("Calling OpenRouter API");
+
+  const response = await axios.post(
+    OPENROUTER_API_URL,
+    {
+      model: "mistralai/mistral-7b-instruct",
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.4,
+      top_p: 1,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "X-Title": "Quizzly-bears",
+      },
+    }
+  );
+
+  console.log("OpenRouter API successful");
+  return response.data.choices[0].message.content;
+};
+
+// ==================== FALLBACK SYSTEM =================================================
+const requestWithFallback = async (prompt: string): Promise<string> => {
+  try {
+    return await callGroqAPI(prompt);
+  } catch (groqError) {
+    console.warn("GROQ API failed:", groqError);
+
+    if (axios.isAxiosError(groqError) && groqError.response?.status === 401) {
+      console.log("Authentication error with GROQ, switching to OpenRouter...");
+    }
+
+    try {
+      return await callOpenRouterAPI(prompt);
+    } catch (openRouterError) {
+      console.error("Both APIs failed:", openRouterError);
+      throw new Error("Both APIs failed. Could not generate questions.");
+    }
+  }
+};
+
+// ==================== RESPONSE PROCESSING =================================
+const parseQuizResponse = (
+  content: string,
+  questionCount: number,
+  topic: string,
+  currentLanguageCode: string
+): AiQuestions => {
+
+  // Clean JSON extraction
+  let cleanContent = content.replace(/```json\n?/g, "");
+  cleanContent = cleanContent.replace(/```\n?/g, "");
+  cleanContent = cleanContent.trim();
+
+  // Extract JSON without extra text
+  const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    console.error("No valid JSON found:", cleanContent);
+    throw new Error(`Invalid response from model: ${cleanContent}`);
+  }
+
+  const cleanJson = jsonMatch[0].trim();
+  console.log("Clean JSON extracted", cleanJson);
+
+  // Parse JSON
+  let parsedData;
+  try {
+    parsedData = JSON.parse(cleanJson);
+  } catch (parseError) {
+    console.error("JSON parsing error:", parseError);
+    console.error("JSON with extra text:", cleanJson);
+    throw new Error("Error parsing AI JSON response");
+  }
+
+  const questionsData = parsedData.questionArray;
+  if (!Array.isArray(questionsData)) {
+    console.error("questionArray is not an array:", questionsData);
+    throw new Error("questionArray is not a valid array");
+  }
+
+  // Validate questions and keep AI responses exactly as-is
+  const validatedQuestions: QuestionStructure[] = [];
+
+  for (let i = 0; i < questionsData.length; i++) {
+    const questionData = questionsData[i];
+
+    // Basic structure validation
+    if (
+      !questionData.question ||
+      !questionData.optionA ||
+      !questionData.optionB ||
+      !questionData.optionC ||
+      !questionData.optionD
+    ) {
+      console.warn(`Question ${i + 1} has incomplete structure`);
+      continue;
+    }
+
+    // English text validation
+    if (
+      typeof questionData.question.en !== "string" ||
+      typeof questionData.optionA.en !== "string" ||
+      typeof questionData.optionB.en !== "string" ||
+      typeof questionData.optionC.en !== "string" ||
+      typeof questionData.optionD.en !== "string"
+    ) {
+      console.warn(`Question ${i + 1} missing English texts`);
+      continue;
+    }
+
+    // Target language text validation
+    if (
+      typeof questionData.question[currentLanguageCode] !== "string" ||
+      typeof questionData.optionA[currentLanguageCode] !== "string" ||
+      typeof questionData.optionB[currentLanguageCode] !== "string" ||
+      typeof questionData.optionC[currentLanguageCode] !== "string" ||
+      typeof questionData.optionD[currentLanguageCode] !== "string"
+    ) {
+      console.warn(`Question ${i + 1} missing target language texts`);
+      continue;
+    }
+
+    // Validate exactly one correct answer
+    const correctCount = [
+      questionData.optionA.isCorrect,
+      questionData.optionB.isCorrect,
+      questionData.optionC.isCorrect,
+      questionData.optionD.isCorrect,
+    ].filter(Boolean).length;
+
+    if (correctCount !== 1) {
+      console.warn(
+        `Question ${i + 1} has ${correctCount} correct answers instead of 1`
+      );
+      continue;
+    }
+
+    // Check for duplicate answers
+    const optionTexts = [
+      questionData.optionA.en,
+      questionData.optionB.en,
+      questionData.optionC.en,
+      questionData.optionD.en,
+    ];
+
+    // Keep AI response exactly as provided - NO MODIFICATION
+    const question: QuestionStructure = {
+      question: questionData.question,
+      optionA: {
+        ...questionData.optionA,
+        isCorrect: Boolean(questionData.optionA.isCorrect),
+      },
+      optionB: {
+        ...questionData.optionB,
+        isCorrect: Boolean(questionData.optionB.isCorrect),
+      },
+      optionC: {
+        ...questionData.optionC,
+        isCorrect: Boolean(questionData.optionC.isCorrect),
+      },
+      optionD: {
+        ...questionData.optionD,
+        isCorrect: Boolean(questionData.optionD.isCorrect),
+      },
+    };
+
+    validatedQuestions.push(question);
+  }
+  
+  if (validatedQuestions.length === 0) {
+    throw new Error("No questions could be validated from the response");
+  }
+
+  const finalQuestions = validatedQuestions.slice(0, questionCount);
+  console.log(`${finalQuestions.length} valid questions generated`);
+
+  return {
+    category: topic,
+    questionArray: finalQuestions,
+  };
+};
+
+// ==================== MAIN FUNCTION ============================================
+export const generateMultipleQuizQuestions = async (
+  topic: string,
+  difficulty: Difficulty,
+  questionCount: number = 10
+): Promise<AiQuestions> => {
+  console.log(
+    `Starting generation of ${questionCount} questions about: ${topic}`
+  );
+
+  // Apply initial delay
+  await delay(DELAY_MS);
+
+  try {
+    // Get language configuration
+    const currentLanguageCode = await getCurrentLanguage();
+    const currentLanguageName = getLanguageName(currentLanguageCode);
+
+    console.log(
+      `Generating in: ${currentLanguageName} (${currentLanguageCode})`
+    );
+
+    // Generate prompt
+    const prompt = generatePrompt(
+      topic,
+      difficulty,
+      questionCount,
+      currentLanguageCode,
+      currentLanguageName
+    );
+
+    // Make request with fallback system
+    const responseContent = await requestWithFallback(prompt);
+
+    // Process response
+    const result = parseQuizResponse(
+      responseContent,
+      questionCount,
+      topic,
+      currentLanguageCode
+    );
+
+    console.log(`Generation completed successfully`);
+    return result;
+  } catch (error) {
+    console.error("Error in question generation:", error);
+    throw new Error("Questions could not be generated. Please try again.");
+  }
+};
+
+// ==================== CATEGORIZATION ====================
 const PREDEFINED_CATEGORIES: Category[] = [
   "Science",
   "History",
@@ -250,224 +482,44 @@ const PREDEFINED_CATEGORIES: Category[] = [
   "Daily Life",
 ];
 
-//======================= Funktion zum Kategorisieren eines Themas =================================
 export const categorizeTopic = async (userInput: string): Promise<string> => {
   try {
-    const prompt = `Du bist ein Experte für die Kategorisierung von Themen. 
+    const prompt = `Categorize this topic into exactly one category: "${userInput}"
 
-Deine Aufgabe ist es, das gegebene Thema GENAU EINER der folgenden Kategorien zuzuordnen:
+Categories: History, Science, Sports, Geography, Media, Culture, Daily Life
 
-VERFÜGBARE KATEGORIEN:
-- History (Geschichte, historische Ereignisse, Persönlichkeiten, Epochen)
-- Science (Wissenschaft, Physik, Chemie, Biologie, Mathematik, Technologie)
-- Sports (Sport, Athleten, Wettkämpfe, Spiele, körperliche Aktivitäten)
-- Geography (Geographie, Länder, Städte, Kontinente, Naturphänomene, Orte)
-- Media (Medien, Filme, Bücher, Musik, TV-Shows, Prominente, Unterhaltung)
-- Culture (Kultur, Traditionen, Kunst, Religion, Sprachen, Gesellschaft)
-- Daily life (Alltag, tägliche Aktivitäten, Haushalt, Essen, Arbeit, Familie)
-
-WICHTIGE REGELN:
-1. Antworte NUR mit dem exakten Kategorienamen (z.B. "History" oder "Science")
-2. Keine zusätzlichen Erklärungen oder Texte
-3. Wähle immer die BESTE passende Kategorie
-4. Wenn mehrere Kategorien möglich sind, wähle die SPEZIFISCHSTE
-
-BEISPIELE:
-- "Dinosaurier" → "Science"
-- "Fußball" → "Sports"
-- "Rom" → "History"
-- "Kochen" → "Daily life"
+Examples:
+- "Dinosaurs" → "Science"
+- "Football" → "Sports" 
+- "Rome" → "History"
 - "Harry Potter" → "Media"
-- "Weihnachten" → "Culture"
-- "Frankreich" → "Geography"
 
-Thema zum Kategorisieren: "${userInput}"
+Answer with category name only:`;
 
-Antwort:`;
+    const responseContent = await requestWithFallback(prompt);
+    let categorizedResult = responseContent.trim();
 
-    const response = await axios.post(
-      GROQ_API_URL,
-      {
-        model: "llama3-8b-8192",
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        temperature: 0.1, // Niedrige Temperature für konsistente Ergebnisse
-        max_tokens: 300,
-        top_p: 0.9,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${GROQ_API_KEY?.trim() || ""}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    let categorizedResult = response.data.choices[0].message.content.trim();
-
-    // Sicherstellen, dass die Antwort eine gültige Kategorie ist
+    // Search for exact category
     const foundCategory = PREDEFINED_CATEGORIES.find(
       (category) => category.toLowerCase() === categorizedResult.toLowerCase()
     );
 
     if (foundCategory) {
       return foundCategory;
-    } else {
-      // Fallback: Versuche eine Ähnlichkeitssuche
-      const similarCategory = PREDEFINED_CATEGORIES.find(
-        (category) =>
-          categorizedResult.toLowerCase().includes(category.toLowerCase()) ||
-          category.toLowerCase().includes(categorizedResult.toLowerCase())
-      );
-
-      return similarCategory || "Culture"; // Default fallback
     }
+
+    // Fallback: Search for similar categories
+    const similarCategory = PREDEFINED_CATEGORIES.find(
+      (category) =>
+        categorizedResult.toLowerCase().includes(category.toLowerCase()) ||
+        category.toLowerCase().includes(categorizedResult.toLowerCase())
+    );
+
+    return similarCategory || "Culture";
   } catch (error) {
-    console.error("Error categorizing topic:", error);
-    // Fallback zu einer Standard-Kategorie
+    console.error("Error in categorization:", error);
     return "Culture";
   }
 };
 
-// 2- Originale Funktion zum Generieren einer einzelnen Quizfrage
-/*export const generateQuizQuestion = async (
-category: Category,
-difficulty: Difficulty,
-usedQuestions: Set<string>
-): Promise<AiQuestions> => {
-try {
-const randomSeed = Math.floor(Math.random() * 10000);
-const timestamp = Date.now();
-const questionTypes = [
-"konzeptionell",
-"praktisch",
-"analytisch",
-"anwendungsbezogen",
-];
-const randomType =
-questionTypes[Math.floor(Math.random() * questionTypes.length)];
-
-const prompt = `Du bist ein Generator für Bildungsquiz-Fragen.
-
-SPEZIFISCHE ANWEISUNGEN:
-- Erstelle EINE völlig NEUE UND EINZIGARTIGE Frage über ${category}
-- Schwierigkeitsgrad: ${difficulty}
-- Fragetyp: ${randomType}
-- Referenznummer: ${randomSeed}
-- Zeitstempel: ${timestamp}
-WICHTIG: Jede Frage muss ANDERS sein als alle vorherigen Fragen. Verwende verschiedene Konzepte, Zahlen, Beispiele und Ansätze.
-- Die Frage darf maximal 30 Zeichen lang sein.
-- Die Antwortoptionen müssen klar und eindeutig sein. Weniger als 20 Zeichen pro Option.
-Du musst GENAU in diesem JSON-Format antworten:
-{
-"question": {
-"de": "Deine völlig neue Frage hier auf Deutsch",
-"en": "Your completely new question here in English"
-},
-"optionA": {
-"isCorrect": true,
-"de": "Option A auf Deutsch",
-"en": "Option A in English"
-},
-"optionB": {
-"isCorrect": false,
-"de": "Option B auf Deutsch",
-"en": "Option B in English"
-},
-"optionC": {
-"isCorrect": false,
-"de": "Option C auf Deutsch",
-"en": "Option C in English"
-},
-"optionD": {
-"isCorrect": false,
-"de": "Option D auf Deutsch",
-"en": "Option D in English"
-}
-}
-REGELN:
-- Nur eine Option darf "isCorrect: true" sein
-- Alle Optionen müssen unterschiedlich und plausibel sein
-- Generiere völlig originale und abwechslungsreiche Inhalte
-- Bei Mathematik verwende jedes Mal andere Zahlen
-- Bei Geschichte verwende verschiedene Ereignisse/Personen
-- Antworte NUR mit dem JSON, ohne zusätzlichen Text`;
-
-const response = await axios.post(
-GROQ_API_URL,
-{
-model: "llama3-8b-8192",
-messages: [
-{
-role: "user",
-content: prompt,
-},
-],
-temperature: 0.9,
-max_tokens: 400,
-top_p: 0.9,
-frequency_penalty: 0.5,
-presence_penalty: 0.3,
-},
-{
-headers: {
-Authorization: `Bearer ${(GROQ_API_KEY ?? "").trim()}`,
-"Content-Type": "application/json",
-},
-}
-);
-
-let responseContent = response.data.choices[0].message.content;
-responseContent = responseContent.replace(/```json\n?/g, "");
-responseContent = responseContent.replace(/```\n?/g, "");
-responseContent = responseContent.trim();
-console.log("API Response:", response.data);
-
-const questionData = JSON.parse(responseContent);
-console.log("Parsed Question Data:", questionData);
-
-const questionKey = questionData.question.de.substring(0, 50).toLowerCase();
-if (usedQuestions.has(questionKey)) {
-console.log("Doppelte Frage erkannt, generiere neue...");
-return await generateQuizQuestion(category, difficulty, usedQuestions);
-}
-
-if (
-!questionData.question ||
-typeof questionData.question.de !== "string" ||
-typeof questionData.question.en !== "string" ||
-!questionData.optionA ||
-!questionData.optionB ||
-!questionData.optionC ||
-!questionData.optionD ||
-typeof questionData.optionA.de !== "string" ||
-typeof questionData.optionA.en !== "string" ||
-typeof questionData.optionB.de !== "string" ||
-typeof questionData.optionB.en !== "string" ||
-typeof questionData.optionC.de !== "string" ||
-typeof questionData.optionC.en !== "string" ||
-typeof questionData.optionD.de !== "string" ||
-typeof questionData.optionD.en !== "string"
-) {
-throw new Error("Ungültiges Antwortformat");
-}
-
-return {
-question: questionData.question,
-optionA: questionData.optionA,
-optionB: questionData.optionB,
-optionC: questionData.optionC,
-optionD: questionData.optionD,
-correctAnswer: questionData.correctAnswer || 0,
-};
-} catch (error) {
-console.error("Fehler beim Generieren der Frage:", error);
-throw new Error(
-"Frage konnte nicht generiert werden. Versuche es erneut."
-);
-}
-};*/
+console.log("QuizAPI with consistent system successfully loaded");

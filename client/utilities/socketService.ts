@@ -1,5 +1,6 @@
 import { io, Socket } from "socket.io-client";
-import { Platform } from "react-native";
+import { navigationState } from "@/utilities/navigationStateManager";
+import { getDatabase, ref, remove } from "firebase/database";
 
 // Types (can be moved to a separate file)
 export interface QuizRoom {
@@ -14,6 +15,8 @@ export interface QuizRoom {
   questions?: QuizQuestion[];
   settings: QuizSettings;
   createdAt?: Date;
+  selectedCategory?: string;
+  selectedTopic?: string;
 }
 
 export interface Player {
@@ -22,6 +25,17 @@ export interface Player {
   socketId: string;
   score: number;
   isReady: boolean;
+  language?: string;
+  gamePoints?: GamePoints;
+}
+
+export interface GamePoints {
+  score: number;
+  timePoints: number;
+  perfectGame: number;
+  total: number;
+  chosenCorrect: number;
+  totalAnswers: number;
 }
 
 export interface QuizQuestion {
@@ -41,74 +55,119 @@ export interface QuizSettings {
   difficulty: "easy" | "medium" | "hard" | "mixed";
 }
 
-// Configuration
-// Platform-specific URLs for React Native development
-const getSocketUrls = () => {
-  if (Platform.OS === "android") {
-    return [
-      "http://10.0.2.2:3000", // Android emulator
-      "http://192.168.0.226:3000", // Current local IP for real device
-    ];
-  } else if (Platform.OS === "ios") {
-    return [
-      "http://192.168.0.226:3000", // Current local IP for real device (primary for Expo Go)
-      // Uncomment below for iOS simulator testing:
-      // "http://localhost:3000", // iOS simulator
-      // "http://127.0.0.1:3000", // iOS simulator fallback
-    ];
-  } else {
-    return [
-      "http://localhost:3000", // Web
-      "http://127.0.0.1:3000",
-      "http://192.168.0.226:3000", // Fallback to local IP
-    ];
-  }
-};
+// Chat-related types
+export interface ChatMessage {
+  id: string;
+  roomId: string;
+  playerId: string;
+  playerName: string;
+  message: string;
+  timestamp: Date;
+  isOwnMessage?: boolean;
+}
 
-const SOCKET_URLS = getSocketUrls();
-const SOCKET_URL = __DEV__ ? SOCKET_URLS[0] : "YOUR_PRODUCTION_URL";
+export interface SendChatMessageData {
+  roomId: string;
+  playerId: string;
+  message: string;
+}
+
+export interface PlayerTypingData {
+  roomId: string;
+  playerId: string;
+  isTyping: boolean;
+}
+
+export interface ChatMessageReceivedData {
+  id: string;
+  playerId: string;
+  playerName: string;
+  message: string;
+  timestamp: Date;
+}
+
+export interface PlayerTypingStatusData {
+  playerId: string;
+  playerName: string;
+  isTyping: boolean;
+}
+
+// Configuration
+const PRODUCTION_URL =
+  process.env.EXPO_PUBLIC_SOCKET_URL || "https://quizzly-bears.onrender.com";
+const SOCKET_URL = PRODUCTION_URL;
 
 class SocketService {
   private socket: Socket | null = null;
   private listeners: Map<string, Function[]> = new Map();
+  private connectionRetries = 0;
+  private maxRetries = 3;
+
+  // Add these methods to your SocketService class
+
+  private pendingUserOnline: { userId: string; clerkUserId: string } | null =
+    null;
+
+  setUserOnline(userId: string, clerkUserId: string): void {
+    try {
+      if (this.socket?.connected) {
+        this.socket.emit("user-online", { userId, clerkUserId });
+        console.log("Emitted user-online event");
+      } else {
+        console.warn("Socket not connected, storing for reconnection");
+        this.pendingUserOnline = { userId, clerkUserId };
+      }
+    } catch (error) {
+      console.error("Error in setUserOnline:", error);
+    }
+  }
+
+  getFriendsStatus(userId: string, friendIds: string[]): void {
+    try {
+      if (!this.socket?.connected) {
+        console.warn("Socket not connected, can't get friend status");
+        return;
+      }
+
+      if (!friendIds || !Array.isArray(friendIds)) {
+        console.warn("Invalid friendIds:", friendIds);
+        return;
+      }
+
+      this.socket.emit("get-friends-status", {
+        userId,
+        friendIds: friendIds.filter((id) => id), // Filter out null/undefined
+      });
+    } catch (error) {
+      console.error("Error in getFriendsStatus:", error);
+    }
+  }
+
+  onFriendsStatus(callback: (data: { onlineFriends: string[] }) => void): void {
+    this.on("friends-status", callback);
+  }
 
   connect(): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      if (__DEV__) {
-        // In development, try multiple URLs
-        for (const url of SOCKET_URLS) {
-          try {
-            console.log(`Trying to connect to Socket.IO at ${url}...`);
-            await this.connectToUrl(url);
-            console.log(`Successfully connected to Socket.IO at ${url}`);
-            resolve();
-            return;
-          } catch (error) {
-            console.warn(`Failed to connect to ${url}:`, error);
-            continue;
-          }
-        }
-        reject(new Error("Could not connect to any Socket.IO server"));
-      } else {
-        // In production, use the configured URL
-        try {
-          await this.connectToUrl(SOCKET_URL);
-          resolve();
-        } catch (error) {
-          reject(error);
-        }
+      try {
+        await this.connectToUrl(SOCKET_URL);
+        resolve();
+      } catch (error) {
+        reject(error);
       }
+      // }
     });
   }
 
   private connectToUrl(url: string): Promise<void> {
     return new Promise((resolve, reject) => {
       this.socket = io(url, {
-        transports: ["websocket", "polling"], // Try both transports
-        timeout: 5000,
+        transports: ["websocket", "polling"],
+        timeout: 2000,
         reconnection: true,
         reconnectionDelay: 1000,
-        reconnectionAttempts: 3,
+        reconnectionAttempts: 2, // Reduced for faster fallback
+        forceNew: true,
       });
 
       const timeout = setTimeout(() => {
@@ -117,11 +176,12 @@ class SocketService {
           this.socket = null;
         }
         reject(new Error("Connection timeout"));
-      }, 6000);
+      }, 2500);
 
       this.socket.on("connect", () => {
         clearTimeout(timeout);
-        console.log(`Connected to Socket.IO server at ${url}`);
+        console.log(`✅ Connected to Socket.IO server at ${url}`);
+        this.connectionRetries = 0;
         resolve();
       });
 
@@ -136,17 +196,43 @@ class SocketService {
       });
 
       this.socket.on("disconnect", () => {
-        console.log("Disconnected from Socket.IO server");
+        console.log("🔌 Disconnected from Socket.IO server");
       });
     });
   }
 
+  // Simple method to check connection and reconnect if needed
+  async ensureConnection(): Promise<boolean> {
+    if (!this.socket || !this.socket.connected) {
+      try {
+        console.log("Socket not connected, attempting to reconnect...");
+        await this.connect();
+        return true;
+      } catch (err) {
+        console.error("Reconnection failed:", err);
+        return false;
+      }
+    }
+    return true;
+  }
+
   disconnect() {
+    if (navigationState.isInAuthNavigation()) {
+      console.log("⚡ Preventing socket disconnect during auth navigation");
+      return; // Don't disconnect during auth navigation
+    }
+
+    // Otherwise proceed with normal disconnect
+    console.log("🔌 Disconnecting socket");
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
     }
     this.listeners.clear();
+
+    // Clear all room state tracking
+    this.lastRoomStateRequest = {};
+    this.roomStateGameStarted = {};
   }
 
   isConnected(): boolean {
@@ -162,21 +248,100 @@ class SocketService {
     roomName: string,
     hostName: string,
     hostId: string,
-    settings: QuizSettings
+    settings: QuizSettings,
+    hostLanguage?: string
   ) {
-    this.emit("create-room", { roomName, hostName, hostId, settings });
+    this.emit("create-room", {
+      roomName,
+      hostName,
+      hostId,
+      hostLanguage,
+      settings,
+    });
   }
 
-  joinRoom(roomId: string, playerId: string, playerName: string) {
-    this.emit("join-room", { roomId, playerId, playerName });
+  joinRoom(
+    roomId: string,
+    playerId: string,
+    playerName: string,
+    language?: string
+  ) {
+    this.emit("join-room", { roomId, playerId, playerName, language });
+  }
+
+  // Add method to rejoin a room (for when user returns from another screen)
+  rejoinRoom(
+    roomId: string,
+    playerId: string,
+    playerName: string,
+    language?: string
+  ) {
+    // Emit rejoin event to update server state and socket room
+    this.emit("rejoin-room", { roomId, playerId, playerName, language });
+  }
+
+  // Add method to request current room state with throttling to prevent excessive calls
+  private lastRoomStateRequest: Record<string, number> = {};
+  private roomStateGameStarted: Record<string, boolean> = {};
+
+  requestRoomState(roomId: string) {
+    // Don't make requests for rooms where the game has started
+    if (this.roomStateGameStarted[roomId]) {
+      return;
+    }
+
+    const now = Date.now();
+    const lastRequest = this.lastRoomStateRequest[roomId] || 0;
+
+    // Throttle requests to prevent excessive calls (min 2 seconds between requests)
+    if (now - lastRequest < 2000) {
+      return;
+    }
+
+    // Update last request timestamp
+    this.lastRoomStateRequest[roomId] = now;
+
+    // Make the actual request
+    if (this.socket) {
+      this.socket.emit("get-room-state", { roomId });
+    } else {
+      console.error("Cannot request room state - socket is null");
+    }
+
+    // Add a direct error listener to catch any errors
+    const errorListener = (error: any) => {
+      console.error("Socket error during room state request:", error);
+      this.off("error", errorListener);
+    };
+    this.on("error", errorListener);
+
+    this.emit("get-room-state", { roomId });
+
+    // Debug: check if the response is received
+    const debugTimeout = setTimeout(() => {
+      console.log(
+        `No room state response received for roomId: ${roomId} after 3 seconds`
+      );
+      this.off("error", errorListener);
+    }, 3000);
+  }
+
+  // Method to mark a room as having started a game (to prevent further state requests)
+  markRoomGameStarted(roomId: string) {
+    this.roomStateGameStarted[roomId] = true;
+  }
+
+  // Method to check if a game has started for a specific room
+  isRoomGameStarted(roomId: string): boolean {
+    return !!this.roomStateGameStarted[roomId];
   }
 
   leaveRoom(roomId: string, playerId: string) {
-    this.emit("leave-room", { roomId, playerId });
-  }
+    // Clean up room state tracking for this room
+    delete this.lastRoomStateRequest[roomId];
+    delete this.roomStateGameStarted[roomId];
 
-  togglePlayerReady(roomId: string, playerId: string) {
-    this.emit("player-ready", { roomId, playerId });
+    this.emit("leave-room", { roomId, playerId });
   }
 
   startGame(roomId: string, questions: QuizQuestion[]) {
@@ -200,11 +365,50 @@ class SocketService {
     this.emit("submit-answer", { roomId, playerId, answer, timeRemaining });
   }
 
+  // send game results of every player
+  submitGameResults(
+    roomId: string,
+    playerId: string,
+    playerName: string,
+    gamePoints: GamePoints
+  ) {
+    this.emit("submit-game-results", {
+      roomId,
+      playerId,
+      playerName,
+      gamePoints,
+    });
+  }
+
+  // ========== CHAT FUNCTIONALITY ==========
+  // Send chat message
+  sendChatMessage(roomId: string, playerId: string, message: string) {
+    this.emit("send-chat-message", { roomId, playerId, message });
+  }
+
+  // Send typing status
+  sendTypingStatus(roomId: string, playerId: string, isTyping: boolean) {
+    this.emit("player-typing", { roomId, playerId, isTyping });
+  }
+  // ========== END CHAT FUNCTIONALITY ==========
+
   // Universal methods for working with events
   emit(event: string, data?: any) {
     if (this.socket) {
+      console.log(`Emitting event: ${event}`, data);
       this.socket.emit(event, data);
+    } else {
+      console.error(`Cannot emit ${event} - socket is null`);
     }
+  }
+
+  // Notify the server that a player has submitted their answer
+  playerAnswerSubmitted(
+    roomId: string,
+    playerId: string,
+    questionIndex: number
+  ) {
+    this.emit("player-answer-submitted", { roomId, playerId, questionIndex });
   }
 
   on(event: string, callback: Function) {
@@ -252,6 +456,19 @@ class SocketService {
     this.on("player-joined", callback);
   }
 
+  onPlayerRejoined(
+    callback: (data: { player: Player; room: QuizRoom }) => void
+  ) {
+    this.on("player-rejoined", callback);
+  }
+
+  onRoomStateUpdated(callback: (data: { room: QuizRoom }) => void) {
+    const wrappedCallback = (data: { room: QuizRoom }) => {
+      callback(data);
+    };
+    this.on("room-state-updated", wrappedCallback);
+  }
+
   onPlayerLeft(
     callback: (data: {
       playerId: string;
@@ -287,12 +504,39 @@ class SocketService {
     this.on("host-changed", callback);
   }
 
-  onGameStarted(callback: (data: { room: QuizRoom }) => void) {
-    this.on("game-started", callback);
+  onGameStarted(
+    callback: (data: { room: QuizRoom; questions?: QuizQuestion[] }) => void
+  ) {
+    // Create a wrapper that automatically marks the room as started
+    const wrappedCallback = (data: {
+      room: QuizRoom;
+      questions?: QuizQuestion[];
+    }) => {
+      if (data.room && data.room.id) {
+        this.markRoomGameStarted(data.room.id);
+      }
+      callback(data);
+    };
+
+    this.on("game-started", wrappedCallback);
   }
 
   onShowStartQuiz(callback: (data: { room: QuizRoom }) => void) {
     this.on("show-start-quiz", callback);
+  }
+
+  // Listen for changes in loading state (when host is generating questions)
+  onLoadingStateChanged(
+    callback: (data: { roomId: string; isLoading: boolean }) => void
+  ) {
+    this.on("loading-state-changed", callback);
+  }
+
+  // Listen for changes in countdown state (when host starts the countdown)
+  onCountdownStateChanged(
+    callback: (data: { roomId: string; showCountdown: boolean }) => void
+  ) {
+    this.on("countdown-state-changed", callback);
   }
 
   onQuestion(
@@ -305,12 +549,203 @@ class SocketService {
     this.on("question", callback);
   }
 
+  // Deprecated - use onGameResults instead
   onGameEnded(callback: (data: { finalScores: Player[] }) => void) {
-    this.on("game-ended", callback);
+    console.warn("onGameEnded is deprecated, use onGameResults instead");
+    this.on("game-results", callback);
   }
+
+  // ========== CHAT EVENT LISTENERS ==========
+
+  onChatMessageReceived(callback: (data: ChatMessageReceivedData) => void) {
+    this.on("chat-message-received", callback);
+  }
+
+  onPlayerTypingStatus(callback: (data: PlayerTypingStatusData) => void) {
+    this.on("player-typing-status", callback);
+  }
+
+  // ========== END CHAT EVENT LISTENERS ==========
 
   onError(callback: (data: { message: string; code?: string }) => void) {
     this.on("error", callback);
+  }
+
+  // Quiz settings synchronization
+  onQuizSettingsSync(callback: (data: { quizSettings: any }) => void) {
+    this.on("sync-quiz-settings", callback);
+  }
+
+  // Get game results of all players
+  onGameResults(callback: (data: { finalScores: Player[] }) => void) {
+    this.on("game-results", callback);
+  }
+
+  // Add these methods to socketService.ts
+  private isInitializing = false;
+
+  initialize(): Promise<void> {
+    // If already connected, return immediately
+    if (this.socket?.connected) {
+      console.log("Socket already connected");
+      return Promise.resolve();
+    }
+
+    // If already initializing, don't start another connection attempt
+    if (this.isInitializing) {
+      console.log("Socket connection already in progress");
+      return new Promise((resolve, reject) => {
+        const checkInterval = setInterval(() => {
+          if (this.socket?.connected) {
+            clearInterval(checkInterval);
+            resolve();
+          } else if (!this.isInitializing) {
+            clearInterval(checkInterval);
+            reject(new Error("Socket initialization failed"));
+          }
+        }, 100);
+
+        // Set a timeout to prevent infinite waiting
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          if (!this.socket?.connected) {
+            reject(new Error("Socket initialization timed out"));
+          }
+        }, 10000);
+      });
+    }
+
+    this.isInitializing = true;
+    console.log("Initializing socket connection...");
+
+    return new Promise((resolve, reject) => {
+      try {
+        // Clean up existing socket if any
+        if (this.socket) {
+          this.socket.disconnect();
+          this.socket = null;
+        }
+
+        // Get socket URL from environment or use default
+        const SOCKET_URL =
+          process.env.EXPO_PUBLIC_SOCKET_URL ||
+          "https://quizzly-bears.onrender.com";
+
+        // Initialize the socket with proper options
+        this.socket = io(SOCKET_URL, {
+          transports: ["websocket", "polling"],
+          reconnection: true,
+          reconnectionDelay: 1000,
+          reconnectionDelayMax: 5000,
+          reconnectionAttempts: 10,
+          timeout: 20000,
+        });
+
+        // Handle connection
+        this.socket.on("connect", () => {
+          console.log("✅ Connected to Socket.IO server at", SOCKET_URL);
+          this.isInitializing = false;
+
+          // Process any pending operations (like user online status)
+          if (this.pendingUserOnline) {
+            console.log("Reconnected, re-establishing online status");
+            this.setUserOnline(
+              this.pendingUserOnline.userId,
+              this.pendingUserOnline.clerkUserId
+            );
+          }
+
+          resolve();
+        });
+
+        // Handle connection error
+        this.socket.on("connect_error", (error) => {
+          console.error("❌ Socket connection error:", error.message);
+          // Don't reject - socket.io will retry automatically
+        });
+
+        // Handle disconnection
+        this.socket.on("disconnect", (reason) => {
+          console.log("🔌 Disconnected from Socket.IO server:", reason);
+        });
+
+        // Set a timeout for the initial connection
+        const timeout = setTimeout(() => {
+          if (!this.socket?.connected) {
+            this.isInitializing = false;
+            console.error("❌ Socket connection timed out");
+            reject(new Error("Connection timed out"));
+          }
+        }, 20000);
+
+        // Clear timeout on connect
+        this.socket.on("connect", () => {
+          clearTimeout(timeout);
+        });
+      } catch (error) {
+        this.isInitializing = false;
+        console.error("❌ Socket initialization failed:", error);
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Clears any pending operations (like user online status)
+   */
+  clearPendingOperations(): void {
+    console.log("Clearing pending socket operations");
+    this.pendingUserOnline = null;
+    // Add other pending operations here if you have any
+  }
+
+  /**
+   * Deletes the Firebase chat data for a specific room
+   * This is a completely separate method from your game socket logic
+   * @param roomId The room ID for which chat data should be deleted
+   * @returns Promise that resolves when deletion is complete
+   */
+  deleteRoomChat(roomId: string): Promise<void> {
+    console.log(`Deleting Firebase chat data for room: ${roomId}`);
+
+    return new Promise((resolve, reject) => {
+      try {
+        const db = getDatabase();
+
+        // Delete chat messages
+        const chatRef = ref(db, `chats/${roomId}`);
+        remove(chatRef)
+          .then(() => {
+            console.log(`Deleted chat messages for room ${roomId}`);
+
+            // Delete typing indicators
+            const typingRef = ref(db, `typing/${roomId}`);
+            return remove(typingRef);
+          })
+          .then(() => {
+            console.log(`Deleted typing indicators for room ${roomId}`);
+            resolve();
+          })
+          .catch((error) => {
+            console.error(
+              `Error deleting chat data for room ${roomId}:`,
+              error
+            );
+            reject(error);
+          });
+      } catch (error) {
+        console.error(`Error accessing Firebase for room ${roomId}:`, error);
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Registers a listener for room deletion events
+   * @param callback Function to call when a room is deleted
+   */
+  onRoomDeleted(callback: (data: { roomId: string }) => void): void {
+    this.on("room-deleted", callback);
   }
 }
 

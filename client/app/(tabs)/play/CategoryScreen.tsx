@@ -15,8 +15,6 @@ import {
   Difficulty,
 } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { CACHE_KEY } from "@/utilities/cacheUtils";
-
-//vadim der Funktion
 import { categorizeTopic } from "@/utilities/api/quizApi";
 
 const LEVELS = [
@@ -31,7 +29,7 @@ const PREDEFINED_CATEGORIES = [
   "Geography",
   "Media",
   "Culture",
-  "Daily life",
+  "Daily Life",
 ];
 
 const cacheKey = CACHE_KEY.quizSettings;
@@ -91,7 +89,7 @@ const CategoryScreen = () => {
         selectedTopic: specificTopic,
       };
       await saveDataToCache(CACHE_KEY.currentRoom, updatedRoomInfo);
-      
+
       // For multiplayer admin, go back to lobby with selected category
       router.push("/(tabs)/play/MultiplayerLobby");
     } else {
@@ -213,8 +211,8 @@ const CategoryScreen = () => {
             onPress={() => handleChosenCategory("Culture")}
           />
           <ButtonSecondary
-            text="Daily life"
-            onPress={() => handleChosenCategory("Daily life")}
+            text="Daily Life"
+            onPress={() => handleChosenCategory("Daily Life")}
           />
         </View>
       </ScrollView>
@@ -236,14 +234,14 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     alignItems: "center",
-    paddingBottom: 32,
-    paddingHorizontal: 0,
+    paddingBottom: Gaps.g32,
   },
   searchToticBlock: {
     gap: Gaps.g16,
   },
   levelSelectionBlock: {
     marginBottom: Gaps.g32,
+    gap: Gaps.g16,
   },
   preparedToticContainer: {
     gap: Gaps.g16,

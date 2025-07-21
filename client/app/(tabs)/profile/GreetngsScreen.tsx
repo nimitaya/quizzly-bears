@@ -38,7 +38,7 @@ const GreetingsScreen = forwardRef<
   const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const maxChecksRef = useRef(0);
   const forceSignedInRef = useRef(false);
-  const { currentUsername, setOnChanges, refetch } = useStatistics();
+  const { currentUsername, refetch } = useStatistics();
   const [isEditing, setIsEditing] = useState(false);
   const [editedUsername, setEditedUsername] = useState(currentUsername || "");
 
@@ -345,7 +345,7 @@ const GreetingsScreen = forwardRef<
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primaryLimo} />
         <Text style={styles.loadingText}>
-          Checking authentication status...
+          checking authentication status...
         </Text>
       </View>
     );
@@ -356,12 +356,12 @@ const GreetingsScreen = forwardRef<
       setIsEditing(false);
       return;
     }
-    const API_BASE_URL = "http://localhost:3000/api";
+    const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+
     try {
       await axios.put(`${API_BASE_URL}/users/${user?.id}`, {
         username: editedUsername,
       });
-      setOnChanges(true);
       setIsEditing(false);
       refetch[0]();
     } catch (error) {
@@ -429,15 +429,16 @@ const styles = StyleSheet.create({
     gap: Gaps.g16,
   },
   loadingText: {
-    fontSize: FontSizes.TextMediumFs,
+    fontSize: FontSizes.TextSmallFs,
+    color: Colors.disable,
   },
   input: {
-    fontSize: 18,
+    fontSize: FontSizes.TextLargeFs,
     borderBottomWidth: 1,
     borderColor: "transparent",
-    paddingVertical: 4,
+    paddingVertical: Gaps.g4,
     minWidth: 60,
-    paddingHorizontal: 8,
+    paddingHorizontal: Gaps.g8,
     textAlign: "center",
   },
 });
