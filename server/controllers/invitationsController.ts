@@ -145,8 +145,6 @@ export const sendInvitationRequest = async (
     // Save request to database
     await inviteRequest.save();
 
-    // TODO: Send push notification to target user
-
     // ----- Response -----
     res.status(201).json({
       message: "Invitation sent successfully",
