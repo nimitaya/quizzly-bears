@@ -472,7 +472,7 @@ export function useQuizLogic() {
     }
 
     // IMPORTANT new
-    // if (!isCorrect) {
+    if (!isCorrect) {
     const newTotal = pointsState.total + 0;
     setPointsState((prevPoints) => {
       const updatedState = {
@@ -507,7 +507,7 @@ export function useQuizLogic() {
       }
       return updatedState;
     });
-    // }
+    }
   };
 
   // ----- Handle NEXT QUESTION -----
