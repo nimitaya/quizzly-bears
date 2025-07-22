@@ -1,12 +1,11 @@
+import { useCustomFonts } from "@/hooks/useCustomFonts";
 import React, { useEffect } from "react";
 import { Text, TextInput, View } from "react-native";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { Slot } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-
 import { Colors } from "@/styles/theme";
-import { useCustomFonts } from "@/hooks/useCustomFonts";
 import NetworkAlertProvider from "@/providers/NetworkAlertProvider";
 import AuthNavigationHelper from "@/components/AuthNavigationHelper";
 import { GlobalLoadingProvider } from "@/providers/GlobalLoadingProvider";
