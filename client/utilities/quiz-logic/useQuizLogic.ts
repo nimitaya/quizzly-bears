@@ -106,9 +106,7 @@ export function useQuizLogic() {
           }
         );
         errorSound.current = errorSnd;
-
       } catch {
-
         correctSound.current = null;
         errorSound.current = null;
       }
@@ -145,9 +143,7 @@ export function useQuizLogic() {
     try {
       await soundToPlay.setPositionAsync(0);
       await soundToPlay.playAsync();
-
     } catch {}
-
   };
 
   // ========================================================== FUNCTIONS ==========================================================
@@ -169,7 +165,6 @@ export function useQuizLogic() {
     try {
       const cachedInfo = await loadCacheData(key.quizSettings);
       if (cachedInfo) {
-
         setGameState((prev) => {
           const newGameState = {
             ...prev,
@@ -179,14 +174,13 @@ export function useQuizLogic() {
           };
           return newGameState;
         });
-      } 
+      }
       // Mark game info as loaded
       setGameInfoLoaded(true);
     } catch {
-            // Even on error, mark as loaded to prevent infinite waiting
+      // Even on error, mark as loaded to prevent infinite waiting
       setGameInfoLoaded(true);
     }
-
   };
 
   // ----- fetch Data and set all Questions Array -----
@@ -206,7 +200,6 @@ export function useQuizLogic() {
       // fetch questions from cache
       let questions = await fetchFromCache(key.aiQuestions);
       if (!questions) {
-
         // Fallback to dummy data if cache is empty
 
         questions = aiQuestions;
@@ -272,9 +265,7 @@ export function useQuizLogic() {
                 currQuestionIndex
               );
             }
-
           } catch {
-
             // Fallback: If we can't communicate with server, proceed locally
             if (!isTransitionScheduled.current) {
               isTransitionScheduled.current = true;
@@ -283,7 +274,6 @@ export function useQuizLogic() {
               }, NEXT_QUESTION_DELAY);
             }
           }
-
         }
       }, ANSWER_TIMER_DURATION);
     }, READ_TIMER_DURATION);
@@ -473,40 +463,40 @@ export function useQuizLogic() {
 
     // IMPORTANT new
     if (!isCorrect) {
-    const newTotal = pointsState.total + 0;
-    setPointsState((prevPoints) => {
-      const updatedState = {
-        ...prevPoints,
-        score: prevPoints.score + 0,
-        timePoints: prevPoints.timePoints + 0,
-        perfectGame: prevPoints.perfectGame + 0,
-        total: newTotal,
-        chosenCorrect: pointsState.chosenCorrect + 0,
-      };
+      const newTotal = pointsState.total + 0;
+      setPointsState((prevPoints) => {
+        const updatedState = {
+          ...prevPoints,
+          score: prevPoints.score + 0,
+          timePoints: prevPoints.timePoints + 0,
+          perfectGame: prevPoints.perfectGame + 0,
+          total: newTotal,
+          chosenCorrect: pointsState.chosenCorrect + 0,
+        };
 
-      // Update ref with current data
-      currentPointsRef.current = {
-        total: updatedState.total,
-        chosenCorrect: updatedState.chosenCorrect,
-      };
+        // Update ref with current data
+        currentPointsRef.current = {
+          total: updatedState.total,
+          chosenCorrect: updatedState.chosenCorrect,
+        };
 
-      // IMPORTANT new
-      // Logic for Multiplayer Play
-      if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
-        // Clear any existing timers
-        if (answerTimeout.current) {
-          clearTimeout(answerTimeout.current);
-          answerTimeout.current = null;
+        // IMPORTANT new
+        // Logic for Multiplayer Play
+        if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
+          // Clear any existing timers
+          if (answerTimeout.current) {
+            clearTimeout(answerTimeout.current);
+            answerTimeout.current = null;
+          }
+
+          // Schedule the next question after the fixed delay
+          isTransitionScheduled.current = true;
+          nextQuestionTimeout.current = setTimeout(() => {
+            handleNextQuestion();
+          }, NEXT_QUESTION_DELAY);
         }
-
-        // Schedule the next question after the fixed delay
-        isTransitionScheduled.current = true;
-        nextQuestionTimeout.current = setTimeout(() => {
-          handleNextQuestion();
-        }, NEXT_QUESTION_DELAY);
-      }
-      return updatedState;
-    });
+        return updatedState;
+      });
     }
   };
 
@@ -578,16 +568,12 @@ export function useQuizLogic() {
     if (correctSound.current) {
       try {
         await correctSound.current.stopAsync();
-      } catch (error) {
-        console.error("Error stopping correct sound:", error);
-      }
+      } catch {}
     }
     if (errorSound.current) {
       try {
         await errorSound.current.stopAsync();
-      } catch (error) {
-        console.error("Error stopping error sound:", error);
-      }
+      } catch {}
     }
 
     // Fixed version - pass callback for setOnChanges:
@@ -654,9 +640,7 @@ export function useQuizLogic() {
       // Reset the transition flag
       isTransitionScheduled.current = false;
     };
-
   }, [currQuestionIndex, gameInfoLoaded]);
-
 
   // ----- Setup for multiplayer mode -----
   useEffect(() => {

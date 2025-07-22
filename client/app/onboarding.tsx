@@ -27,8 +27,7 @@ export default function OnboardingScreen() {
       await AsyncStorage.setItem(ONBOARDING_COMPLETED_KEY, "true");
       markOnboardingCompleted();
       router.replace("/");
-    } catch (error) {
-      console.error("Error saving onboarding state:", error);
+    } catch {
       markOnboardingCompleted();
       router.replace("/");
     }

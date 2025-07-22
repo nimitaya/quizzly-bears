@@ -96,7 +96,6 @@ router.post("/clerk-webhook", async (req: Request, res: Response) => {
 
     return res.status(200).json({ received: true });
   } catch (err) {
-    console.error("Webhook handler error:", err);
     return res.status(500).json({ error: "Webhook processing error" });
   }
 });

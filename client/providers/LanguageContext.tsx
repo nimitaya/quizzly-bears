@@ -63,8 +63,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
           setCurrentLanguage(language);
         }
       }
-    } catch (error) {
-      console.error("Error loading saved language:", error);
+    } catch {
     } finally {
       setIsLoading(false);
     }
@@ -84,8 +83,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
           await AsyncStorage.setItem("selected_language", language.code);
         }
       }
-    } catch (err) {
-      console.error("Error loading language from DB:", err);
+    } catch {
       await loadSavedLanguage();
     } finally {
       setIsLoading(false);
@@ -102,9 +100,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
           language: language.code,
         });
       }
-    } catch (error) {
-      console.error("Error saving language:", error);
-    }
+    } catch {}
   };
 
   return (

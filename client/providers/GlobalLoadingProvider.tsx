@@ -104,8 +104,7 @@ export const GlobalLoadingProvider: React.FC<{ children: React.ReactNode }> = ({
       // Small delay for stability
 
       await new Promise((resolve) => setTimeout(resolve, 100));
-    } catch (error) {
-      console.error("Error refreshing global state:", error);
+    } catch {
     } finally {
       safeSetState(setIsGloballyLoading, false);
       isRefreshingRef.current = false;
@@ -133,8 +132,7 @@ export const GlobalLoadingProvider: React.FC<{ children: React.ReactNode }> = ({
         }
 
         await new Promise((resolve) => setTimeout(resolve, 300));
-      } catch (error) {
-        console.error("Error during app initialization:", error);
+      } catch {
       } finally {
         if (isMountedRef.current) {
           safeSetState(setIsGloballyLoading, false);

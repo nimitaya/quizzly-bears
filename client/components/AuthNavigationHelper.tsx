@@ -39,9 +39,7 @@ export default function AuthNavigationHelper() {
             router.replace(destination as any);
           }
         }
-      } catch (err) {
-        console.error("Error in AuthNavigationHelper:", err);
-      }
+      } catch {}
     };
 
     checkPendingNavigation();

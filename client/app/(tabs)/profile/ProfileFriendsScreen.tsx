@@ -119,9 +119,7 @@ const ProfilFriendsScreen = () => {
         receivedFriendRequests: received,
         sentFriendRequests: sent,
       });
-    } catch (error) {
-      console.error("Error accepting friend request:", error);
-    }
+    } catch {}
   };
 
   // Handler Decline
@@ -135,9 +133,7 @@ const ProfilFriendsScreen = () => {
         ...prev,
         receivedFriendRequests: received,
       }));
-    } catch (error) {
-      console.error("Error declining friend request:", error);
-    }
+    } catch {}
   };
 
   // Handler Remove
@@ -151,9 +147,7 @@ const ProfilFriendsScreen = () => {
         ...prev,
         friendList: friends,
       }));
-    } catch (error) {
-      console.error("Error removing friend:", error);
-    }
+    } catch {}
   };
 
   // =========== UseEffect ==========
@@ -188,8 +182,7 @@ const ProfilFriendsScreen = () => {
           receivedFriendRequests: received,
           sentFriendRequests: sent,
         });
-      } catch (error) {
-        console.error("Error fetching friends:", error);
+      } catch {
       } finally {
         setIsLoading(false);
       }

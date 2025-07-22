@@ -42,7 +42,6 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     if (socketService.isConnected()) {
-      console.log("✅ Socket already connected");
       setIsConnected(true);
       return Promise.resolve();
     }
@@ -85,9 +84,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Set a new reconnect timeout (with a delay to avoid reconnection loops)
         reconnectTimeoutRef.current = setTimeout(() => {
-          initialize().catch((err) =>
-            console.error("Auto-reconnect failed:", err)
-          );
+          initialize().catch();
         }, 1000);
       }
     };
@@ -96,7 +93,6 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
     socketService.on("disconnect", handleDisconnect);
 
     return () => {
-      console.log("🛑 SocketProvider cleanup");
       socketService.off("connect", handleConnect);
       socketService.off("disconnect", handleDisconnect);
 
@@ -106,10 +102,6 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       // IMPORTANT: Only disconnect if not navigating to auth
-      if (navigationState.isInAuthNavigation()) {
-        console.log("⚡ Preserving socket during auth navigation");
-        // Don't disconnect
-      }
     };
   }, []);
 

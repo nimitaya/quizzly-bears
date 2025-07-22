@@ -72,9 +72,7 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({
       const { sound } = await Audio.Sound.createAsync({ uri });
       soundRef.current = sound;
       await sound.playAsync();
-    } catch (err) {
-      console.error(`Failed to play sound (${name})`, err);
-    }
+    } catch {}
   };
 
   return (

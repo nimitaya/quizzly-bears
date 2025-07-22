@@ -111,9 +111,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
       );
 
       chatRefObject.current = chatRef;
-    } catch (error) {
-      console.error("Firebase initialization error:", error);
-    }
+    } catch {}
   }, [userData, CHAT_ROOM_ID]);
 
   useEffect(() => {
@@ -121,49 +119,41 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
 
     const chatRef = chatRefObject.current;
 
-    const unsubscribe = onValue(
-      chatRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          const data = snapshot.val();
+    const unsubscribe = onValue(chatRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
 
-          try {
-            // Convert Firebase object to array of messages
-            const messageList = Object.keys(data).map((key) => ({
-              ...data[key],
-              timestamp: new Date(data[key].timestamp),
-            }));
+        try {
+          // Convert Firebase object to array of messages
+          const messageList = Object.keys(data).map((key) => ({
+            ...data[key],
+            timestamp: new Date(data[key].timestamp),
+          }));
 
-            // Sort messages by timestamp
-            messageList.sort(
-              (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+          // Sort messages by timestamp
+          messageList.sort(
+            (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+          );
+
+          // Update messages state
+          setMessages(messageList);
+
+          // Check for unread messages if chat is not visible
+          if (!isChatVisible) {
+            // Only count messages from others after lastChatOpenTime
+            const newMessages = messageList.filter(
+              (msg) =>
+                msg.playerId !== userData.clerkUserId &&
+                msg.timestamp > lastChatOpenTime
             );
 
-            // Update messages state
-            setMessages(messageList);
-
-            // Check for unread messages if chat is not visible
-            if (!isChatVisible) {
-              // Only count messages from others after lastChatOpenTime
-              const newMessages = messageList.filter(
-                (msg) =>
-                  msg.playerId !== userData.clerkUserId &&
-                  msg.timestamp > lastChatOpenTime
-              );
-
-              if (newMessages.length > 0) {
-                setUnreadCount(newMessages.length);
-              }
+            if (newMessages.length > 0) {
+              setUnreadCount(newMessages.length);
             }
-          } catch (err) {
-            console.error("Error processing messages:", err);
           }
-        }
-      },
-      (error) => {
-        console.error("Firebase onValue error:", error);
+        } catch {}
       }
-    );
+    });
 
     return () => {
       unsubscribe();
@@ -197,9 +187,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
       };
 
       push(chatRef, firebaseMessage);
-    } catch (error) {
-      console.error("Error in sendMessage:", error);
-    }
+    } catch {}
   };
 
   // Set typing status
@@ -226,9 +214,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
         // Remove typing status
         remove(typingRef);
       }
-    } catch (error) {
-      console.error("Error updating typing status:", error);
-    }
+    } catch {}
   };
 
   // Listen for typing status changes
@@ -264,9 +250,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
       return () => {
         off(typingRef);
       };
-    } catch (error) {
-      console.error("Error setting up typing listener:", error);
-    }
+    } catch {}
   }, [userData]);
 
   // Clean up typing status on unmount
@@ -280,9 +264,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
             `typing/${CHAT_ROOM_ID}/${userData.clerkUserId}`
           );
           remove(typingRef);
-        } catch (error) {
-          console.error("Error cleaning up typing status:", error);
-        }
+        } catch {}
       }
     };
   }, [userData]);

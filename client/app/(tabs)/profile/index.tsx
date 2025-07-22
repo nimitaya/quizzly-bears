@@ -168,7 +168,7 @@ const ProfileScreen = () => {
               setReceivedInviteRequests(pendingInvites.length);
             }
           })
-          .catch((error) => console.error("Error refreshing invites:", error));
+          .catch();
       }
 
       return () => clearTimeout(timer);
@@ -189,7 +189,6 @@ const ProfileScreen = () => {
 
       const handleInviteRequestSent = (data: any) => {
         if (!userData?.clerkUserId) {
-          console.warn("clerkUserId is missing");
           return;
         }
 
@@ -206,12 +205,9 @@ const ProfileScreen = () => {
 
             if (typeof setReceivedInviteRequests === "function") {
               setReceivedInviteRequests(pendingInvites.length);
-
             }
           })
-          .catch((error) => {
-            console.error("getReceivedInviteRequests error:", error);
-          });
+          .catch();
       };
 
       socketService.on("friendRequestSent", handleFriendRequestSent);
@@ -240,7 +236,6 @@ const ProfileScreen = () => {
     getReceivedFriendRequests(userData.clerkUserId)
       .then((received) => {
         if (!received?.friendRequests) {
-          console.warn("⚠️ Invalid response format:", received);
           return;
         }
 
@@ -250,10 +245,7 @@ const ProfileScreen = () => {
 
         setReceivedRequestsCount(pendingRequests.length);
       })
-      .catch((error) => {
-        console.error("❌ Error loading initial friend requests:", error);
-      });
-
+      .catch();
 
     getReceivedInviteRequests(userData.clerkUserId)
       .then((response) => {
@@ -267,7 +259,6 @@ const ProfileScreen = () => {
 
         if (typeof setReceivedInviteRequests === "function") {
           setReceivedInviteRequests(pendingInvites.length);
-
         }
       })
       .catch((error) => {});

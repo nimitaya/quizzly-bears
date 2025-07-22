@@ -14,8 +14,7 @@ export const shouldShowOnboarding = async (): Promise<boolean> => {
   try {
     const completed = await AsyncStorage.getItem(ONBOARDING_COMPLETED_KEY);
     return completed !== "true";
-  } catch (error) {
-    console.error("Error checking onboarding state:", error);
+  } catch {
     return true;
   }
 };
@@ -24,9 +23,7 @@ export const shouldShowOnboarding = async (): Promise<boolean> => {
 export const resetOnboarding = async (): Promise<void> => {
   try {
     await AsyncStorage.removeItem(ONBOARDING_COMPLETED_KEY);
-  } catch (error) {
-    console.error("Error resetting onboarding state:", error);
-  }
+  } catch {}
 };
 
 interface OnboardingContextType {
@@ -57,8 +54,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
     try {
       const shouldShowOnboardingScreen = await shouldShowOnboarding();
       setShouldShow(shouldShowOnboardingScreen);
-    } catch (error) {
-      console.error("Error checking onboarding status:", error);
+    } catch {
       setShouldShow(true);
     } finally {
       setIsLoading(false);
@@ -69,8 +65,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
     try {
       await AsyncStorage.setItem(ONBOARDING_COMPLETED_KEY, "true");
       setShouldShow(false);
-    } catch (error) {
-      console.error("Error marking onboarding as completed:", error);
+    } catch {
       setShouldShow(false);
     }
   };

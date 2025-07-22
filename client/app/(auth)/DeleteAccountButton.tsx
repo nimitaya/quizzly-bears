@@ -64,8 +64,7 @@ const DeleteAccountButton: React.FC<DeleteAccountButtonProps> = ({
 
       // Sign out from Clerk
       await signOut();
-    } catch (err) {
-      console.error(JSON.stringify(err, null, 2));
+    } catch {
     } finally {
       setIsProcessing(false);
     }

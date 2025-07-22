@@ -41,8 +41,7 @@ const SignOutButton = () => {
 
       // Navigate to login screen
       router.replace("/(auth)/LogInScreen");
-    } catch (err) {
-      console.error("Error during sign-out:", err);
+    } catch {
     } finally {
       setIsProcessing(false);
     }

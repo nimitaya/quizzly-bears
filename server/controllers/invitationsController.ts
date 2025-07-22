@@ -64,7 +64,6 @@ export const searchUser = async (
       },
     });
   } catch (error) {
-    console.error("Error searching user:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -166,7 +165,6 @@ export const sendInvitationRequest = async (
       },
     });
   } catch (error) {
-    console.error("Error sending invitation:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -200,7 +198,6 @@ export const getReceivedInvitationRequests = async (
     // ----- Response -----
     res.json({ inviteRequests: currInviteRequests });
   } catch (error) {
-    console.error("Error getting invite requests:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -234,7 +231,6 @@ export const getSentInvitationRequests = async (
     // ----- Response -----
     res.json({ inviteRequests: sentRequests });
   } catch (error) {
-    console.error("Error getting sent friend requests:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -294,7 +290,6 @@ export const acceptInvitationRequest = async (
     // ----- Response -----
     res.json({ message: "Invitation accepted successfully" });
   } catch (error) {
-    console.error("Error accepting Invitation:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -352,7 +347,6 @@ export const declineInvitationRequest = async (
     // ----- Response -----
     res.json({ message: "Invite request declined successfully" });
   } catch (error) {
-    console.error("Error declining invite request:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -386,7 +380,6 @@ export const getInvitationList = async (
     // ----- Response -----
     res.json({ invites: acceptedRequests });
   } catch (error) {
-    console.error("Error getting invites:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -427,7 +420,6 @@ export const removeInvitation = async (
     // ----- Response -----
     res.json({ message: "Invite removed successfully" });
   } catch (error) {
-    console.error("Error removing invite:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -468,7 +460,6 @@ export const removeAllInvitations = async (
       deletedCount: deleteResult.deletedCount,
     });
   } catch (error) {
-    console.error("Error removing invite:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

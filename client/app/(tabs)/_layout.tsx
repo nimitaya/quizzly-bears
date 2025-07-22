@@ -141,7 +141,7 @@ const _Layout = () => {
           setReceivedInviteRequests(pendingInvites.length);
         }
       })
-      .catch((err) => console.error("Error loading invitations:", err));
+      .catch();
   }, [userData?.clerkUserId]);
 
   return (

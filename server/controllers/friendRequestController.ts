@@ -67,8 +67,7 @@ export const searchUser = async (
         bearPawIcon: user.bearPawIcon,
       },
     });
-  } catch (error) {
-    console.error("Error searching user:", error);
+  } catch {
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -183,7 +182,6 @@ export const sendRequest = async (
       },
     });
   } catch (error) {
-    console.error("Error sending friend request:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -219,7 +217,6 @@ export const getReceivedRequests = async (
     // ----- Response -----
     res.json({ friendRequests: user.friendRequests });
   } catch (error) {
-    console.error("Error getting friend requests:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -253,7 +250,6 @@ export const getSentRequests = async (
     // ----- Response -----
     res.json({ friendRequests: sentRequests });
   } catch (error) {
-    console.error("Error getting sent friend requests:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -328,7 +324,6 @@ export const acceptRequest = async (
     // ----- Response -----
     res.json({ message: "Friend request accepted successfully" });
   } catch (error) {
-    console.error("Error accepting friend request:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -393,7 +388,6 @@ export const declineRequest = async (
     // ----- Response -----
     res.json({ message: "Friend request declined successfully" });
   } catch (error) {
-    console.error("Error declining friend request:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -425,7 +419,6 @@ export const getFriendList = async (
     // ----- Response -----
     res.json({ friends: user.friends });
   } catch (error) {
-    console.error("Error getting friends:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -479,7 +472,6 @@ export const removeFriend = async (
     // ----- Response -----
     res.json({ message: "Friend removed successfully" });
   } catch (error) {
-    console.error("Error removing friend:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -546,7 +538,6 @@ export const searchEmailsAutocomplete = async (
 
     res.json({ users: filteredUsers });
   } catch (error) {
-    console.error("Error searching emails:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

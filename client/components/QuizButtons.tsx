@@ -53,8 +53,7 @@ export function QuizButton({
         );
 
         auswahlSound.current = sound;
-      } catch (error) {
-        console.error("QuizButton: Error loading auswahl sound:", error);
+      } catch {
         auswahlSound.current = null;
       }
     };
@@ -80,9 +79,7 @@ export function QuizButton({
     try {
       await auswahlSound.current.setPositionAsync(0);
       await auswahlSound.current.playAsync();
-    } catch (error) {
-      console.error("QuizButton: Error playing auswahl sound:", error);
-    }
+    } catch {}
   };
 
   // Handle button press with sound
@@ -94,9 +91,7 @@ export function QuizButton({
       try {
         await auswahlSound.current.setPositionAsync(0);
         await auswahlSound.current.playAsync();
-      } catch (error) {
-        console.error("QuizButton: Error playing auswahl sound:", error);
-      }
+      } catch {}
     }
 
     onPress();

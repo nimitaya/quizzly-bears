@@ -54,7 +54,7 @@ interface EmailSuggestion {
 //==============Input with search button (AUTOCOMPLETE)
 type SearchFriendInputProps = TextInputProps & {
   onSearch?: (value: string) => void;
-  clerkUserId?: string; 
+  clerkUserId?: string;
 };
 
 export function SearchFriendInput({
@@ -65,7 +65,7 @@ export function SearchFriendInput({
   ...props
 }: SearchFriendInputProps) {
   const inputRef = useRef<string>(value || "");
-  
+
   //===========States für Autocomplete
   const [suggestions, setSuggestions] = useState<EmailSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -82,78 +82,76 @@ export function SearchFriendInput({
     Keyboard.dismiss();
     onSearch?.(inputRef.current);
   };
-  
+
   //=============== Function to search suggestions
-    const searchSuggestions = async (query: string) => {
-      if (!clerkUserId || query.length < 2) {
+  const searchSuggestions = async (query: string) => {
+    if (!clerkUserId || query.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const result = await searchEmailsAutocomplete(query, clerkUserId);
+      setSuggestions(result.users);
+      setShowSuggestions(result.users.length > 0);
+    } catch {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  //======Debounce: wartet 300ms nach der letzten Eingabe
+  useEffect(() => {
+    if (!clerkUserId) return;
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      if (value) {
+        searchSuggestions(value);
+      } else {
         setSuggestions([]);
         setShowSuggestions(false);
-        return;
       }
-  
-      try {
-        setIsLoading(true);
-        const result = await searchEmailsAutocomplete(query, clerkUserId);
-        setSuggestions(result.users);
-        setShowSuggestions(result.users.length > 0);
-      } catch (error) {
-        console.error("Error fetching suggestions:", error);
-        setSuggestions([]);
-        setShowSuggestions(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-  
-    //======Debounce: wartet 300ms nach der letzten Eingabe
-    useEffect(() => {
-      if (!clerkUserId) return;
-  
+    }, 300);
+    //====== Cleanup function to clear the timeout
+    return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
-  
-      debounceRef.current = setTimeout(() => {
-        if (value) {
-          searchSuggestions(value);
-        } else {
-          setSuggestions([]);
-          setShowSuggestions(false);
-        }
-      }, 300);
-  //====== Cleanup function to clear the timeout
-      return () => {
-        if (debounceRef.current) {
-          clearTimeout(debounceRef.current);
-        }
-      };
-    }, [value, clerkUserId]);
-  
-    //======Email suggestion selection,dropdown wird geschlossen
-    const handleSuggestionPress = (email: string) => {
-      handleChangeText(email);
+    };
+  }, [value, clerkUserId]);
+
+  //======Email suggestion selection,dropdown wird geschlossen
+  const handleSuggestionPress = (email: string) => {
+    handleChangeText(email);
+    setShowSuggestions(false);
+    Keyboard.dismiss();
+    onSearch?.(email);
+  };
+
+  //========Blur event to close suggestions
+  const handleBlur = () => {
+    setTimeout(() => {
       setShowSuggestions(false);
-      Keyboard.dismiss();
-      onSearch?.(email);
-    };
-  
-    //========Blur event to close suggestions
-    const handleBlur = () => {
-      setTimeout(() => {
-        setShowSuggestions(false);
-      }, 150);
-    };
-  
-    //======Render function for each email suggestion
-    const renderSuggestion = ({ item }: { item: EmailSuggestion }) => (
-      <TouchableOpacity
-        style={styles.suggestionItem}
-        onPress={() => handleSuggestionPress(item.email)}
-      >
-        <Text style={styles.suggestionText}>{item.email}</Text>
-      </TouchableOpacity>
-    );
-  
+    }, 150);
+  };
+
+  //======Render function for each email suggestion
+  const renderSuggestion = ({ item }: { item: EmailSuggestion }) => (
+    <TouchableOpacity
+      style={styles.suggestionItem}
+      onPress={() => handleSuggestionPress(item.email)}
+    >
+      <Text style={styles.suggestionText}>{item.email}</Text>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.containerSearchFriendWrapper}>
@@ -189,8 +187,8 @@ export function SearchFriendInput({
             style={styles.suggestionsList}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
-            removeClippedSubviews={false} 
-  disableVirtualization={true}
+            removeClippedSubviews={false}
+            disableVirtualization={true}
           />
         </View>
       )}
@@ -296,7 +294,7 @@ const styles = StyleSheet.create({
   },
   suggestionsContainer: {
     position: "absolute",
-    top: 64, 
+    top: 64,
     left: 0,
     right: 0,
     backgroundColor: Colors.white,

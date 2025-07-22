@@ -53,9 +53,7 @@ const Countdown: React.FC<CountdownProps> = ({
         require("@/assets/Sounds/1-start.mp3")
       );
       oneStartSoundRef.current = oneStartSound;
-    } catch (error) {
-      console.log("Error loading countdown sounds:", error);
-    }
+    } catch {}
   };
 
   const playSound = async (soundType: "threeTwo" | "oneStart") => {
@@ -77,9 +75,7 @@ const Countdown: React.FC<CountdownProps> = ({
         await soundRef.setPositionAsync(0);
         await soundRef.playAsync();
       }
-    } catch (error) {
-      console.log("Error playing countdown sound:", error);
-    }
+    } catch {}
   };
 
   const startCountdown = () => {

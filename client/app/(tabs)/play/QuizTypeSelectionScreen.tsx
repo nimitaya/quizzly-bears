@@ -38,9 +38,7 @@ const QuizTypeSelectionScreen = () => {
     };
     try {
       await saveDataToCache(cacheKey, chosenSpecs);
-    } catch (error) {
-      console.error("Failed to save specs:", error);
-    }
+    } catch {}
   };
 
   // Create multiplayer room
@@ -99,10 +97,7 @@ const QuizTypeSelectionScreen = () => {
         roomSettings,
         hostLanguage
       );
-    } catch (error) {
-      console.error("Failed to create multiplayer room:", error);
-      Alert.alert("Error", "Failed to create multiplayer room");
-    }
+    } catch {}
   };
 
   // set the selected Playstyle, call cache function and navigate accordingly
@@ -114,9 +109,7 @@ const QuizTypeSelectionScreen = () => {
       // Clear any previous room data for solo mode
       try {
         await saveDataToCache(CACHE_KEY.currentRoom, null);
-      } catch (error) {
-        console.error("Failed to clear room data:", error);
-      }
+      } catch {}
       // For solo mode, go directly to category selection
       router.push("/(tabs)/play/CategoryScreen");
     } else if (style === "duel" || style === "group") {

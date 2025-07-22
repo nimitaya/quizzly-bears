@@ -146,9 +146,7 @@ export const FriendRequestProvider = ({
         receivedFriendRequests: received,
         sentFriendRequests: sent,
       });
-    } catch (error) {
-      console.error("Error accepting friend request:", error);
-    }
+    } catch {}
   };
 
   const declineRequest = async (requestId: string) => {
@@ -161,9 +159,7 @@ export const FriendRequestProvider = ({
         ...prev,
         receivedFriendRequests: received,
       }));
-    } catch (error) {
-      console.error("Error declining friend request:", error);
-    }
+    } catch {}
   };
 
   const removeFriendById = async (friendId: string) => {
@@ -176,9 +172,7 @@ export const FriendRequestProvider = ({
         ...prev,
         friendList: friends,
       }));
-    } catch (error) {
-      console.error("Error removing friend:", error);
-    }
+    } catch {}
   };
 
   const fetchFriends = async () => {
@@ -194,9 +188,7 @@ export const FriendRequestProvider = ({
         receivedFriendRequests: received,
         sentFriendRequests: sent,
       });
-    } catch (error) {
-      console.error("Error fetching friends:", error);
-    }
+    } catch {}
   };
 
   return (

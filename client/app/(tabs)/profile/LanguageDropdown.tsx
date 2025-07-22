@@ -36,9 +36,7 @@ const LanguageDropdown = ({ onLanguageChange }: LanguageDropdownProps) => {
       if (onLanguageChange) {
         onLanguageChange(language);
       }
-    } catch (error) {
-      console.error("Error saving language:", error);
-    }
+    } catch {}
   };
 
   const renderLanguageItem = ({ item }: { item: Language }) => (

@@ -79,9 +79,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({
             }
           );
           musicRef.current = sound;
-        } catch (err) {
-          console.error("Failed to play music:", err);
-        }
+        } catch {}
       } else {
         if (musicRef.current) {
           await musicRef.current.stopAsync();

@@ -57,17 +57,13 @@ const onlineUsers = new Map<string, string>(); // userId -> socketId
 
 // Socket.IO handlers
 io.on("connection", (socket) => {
-  console.log(`User connected: ${socket.id}`);
-
   // User online status
   socket.on("user-online", (data: { userId: string; clerkUserId: string }) => {
     try {
       // Store both IDs for flexibility
       if (data.userId) onlineUsers.set(data.userId, socket.id);
       if (data.clerkUserId) onlineUsers.set(data.clerkUserId, socket.id);
-    } catch (error) {
-      console.error("Error in user-online handler:", error);
-    }
+    } catch {}
   });
 
   // Get friends' online status
@@ -81,9 +77,7 @@ io.on("connection", (socket) => {
         );
 
         socket.emit("friends-status", { onlineFriends });
-      } catch (error) {
-        console.error("Error in get-friends-status handler:", error);
-      }
+      } catch {}
     }
   );
 
@@ -278,7 +272,6 @@ io.on("connection", (socket) => {
   socket.on("get-room-state", (data: { roomId: string }) => {
     try {
       if (!data || !data.roomId) {
-        console.error("Invalid data format received:", data);
         socket.emit("error", { message: "Invalid room data" });
         return;
       }
@@ -301,8 +294,7 @@ io.on("connection", (socket) => {
           newTopic: room.selectedTopic || room.selectedCategory,
         });
       }
-    } catch (err) {
-      console.error("Error handling get-room-state event:", err);
+    } catch {
       socket.emit("error", { message: "Server error processing room state" });
     }
   });
@@ -394,8 +386,7 @@ io.on("connection", (socket) => {
 
         // Also update all clients with the updated room state
         io.to(data.roomId).emit("room-state-updated", { room });
-      } catch (err) {
-        console.error("Error handling categoryChanged event:", err);
+      } catch {
         socket.emit("error", {
           message: "Server error processing category change",
         });
@@ -691,8 +682,6 @@ io.on("connection", (socket) => {
   // Disconnect
   socket.on("disconnect", () => {
     try {
-      console.log(`User disconnected: ${socket.id}`);
-
       // Remove from online users map
       for (const [userId, socketId] of onlineUsers.entries()) {
         if (socketId === socket.id) {
@@ -711,9 +700,7 @@ io.on("connection", (socket) => {
           break;
         }
       }
-    } catch (error) {
-      console.error("Error in disconnect handler:", error);
-    }
+    } catch {}
   });
 });
 // =======================
@@ -757,7 +744,6 @@ function leaveRoom(socket: any, roomId: string, playerId: string) {
     quizRooms.delete(roomId);
     // Clean up answer tracking for this room
     roomAnswerTracking.delete(roomId);
-    console.log(`Room ${roomId} deleted`);
   } else {
     // Notify other players
     io.to(roomId).emit("player-left", {
@@ -772,8 +758,7 @@ function leaveRoom(socket: any, roomId: string, playerId: string) {
 const startDatabase = async () => {
   try {
     await connectDB();
-  } catch (error) {
-    console.error("Failed to connect to the database:", error);
+  } catch {
     process.exit(1);
   }
 };
@@ -786,7 +771,6 @@ const startSocketServer = async () => {
 
     return new Promise((resolve, reject) => {
       const server = httpServer.listen(port, () => {
-        console.log("Socket.IO Server running on port:", port);
         resolve(server);
       });
 
@@ -794,7 +778,6 @@ const startSocketServer = async () => {
         if (err.code === "EADDRINUSE") {
           const newPort = Number(port) + 1;
           httpServer.listen(newPort, () => {
-            console.log("Socket.IO Server running on port:", newPort);
             resolve(server);
           });
         } else {
@@ -802,8 +785,7 @@ const startSocketServer = async () => {
         }
       });
     });
-  } catch (error) {
-    console.error("Failed to start Socket.IO server:", error);
+  } catch {
     process.exit(1);
   }
 };
@@ -816,10 +798,7 @@ const startServer = async () => {
 
     // Start Socket.IO server
     await startSocketServer();
-
-    console.log("All services started successfully");
-  } catch (error) {
-    console.error("Failed to start server:", error);
+  } catch {
     process.exit(1);
   }
 };

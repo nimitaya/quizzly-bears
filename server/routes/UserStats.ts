@@ -16,7 +16,6 @@ router.get("/users/:clerkUserId", async (req: Request, res: Response) => {
 
     res.status(200).json(user);
   } catch (error) {
-    console.error("Error fetching user by Clerk ID:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -36,7 +35,6 @@ router.put("/users/:clerkId", async (req: Request, res: Response) => {
 
     res.json(updated);
   } catch (err) {
-    console.error("Update username failed", err);
     res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -64,7 +62,6 @@ router.patch(
 
       res.json(updatedUser);
     } catch (error) {
-      console.error("Failed to update settings", error);
       res.status(500).json({ error: "Failed to update settings" });
     }
   }

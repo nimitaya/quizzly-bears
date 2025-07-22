@@ -44,7 +44,6 @@ const ProfilInvitationsScreen = () => {
     try {
       if (!user) return;
       if (!inviteId) {
-        console.error("Error: Invite ID is missing");
         return;
       }
       if (isLoading) return;
@@ -94,12 +93,10 @@ const ProfilInvitationsScreen = () => {
 
       // Handle potential errors
       socketService.onError((error) => {
-        console.error("Socket error when joining room:", error);
         setIsLoading(false);
         // TODO: Add user-facing error handling (toast/alert)
       });
-    } catch (error) {
-      console.error("Error accepting invitation:", error);
+    } catch {
       setIsLoading(false);
       // TODO: Add user-facing error handling (toast/alert)
     }
@@ -110,7 +107,6 @@ const ProfilInvitationsScreen = () => {
     try {
       if (!user) return;
       if (!inviteId) {
-        console.error("Error: Invite ID is missing");
         return;
       }
       if (isLoading) return;
@@ -130,9 +126,7 @@ const ProfilInvitationsScreen = () => {
         );
         setReceivedInviteRequests(pendingInvites.length);
       }
-    } catch (error) {
-      console.error("Error declining invitation:", error);
-      // maybe TODO: Add user-facing error handling (toast/alert)
+    } catch {
     } finally {
       setIsLoading(false);
     }
@@ -149,8 +143,7 @@ const ProfilInvitationsScreen = () => {
         const clerkUserId = user.id;
         const response = await getReceivedInviteRequests(clerkUserId);
         setReceivedInvites(response.inviteRequests || []);
-      } catch (error) {
-        console.error("Error fetching received invitations:", error);
+      } catch {
         setReceivedInvites([]);
       } finally {
         setIsLoading(false);
@@ -226,8 +219,7 @@ const ProfilInvitationsScreen = () => {
         );
         setReceivedInviteRequests(pendingInvites.length);
       }
-    } catch (error) {
-      console.error("Error fetching invitations:", error);
+    } catch {
       setReceivedInvites([]);
 
       // Set badge count to 0 on error
