@@ -8,7 +8,7 @@ import { useSocket } from "./SocketProvider";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
-type UserContextType = {
+export type UserContextType = {
   updateUserSettings: (newSettings: {
     music?: boolean;
     sounds?: boolean;
@@ -28,6 +28,7 @@ type UserContextType = {
   refreshFriendRequestCount?: () => Promise<void>;
   refreshInvitationCount?: () => Promise<void>;
   onlineFriends: string[];
+  triggerUsernameUpdate: () => void;
 };
 
 export const UserContext = createContext<UserContextType>({
@@ -47,6 +48,7 @@ export const UserContext = createContext<UserContextType>({
   refreshFriendRequestCount: async () => {},
   refreshInvitationCount: async () => {},
   onlineFriends: [],
+  triggerUsernameUpdate: () => {},
 });
 
 type TopPlayer = { username?: string; email: string; totalPoints: number };
@@ -68,6 +70,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [receivedInviteRequests, setReceivedInviteRequests] = useState(0);
   const [onlineFriends, setOnlineFriends] = useState<string[]>([]);
 
+  // Add a new state to track username updates
+  const [usernameVersion, setUsernameVersion] = useState(0);
+
   const fetchUserData = async () => {
     if (!user) {
       setUserData(null);
@@ -80,8 +85,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       const res = await axios.get(`${API_BASE_URL}/users/${user.id}`);
       setUserData(res.data);
       setReceivedRequestsCount(res.data.friendRequests.length);
-    } catch (err) {
-      console.error("Failed to load user data", err);
+      // Trigger username refetch when user data changes
+      setUsernameVersion((prev) => prev + 1);
+    } catch {
       setUserData(null);
       setError("Failed to load user data");
     } finally {
@@ -99,10 +105,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         const pendingInvites = allInvites.filter((i) => i.status === "pending");
 
         setReceivedInviteRequests(pendingInvites.length);
-        console.log("📩 Pending invite requests:", pendingInvites.length);
-      } catch (error) {
-        console.error("❌ Failed to fetch invite requests:", error);
-      }
+      } catch {}
     };
 
     fetchInviteRequests();
@@ -127,7 +130,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       );
       setCurrentUsername(res.data.currentUsername ?? null);
     } catch (err) {
-      console.error("Failed to load top players", err);
       setTopPlayers([]);
       setTotalUsers(null);
       setUserRank(null);
@@ -150,9 +152,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         newSettings
       );
       setUserData(res.data);
-    } catch (error) {
-      console.error("Failed to update user settings", error);
-    }
+    } catch (error) {}
   };
 
   const refreshFriendRequestCount = async () => {
@@ -164,10 +164,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         (request) => request.status === "pending"
       );
       setReceivedRequestsCount(pendingRequests.length);
-      console.log("🔄 Friend request count refreshed:", pendingRequests.length);
-    } catch (error) {
-      console.error("❌ Error refreshing friend requests:", error);
-    }
+    } catch {}
   };
 
   const refreshInvitationCount = async () => {
@@ -181,10 +178,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         (invite) => invite.status === "pending"
       );
       setReceivedInviteRequests(pendingInvites.length);
-      console.log("🔄 Invitation count refreshed:", pendingInvites.length);
-    } catch (error) {
-      console.error("❌ Error refreshing invitations:", error);
-    }
+    } catch {}
   };
 
   useEffect(() => {
@@ -201,50 +195,63 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   // Use isSocketConnected in your useEffect for online status
   useEffect(() => {
     if (!userData || !userData._id || !isSocketConnected) {
-      return; // Exit if user data is missing or socket isn't connected
+      return;
     }
 
-    console.log("Setting user online status");
     socketService.setUserOnline(userData._id, userData.clerkUserId);
 
     // Set up socket listeners for friends status
     socketService.on("friends-status", (data: any) => {
-      console.log(
-        "Received friends status update:",
-        data.onlineFriends?.length || 0,
-        "online friends"
-      );
       setOnlineFriends(data.onlineFriends || []);
     });
 
     return () => {
       socketService.off("friends-status");
     };
-  }, [userData, isSocketConnected]); // Depend on socket connection state
+  }, [userData, isSocketConnected]);
+
+  // Add separate effect for username updates
+  useEffect(() => {
+    const updateUsername = async () => {
+      if (!userEmail) return;
+
+      try {
+        const url = `${API_BASE_URL}/top-players?email=${encodeURIComponent(
+          userEmail
+        )}`;
+        const res = await axios.get(url);
+        setCurrentUsername(res.data.currentUsername ?? null);
+      } catch {
+        setCurrentUsername(null);
+      }
+    };
+
+    updateUsername();
+  }, [userEmail, usernameVersion]); // Add usernameVersion as dependency
+
+  // Modify the context value to include username update trigger
+  const contextValue = {
+    currentUsername,
+    userRank,
+    totalUsers,
+    topPlayers,
+    userData,
+    loading: loadingUserData || loadingTopPlayers,
+    error,
+    refetch: [fetchUserData, fetchTopPlayers],
+    updateUserSettings,
+    receivedRequestsCount,
+    setReceivedRequestsCount,
+    receivedInviteRequests,
+    setReceivedInviteRequests,
+    refreshFriendRequestCount,
+    refreshInvitationCount,
+    onlineFriends,
+    triggerUsernameUpdate: () => setUsernameVersion((prev) => prev + 1),
+  };
 
   return (
-    <UserContext.Provider
-      value={{
-        currentUsername,
-        userRank,
-        totalUsers,
-        topPlayers,
-        userData,
-        loading: loadingUserData || loadingTopPlayers,
-        error,
-        refetch: [fetchUserData, fetchTopPlayers],
-        updateUserSettings,
-        receivedRequestsCount,
-        setReceivedRequestsCount,
-        receivedInviteRequests,
-        setReceivedInviteRequests,
-        refreshFriendRequestCount,
-        refreshInvitationCount,
-        onlineFriends,
-      }}
-    >
-      {children}
-    </UserContext.Provider>
+    <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>
   );
 };
 

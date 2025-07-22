@@ -1,17 +1,17 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { View, Animated, StyleSheet, Image } from "react-native";
 import { Colors } from "@/styles/theme";
 
 interface QuizLoaderProps {
-  onComplete: () => void; // Callback when loader is finished
-  minDuration?: number; // Minimum display duration in milliseconds
-  waitForExternal?: boolean; // If true, does not finish automatically by time
+  onComplete: () => void;
+  minDuration?: number;
+  waitForExternal?: boolean;
 }
 
 const QuizLoader: React.FC<QuizLoaderProps> = ({
   onComplete,
-  minDuration = 10000, // 10 seconds for testing
-  waitForExternal = false, // By default works as before
+  minDuration = 10000,
+  waitForExternal = false,
 }) => {
   // Separate animations for each question mark
   const rotationAnimations = useRef([
@@ -27,12 +27,12 @@ const QuizLoader: React.FC<QuizLoaderProps> = ({
       anim.setValue(0);
       Animated.timing(anim, {
         toValue: 1,
-        duration: 6000, // One rotation in 6 seconds
+        duration: 6000,
         useNativeDriver: true,
-        easing: undefined, // Constant speed
+        easing: undefined,
       }).start(({ finished }) => {
         if (finished) {
-          spin(); // Start the next round immediately
+          spin();
         }
       });
     };
@@ -66,7 +66,6 @@ const QuizLoader: React.FC<QuizLoaderProps> = ({
 
   const orbitRadius = 100;
 
-  // 4 Positions: 0°, 90°, 180°, 270°
   const positions = [0, 90, 180, 270];
 
   return (

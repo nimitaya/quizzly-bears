@@ -9,10 +9,10 @@ import { Colors } from "@/styles/theme";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import CustomAlert from "@/components/CustomAlert";
-import socketService from "@/utilities/socketService";
 import { navigationState } from "@/utilities/navigationStateManager";
 import { useSocket } from "@/providers/SocketProvider";
 
+// Initialize WebBrowser for web platform
 if (Platform.OS === "web") {
   WebBrowser.maybeCompleteAuthSession();
 }
@@ -32,7 +32,6 @@ const FacebookSignInButton = () => {
     try {
       setIsLoading(true);
 
-      // IMPORTANT: For mobile, show loading screen during OAuth flow
       if (Platform.OS !== "web") {
         router.push("../Loading");
       }
@@ -41,35 +40,24 @@ const FacebookSignInButton = () => {
 
       if (createdSessionId && setActive) {
         await setActive({ session: createdSessionId });
-
-        // IMPORTANT: Update global auth state
         await refreshGlobalState();
-
-        // IMPORTANT: Set navigation flags for AuthNavigationHelper
         await AsyncStorage.setItem("auth_navigation_pending", "true");
         await AsyncStorage.setItem(
           "auth_navigation_destination",
           "/(tabs)/play"
         );
 
-        // Special case for web platforms
         if (Platform.OS === "web") {
-          // ADDED: Socket reconnection for web
-          console.log("🔄 Facebook OAuth successful - reconnecting socket");
           navigationState.startAuthNavigation();
-
           setTimeout(async () => {
             try {
               await initialize();
-              console.log("✅ Socket reconnected after Facebook OAuth");
               router.replace("/(tabs)/play");
-            } catch (err) {
-              console.error("❌ Socket reconnection failed:", err);
+            } catch {
               router.replace("/(tabs)/play");
             }
           }, 800);
         } else {
-          // For mobile
           await AsyncStorage.setItem("socket_needs_reconnect", "true");
         }
       } else {
@@ -83,9 +71,7 @@ const FacebookSignInButton = () => {
           router.replace("/(auth)/LogInScreen");
         }
       }
-    } catch (err: any) {
-      console.error("Facebook OAuth error:", err);
-
+    } catch (err) {
       if (Platform.OS !== "web") {
         await AsyncStorage.setItem("auth_navigation_pending", "true");
         await AsyncStorage.setItem(

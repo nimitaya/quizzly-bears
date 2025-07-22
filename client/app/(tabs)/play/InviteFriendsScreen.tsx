@@ -80,8 +80,7 @@ const InviteFriendsScreen = () => {
       const friends = await getFriends(clerkUserId);
 
       setFriends(friends);
-    } catch (error) {
-      console.error("Error fetching friends:", error);
+    } catch {
     } finally {
       setIsLoading(false);
     }
@@ -97,15 +96,10 @@ const InviteFriendsScreen = () => {
       if (sent.inviteRequests && sent.inviteRequests.length === 0) {
         router.replace("/(tabs)/play/InviteFriendsScreen");
       }
-      console.log("Updated sent invites:", sent.inviteRequests || []);
-    } catch (error) {
-      console.error("Error fetching sent invites:", error);
-    }
+    } catch {}
   };
 
   const handleInviteDeclined = (data: any) => {
-    console.log("Invite request declined:", data);
-
     fetchSentInvites();
   };
   // ----- Handler Search User -----
@@ -128,7 +122,7 @@ const InviteFriendsScreen = () => {
         setSearchState((prev) => ({
           ...prev,
           result: result.user,
-          email: "", // Clear the input field after successful search
+          email: "",
         }));
 
         // Check if user is already a friend
@@ -240,9 +234,7 @@ const InviteFriendsScreen = () => {
     try {
       if (!userData) return;
       await removeAllInvites(userData.clerkUserId);
-    } catch (error) {
-      console.error("Error removing all invitations:", error);
-    }
+    } catch {}
   };
 
   // ----- Load Room Info -----
@@ -252,9 +244,7 @@ const InviteFriendsScreen = () => {
       if (cachedRoomInfo) {
         setRoomInfo(cachedRoomInfo);
       }
-    } catch (error) {
-      console.error("Error loading room info:", error);
-    }
+    } catch {}
   };
 
   // ----- Load Game Style -----
@@ -264,9 +254,7 @@ const InviteFriendsScreen = () => {
       if (cachedQuizSettings && cachedQuizSettings.quizPlayStyle) {
         setGameStyle(cachedQuizSettings.quizPlayStyle);
       }
-    } catch (error) {
-      console.error("Error loading game style:", error);
-    }
+    } catch {}
   };
 
   // ----- Toggle Friend Selection -----
@@ -319,8 +307,7 @@ const InviteFriendsScreen = () => {
       await Promise.all(invitePromises);
       // Go to lobby after sending invitations
       router.push("/(tabs)/play/MultiplayerLobby");
-    } catch (error) {
-      console.error("Error sending invitations:", error);
+    } catch {
     } finally {
       setIsLoading(false);
     }
@@ -339,8 +326,7 @@ const InviteFriendsScreen = () => {
       await handleRemoveAllInvites();
       // Navigate back
       router.push("/(tabs)/play");
-    } catch (error) {
-      console.error("Error leaving room:", error);
+    } catch {
       // Still navigate back even if there's an error
       router.push("/(tabs)/play");
     }
@@ -368,9 +354,9 @@ const InviteFriendsScreen = () => {
     if (searchState.error) {
       const timer = setTimeout(() => {
         setSearchState((prev) => ({ ...prev, error: "" }));
-      }, 5000); // 5 seconds
+      }, 5000);
 
-      return () => clearTimeout(timer); // Cleanup timer on unmount or error change
+      return () => clearTimeout(timer);
     }
   }, [searchState.error]);
 
@@ -379,9 +365,9 @@ const InviteFriendsScreen = () => {
     if (searchState.result) {
       const timer = setTimeout(() => {
         setSearchState((prev) => ({ ...prev, result: null }));
-      }, 5000); // 5 seconds
+      }, 5000);
 
-      return () => clearTimeout(timer); // Cleanup timer on unmount or result change
+      return () => clearTimeout(timer);
     }
   }, [searchState.result]);
 
@@ -391,7 +377,6 @@ const InviteFriendsScreen = () => {
 
     const friendIds = friends.friends.map((friend) => friend._id);
     if (friendIds.length > 0) {
-      console.log("Requesting online status for friends");
       socketService.getFriendsStatus(userData._id, friendIds);
     }
 
@@ -400,7 +385,7 @@ const InviteFriendsScreen = () => {
       if (friendIds.length > 0 && userData._id) {
         socketService.getFriendsStatus(userData._id, friendIds);
       }
-    }, 30000); // Every 30 seconds
+    }, 30000);
 
     return () => clearInterval(refreshInterval);
   }, [userData, friends.friends]);
@@ -410,7 +395,6 @@ const InviteFriendsScreen = () => {
     if (!userData || !friends.friends.length) return;
 
     const handleSocketReconnect = () => {
-      console.log("Socket reconnected, refreshing online status");
       const friendIds = friends.friends.map((friend) => friend._id);
 
       if (friendIds.length > 0 && userData._id) {
@@ -469,14 +453,6 @@ const InviteFriendsScreen = () => {
                 ]}
               />
             </View>
-            {/* <Text
-              style={[
-                styles.friendStatus,
-                isOnline ? styles.onlineStatus : styles.offlineStatus,
-              ]}
-            >
-              {isOnline ? "Online" : "Offline"}
-            </Text> */}
           </View>
         </View>
       </TouchableOpacity>
@@ -526,9 +502,6 @@ const InviteFriendsScreen = () => {
                 ]}
               />
             </View>
-            {/* <Text style={[styles.friendStatus, styles.offlineStatus]}>
-              {requestAlreadySent ? "Friend request sent" : "Found via search"}
-            </Text> */}
           </View>
         </View>
 

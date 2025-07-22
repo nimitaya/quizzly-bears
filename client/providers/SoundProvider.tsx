@@ -47,7 +47,6 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!loading && userData?.settings?.sounds !== undefined) {
       setSoundEnabled(userData.settings.sounds);
     } else if (!loading && userData) {
-      // Wenn keine Einstellungen vorhanden sind, setze Sound auf true (eingeschaltet)
       setSoundEnabled(true);
     }
   }, [userData, loading]);

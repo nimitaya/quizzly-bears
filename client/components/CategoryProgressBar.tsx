@@ -4,7 +4,7 @@ import { Colors, FontSizes, Radius } from "../styles/theme";
 
 interface CategoryProgressBarProps {
   text: string;
-  progress: number; // 0-100 percentage
+  progress: number;
   maxWidth?: number;
 }
 
@@ -16,7 +16,6 @@ export const CategoryProgressBar: React.FC<CategoryProgressBarProps> = ({
   const { width } = useWindowDimensions();
   const buttonWidth = Math.min(maxWidth || 348, width - 32);
 
-  // Ensure progress is between 0 and 100
   const normalizedProgress = Math.max(0, Math.min(100, progress));
 
   return (

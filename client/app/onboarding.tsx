@@ -14,14 +14,12 @@ import { Colors, FontSizes, Radius, Gaps } from "@/styles/theme";
 import { Logo } from "@/components/Logos";
 import IconCheckbox from "@/assets/icons/IconCheckbox";
 import { useOnboarding } from "@/providers/OnboardingProvider";
-import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 
 const ONBOARDING_COMPLETED_KEY = "@onboarding_completed";
 
 export default function OnboardingScreen() {
   const router = useRouter();
   const { markOnboardingCompleted } = useOnboarding();
-  const { shouldShowLoading } = useGlobalLoading();
   const { width } = useWindowDimensions();
 
   const handleFinish = async () => {

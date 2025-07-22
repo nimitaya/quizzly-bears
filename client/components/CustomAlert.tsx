@@ -1,5 +1,4 @@
 import { Colors, FontSizes, Gaps, Radius } from "@/styles/theme";
-import React, { useState } from "react";
 import {
   Modal,
   View,

@@ -1,6 +1,6 @@
 import React from "react";
 import { TouchableOpacity, StyleSheet, View, Text } from "react-native";
-import { Colors, FontSizes, Gaps } from "@/styles/theme";
+import { Colors } from "@/styles/theme";
 import IconChat from "@/assets/icons/IconChat";
 
 interface ChatFloatingButtonProps {
@@ -14,17 +14,8 @@ const ChatFloatingButton: React.FC<ChatFloatingButtonProps> = ({
   unreadCount = 0,
   isVisible = true,
 }) => {
-  React.useEffect(() => {
-    console.log(
-      "ChatFloatingButton: unreadCount =",
-      unreadCount,
-      "isVisible =",
-      isVisible
-    );
-  }, [unreadCount, isVisible]);
 
   if (!isVisible) {
-    console.log("ChatFloatingButton hidden because isVisible=false");
     return null;
   }
 
@@ -32,7 +23,6 @@ const ChatFloatingButton: React.FC<ChatFloatingButtonProps> = ({
     <TouchableOpacity
       style={styles.floatingButton}
       onPress={() => {
-        console.log("Chat button pressed with unread count:", unreadCount);
         onPress();
       }}
     >

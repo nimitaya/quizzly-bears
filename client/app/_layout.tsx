@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { AppState, AppStateStatus, Text, TextInput, View } from "react-native";
+import { Text, TextInput, View } from "react-native";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { Slot } from "expo-router";

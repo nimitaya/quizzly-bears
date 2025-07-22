@@ -25,7 +25,7 @@ export function useQuizLogic() {
   const READ_TIMER_DURATION = 2000;
   const ANSWER_TIMER_DURATION = 30000;
   const NEXT_QUESTION_DELAY = 3000;
-  // get current user from Clerk:
+
   const { user } = useUser();
   // To reset Timers
   const readTimeout = useRef<number | null>(null);
@@ -106,7 +106,9 @@ export function useQuizLogic() {
           }
         );
         errorSound.current = errorSnd;
-      } catch (error) {
+
+      } catch {
+
         correctSound.current = null;
         errorSound.current = null;
       }
@@ -143,9 +145,9 @@ export function useQuizLogic() {
     try {
       await soundToPlay.setPositionAsync(0);
       await soundToPlay.playAsync();
-    } catch (error) {
-      console.error(`useQuizLogic: Error playing ${soundType} sound:`, error);
-    }
+
+    } catch {}
+
   };
 
   // ========================================================== FUNCTIONS ==========================================================
@@ -157,8 +159,7 @@ export function useQuizLogic() {
         return cachedData;
       }
       return null;
-    } catch (error) {
-      console.error(`Error fetching data with key ${key} from cache:`, error);
+    } catch {
       return null;
     }
   };
@@ -168,6 +169,7 @@ export function useQuizLogic() {
     try {
       const cachedInfo = await loadCacheData(key.quizSettings);
       if (cachedInfo) {
+
         setGameState((prev) => {
           const newGameState = {
             ...prev,
@@ -177,16 +179,14 @@ export function useQuizLogic() {
           };
           return newGameState;
         });
-      } else {
-        console.error("No cached quiz settings found");
-      }
+      } 
       // Mark game info as loaded
       setGameInfoLoaded(true);
-    } catch (error) {
-      console.error("Error loading settings:", error);
-      // Even on error, mark as loaded to prevent infinite waiting
+    } catch {
+            // Even on error, mark as loaded to prevent infinite waiting
       setGameInfoLoaded(true);
     }
+
   };
 
   // ----- fetch Data and set all Questions Array -----
@@ -195,12 +195,8 @@ export function useQuizLogic() {
       const cachedInfo = await loadCacheData(key.aiQuestions);
       if (cachedInfo) {
         setCurrQuestionsArray(cachedInfo.questionArray);
-      } else {
-        console.error("No cached AI questions found");
       }
-    } catch (error) {
-      console.error("Error loading questions:", error);
-    }
+    } catch {}
   };
 
   // ===== Quiz functionality =====
@@ -210,7 +206,9 @@ export function useQuizLogic() {
       // fetch questions from cache
       let questions = await fetchFromCache(key.aiQuestions);
       if (!questions) {
+
         // Fallback to dummy data if cache is empty
+
         questions = aiQuestions;
         setCurrQuestionsArray(questions.questionArray);
       } else {
@@ -240,9 +238,7 @@ export function useQuizLogic() {
           isLocked: false,
         }));
       }
-    } catch (error) {
-      console.error("Error loading questions:", error);
-    }
+    } catch {}
   };
 
   // ----- set TIMING for questions -----
@@ -260,7 +256,10 @@ export function useQuizLogic() {
         handleAnswerCheck();
 
         // For multiplayer modes, notify server about timeout
-        if ((gameState.playStyle === "group" || gameState.playStyle === "duel") && !isTransitionScheduled.current) {
+        if (
+          (gameState.playStyle === "group" || gameState.playStyle === "duel") &&
+          !isTransitionScheduled.current
+        ) {
           try {
             // Get current room info
             const roomInfo = await loadCacheData(CACHE_KEY.currentRoom);
@@ -273,8 +272,8 @@ export function useQuizLogic() {
                 currQuestionIndex
               );
             }
-          } catch (error) {
-            console.error("Error notifying timeout:", error);
+
+          } catch {
 
             // Fallback: If we can't communicate with server, proceed locally
             if (!isTransitionScheduled.current) {
@@ -284,6 +283,7 @@ export function useQuizLogic() {
               }, NEXT_QUESTION_DELAY);
             }
           }
+
         }
       }, ANSWER_TIMER_DURATION);
     }, READ_TIMER_DURATION);
@@ -364,9 +364,9 @@ export function useQuizLogic() {
 
     const { optionA, optionB, optionC, optionD } = currentQuestionData;
     const options = [optionA, optionB, optionC, optionD];
-    const chosenOption = answerState.chosenAnswer; // This is now "A", "B", "C" or "D" (option key)
+    const chosenOption = answerState.chosenAnswer;
 
-    // Compare by option index (A, B, C, D), not by text
+    // Compare by option
     let optionIndex = -1;
 
     // Determine the index of the selected option
@@ -434,7 +434,7 @@ export function useQuizLogic() {
       // Update state and save current data for caching
       const newTotal = pointsState.total + gainedPoints.totalPoints;
 
-      // Add correct points to state
+      // Addition correct points to state
       setPointsState((prevPoints) => {
         const updatedState = {
           ...prevPoints,
@@ -528,8 +528,8 @@ export function useQuizLogic() {
       // Cache current points & information with up-to-date values
       cachePoints({
         gameCategory: gameState.category,
-        score: actualTotal, // Use current data from ref
-        correctAnswers: actualCorrect, // Use current data from ref
+        score: actualTotal,
+        correctAnswers: actualCorrect,
         totalAnswers: updatedPoints.totalAnswers,
       });
 
@@ -654,7 +654,9 @@ export function useQuizLogic() {
       // Reset the transition flag
       isTransitionScheduled.current = false;
     };
+
   }, [currQuestionIndex, gameInfoLoaded]);
+
 
   // ----- Setup for multiplayer mode -----
   useEffect(() => {

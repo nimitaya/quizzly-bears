@@ -1,5 +1,5 @@
-import { View, TouchableOpacity, Text, StyleSheet, Image } from "react-native";
-import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
+import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
+import { ButtonPrimary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
 import { FontSizes, Gaps } from "@/styles/theme";
 import { useRouter } from "expo-router";
@@ -11,7 +11,6 @@ import { generateMultipleQuizQuestions } from "@/utilities/api/quizApi";
 import { Difficulty } from "@/utilities/types";
 import { PlayStyle } from "@/utilities/quiz-logic/quizTypesInterfaces";
 import { CACHE_KEY } from "@/utilities/cacheUtils";
-import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import Countdown from "@/components/Countdown";
 import QuizLoader from "@/components/QuizLoader";
 import CustomAlert from "@/components/CustomAlert";
@@ -30,22 +29,18 @@ const StartQuizScreen = () => {
   const [showLocalLoader, setShowLocalLoader] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const { withLoading, isGloballyLoading, showLoading } = useGlobalLoading();
 
   // ---------- Functions ----------
   const fetchCachedQuizSpecs = async () => {
     try {
       const cachedQuizSpecs = await loadCacheData(cacheKey);
       if (cachedQuizSpecs) {
-        console.log(cachedQuizSpecs);
         setCategory(cachedQuizSpecs.quizCategory);
         setLevel(cachedQuizSpecs.quizLevel);
         setTopic(cachedQuizSpecs.chosenTopic);
         setPlayStyle(cachedQuizSpecs.quizPlayStyle);
       }
-    } catch (error) {
-      console.error("Failed to load data from cache:", error);
-    }
+    } catch {}
   };
 
   // IMPORTANT - Corrected handleStartQuiz function
@@ -55,17 +50,12 @@ const StartQuizScreen = () => {
     rounds: number
   ) => {
     try {
-      console.log("Starting quiz generation...");
       setIsGeneratingQuestions(true);
       setShowLocalLoader(true);
 
       // we use the data from the cache to get the topic
       const cachedInfo = await loadCacheData(cacheKey);
       const specificTopic = cachedInfo?.chosenTopic || topic;
-
-      console.log(
-        `Generiere Fragen für das spezifische Thema: "${specificTopic}"`
-      );
 
       // IMPORTANT: AI must finish before proceeding
       const questionsData = await generateMultipleQuizQuestions(
@@ -74,20 +64,14 @@ const StartQuizScreen = () => {
         rounds
       );
 
-      console.log("🌐 AI raw content received!");
-      console.log("Generated Questions Data:", questionsData);
-
       // The API already returns AiQuestions, save directly
       await saveDataToCache(cacheAi, questionsData);
-      console.log("Questions saved to cache successfully");
 
       // Only after receiving data from AI, hide the loader and show countdown
       setShowLocalLoader(false);
       setIsGeneratingQuestions(false);
       setShowCountdown(true);
-    } catch (error) {
-      console.error("Error generating questions:", error);
-
+    } catch {
       // Show error to user
       setShowLocalLoader(false);
       setIsGeneratingQuestions(false);
@@ -99,10 +83,8 @@ const StartQuizScreen = () => {
   };
 
   const handleCountdownComplete = () => {
-    console.log("Countdown complete - navigating to QuizScreen");
     setShowCountdown(false);
     setIsGeneratingQuestions(false);
-    // Navigation zur Quiz-Screen nach dem Countdown
     router.push("/(tabs)/play/QuizScreen");
   };
 
@@ -141,22 +123,17 @@ const StartQuizScreen = () => {
     return (
       <QuizLoader
         key={`ai-questions-loader-${Date.now()}`}
-        onComplete={() => {
-          console.log(
-            "QuizLoader animation cycle completed, but waiting for AI..."
-          );
-        }}
-        minDuration={1000} // Minimum display duration for the loader
-        waitForExternal={true} // Wait for external signal (AI generation completion)
+        onComplete={() => {}}
+        minDuration={1000}
+        waitForExternal={true}
       />
     );
   }
 
-  // Zeige den Countdown wenn aktiv
   if (showCountdown) {
     return (
       <Countdown
-        key={`countdown-${Date.now()}`} // Eindeutiger key für jeden Countdown
+        key={`countdown-${Date.now()}`}
         onComplete={handleCountdownComplete}
         startNumber={3}
         duration={1500}
@@ -187,9 +164,7 @@ const StartQuizScreen = () => {
           handleStartQuiz(topic, level, rounds);
         }}
         noInternet={false}
-        //showMiniGamesButton={true}
         onMiniGamesPress={handleMiniGamesPress}
-        // imageSource={require("@/assets/images/Bear-green-black-ooh.webp")}
       />
 
       <View style={{ marginBottom: Gaps.g40 }}>

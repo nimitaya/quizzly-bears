@@ -46,7 +46,7 @@ const ChangePassword = () => {
       setCurrentPassword("");
       setNewPassword("");
       setRepeatPassword("");
-      setShowForm(false); // Hide form after success
+      setShowForm(false);
     } catch (err: any) {
       if (err?.status === 403) {
         setReLogIn(true);
@@ -60,7 +60,6 @@ const ChangePassword = () => {
     }
   };
 
-  // Reset and hide form on cancel
   const handleCancel = () => {
     setShowForm(false);
     setCurrentPassword("");
@@ -102,9 +101,6 @@ const ChangePassword = () => {
         AsyncStorage.removeItem("had_password_reset"),
         AsyncStorage.removeItem("auth_token"),
       ]);
-
-      // Set up navigation for AuthNavigationHelper to handle
-      // await AsyncStorage.setItem("auth_navigation_pending", "true");
 
       // Sign out from Clerk
       await signOut();

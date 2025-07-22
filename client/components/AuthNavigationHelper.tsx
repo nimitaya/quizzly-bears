@@ -27,17 +27,11 @@ export default function AuthNavigationHelper() {
 
           // Check if we need to reconnect socket (after OAuth)
           if (needsReconnect === "true") {
-            console.log(
-              "🔄 AuthNavigationHelper: Reconnecting socket after OAuth"
-            );
             await AsyncStorage.removeItem("socket_needs_reconnect");
 
             try {
               await initialize();
-              console.log("✅ Socket reconnected via AuthNavigationHelper");
-            } catch (err) {
-              console.error("❌ Socket reconnection failed:", err);
-            }
+            } catch (err) {}
           }
 
           // Navigate to destination

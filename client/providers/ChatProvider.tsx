@@ -46,12 +46,12 @@ export const useChat = () => useContext(ChatContext);
 
 interface ChatProviderProps {
   children: React.ReactNode;
-  roomId?: string; // Make roomId optional, with default in the provider
+  roomId: string;
 }
 
 export const ChatProvider: React.FC<ChatProviderProps> = ({
   children,
-  roomId = "shared_room1234", // Default room ID if none is provided
+  roomId,
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
@@ -61,10 +61,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
   const { userData } = useContext(UserContext);
   const chatRefObject = React.useRef<any>(null);
 
-  // Use the provided roomId instead of a constant
   const CHAT_ROOM_ID = roomId;
 
-  // Initialize Firebase
+  // Initialization of Firebase
   useEffect(() => {
     if (!userData) return;
 
@@ -88,7 +87,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
       }
 
       const db = getDatabase(app);
-      const chatPath = `chats/${CHAT_ROOM_ID}`; // Use dynamic room ID
+      const chatPath = `chats/${CHAT_ROOM_ID}`;
       const chatRef = ref(db, chatPath);
 
       // Add welcome message if no messages exist yet
@@ -115,9 +114,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
     } catch (error) {
       console.error("Firebase initialization error:", error);
     }
-  }, [userData, CHAT_ROOM_ID]); // Add CHAT_ROOM_ID as dependency
+  }, [userData, CHAT_ROOM_ID]);
 
-  // Listen for messages
   useEffect(() => {
     if (!userData || !chatRefObject.current) return;
 
@@ -250,7 +248,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
               // Filter out stale typing statuses (older than 10 seconds)
               const typingTime = new Date(user.timestamp).getTime();
               const now = new Date().getTime();
-              const isRecent = now - typingTime < 10000; // 10 seconds
+              const isRecent = now - typingTime < 10000;
               const isNotCurrentUser = user.playerId !== userData.clerkUserId;
 
               return isRecent && isNotCurrentUser && user.isTyping;

@@ -5,6 +5,7 @@ import { Audio } from "expo-av";
 import { useSound } from "@/providers/SoundProvider";
 
 interface TimerBarProps {
+
   duration?: number; // Total duration in seconds
   delay?: number; // Delay before start in seconds
   onTimeUp?: () => void; // Callback when time is up
@@ -12,6 +13,7 @@ interface TimerBarProps {
   height?: number; // Height of the bar
   isPaused?: boolean; // Pauses the animation
   isGameEnded?: boolean; // Signals that the game has ended
+
 }
 
 const TimerBar: React.FC<TimerBarProps> = ({
@@ -33,8 +35,6 @@ const TimerBar: React.FC<TimerBarProps> = ({
   useEffect(() => {
     const loadTimerSound = async () => {
       try {
-        console.log('TimerBar: Loading timer sound, soundEnabled:', soundEnabled);
-        
         // Initialize audio mode for mobile devices
         await Audio.setAudioModeAsync({
           allowsRecordingIOS: false,
@@ -45,19 +45,17 @@ const TimerBar: React.FC<TimerBarProps> = ({
         });
 
         const { sound } = await Audio.Sound.createAsync(
-          require('@/assets/Sounds/time-01.mp3'),
-          { 
-            isLooping: true, 
+          require("@/assets/Sounds/time-01.mp3"),
+          {
+            isLooping: true,
             volume: 0.6,
-            shouldPlay: false
+            shouldPlay: false,
           }
         );
-        
+
         timerSound.current = sound;
         setSoundLoaded(true);
-        console.log('TimerBar: Timer sound loaded successfully');
       } catch (error) {
-        console.error('TimerBar: Error loading timer sound:', error);
         timerSound.current = null;
         setSoundLoaded(false);
       }
@@ -67,7 +65,6 @@ const TimerBar: React.FC<TimerBarProps> = ({
 
     // Cleanup function
     return () => {
-      console.log('TimerBar: Cleaning up timer sound');
       if (timerSound.current) {
         timerSound.current.stopAsync().catch(() => {});
         timerSound.current.unloadAsync().catch(() => {});
@@ -76,43 +73,33 @@ const TimerBar: React.FC<TimerBarProps> = ({
       setSoundLoaded(false);
       setIsPlaying(false);
     };
-  }, []); // Remove soundEnabled dependency to load sound only once
+  }, []);
 
   // Start/stop timer sound based on animation state
   const startTimerSound = async () => {
     if (!soundEnabled || !timerSound.current || !soundLoaded || isPlaying) {
-      console.log('TimerBar: Cannot start sound - soundEnabled:', soundEnabled, 'soundLoaded:', soundLoaded, 'isPlaying:', isPlaying);
       return;
     }
-    
+
     try {
-      console.log('TimerBar: Starting timer sound');
       await timerSound.current.setPositionAsync(0);
       await timerSound.current.playAsync();
       setIsPlaying(true);
-      console.log('TimerBar: Timer sound started successfully');
-    } catch (error) {
-      console.error('TimerBar: Error starting timer sound:', error);
-    }
+    } catch {}
   };
 
   const stopTimerSound = async () => {
     if (!timerSound.current || !isPlaying) {
       return;
     }
-    
+
     try {
-      console.log('TimerBar: Stopping timer sound');
       await timerSound.current.stopAsync();
       setIsPlaying(false);
-      console.log('TimerBar: Timer sound stopped successfully');
-    } catch (error) {
-      console.error('TimerBar: Error stopping timer sound:', error);
-    }
+    } catch {}
   };
 
   useEffect(() => {
-    console.log('TimerBar: Animation effect triggered');
     // Reset animation values
     progressAnimation.setValue(0);
 
@@ -125,32 +112,26 @@ const TimerBar: React.FC<TimerBarProps> = ({
 
     // Start timer sound when animation starts (if sound is enabled)
     if (soundEnabled && soundLoaded) {
-      console.log('TimerBar: Attempting to start sound');
       startTimerSound();
-    } else {
-      console.log('TimerBar: Sound not enabled or not loaded yet');
     }
 
     animation.start(({ finished }) => {
-      console.log('TimerBar: Animation finished:', finished);
       // Stop timer sound when animation finishes
       stopTimerSound();
-      
+
       if (finished && onTimeUp) {
         onTimeUp();
       }
     });
 
     return () => {
-      console.log('TimerBar: Animation cleanup');
       progressAnimation.stopAnimation();
       // Stop timer sound when component unmounts or animation is interrupted
       stopTimerSound();
     };
-  }, [duration, onTimeUp, soundEnabled, soundLoaded]); // Add soundEnabled dependency back
+  }, [duration, onTimeUp, soundEnabled, soundLoaded]);
 
   useEffect(() => {
-    console.log('TimerBar: Pause effect triggered, isPaused:', isPaused);
     if (isPaused) {
       progressAnimation.stopAnimation();
       // Stop timer sound when paused
@@ -221,9 +202,7 @@ const styles = StyleSheet.create({
   backgroundBar: {
     right: 0,
   },
-  progressBar: {
-    // Inherits barBase styles
-  },
+  progressBar: {},
 });
 
 export default TimerBar;

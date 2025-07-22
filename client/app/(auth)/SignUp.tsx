@@ -12,7 +12,7 @@ import {
 import { useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { Colors, FontSizes, Gaps } from "@/styles/theme";
-import { SearchInput } from "@/components/Inputs";
+import { SearchInput, PasswordInput } from "@/components/Inputs";
 import {
   ButtonPrimary,
   ButtonPrimaryDisabled,
@@ -20,7 +20,6 @@ import {
 } from "@/components/Buttons";
 import CustomAlert from "@/components/CustomAlert";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { PasswordInput } from "@/components/Inputs";
 import { navigationState } from "@/utilities/navigationStateManager";
 
 export default function SignUpScreen() {
@@ -29,12 +28,7 @@ export default function SignUpScreen() {
 
   // Add this useEffect hook to end auth navigation when component mounts
   React.useEffect(() => {
-    console.log("📱 SignUp screen mounted - ending auth navigation state");
     navigationState.endAuthNavigation();
-
-    return () => {
-      console.log("📱 SignUp screen unmounting");
-    };
   }, []);
 
   // State management
@@ -260,7 +254,7 @@ export default function SignUpScreen() {
         const lastTime = parseInt(lastResendTime, 10);
         const now = Date.now();
         const timePassed = now - lastTime;
-        const COOLDOWN_PERIOD = 60 * 1000; // 60 seconds
+        const COOLDOWN_PERIOD = 60 * 1000;
 
         if (timePassed < COOLDOWN_PERIOD) {
           // User needs to wait

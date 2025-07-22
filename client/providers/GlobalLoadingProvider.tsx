@@ -11,7 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 type GlobalLoadingContextType = {
   isGloballyLoading: boolean;
   isAuthenticated: boolean;
-  shouldShowLoading: boolean; // Combined state for showing loading
+  shouldShowLoading: boolean;
   refreshGlobalState: () => Promise<void>;
   showLoading: (show: boolean) => void;
   withLoading: <T>(promise: Promise<T>) => Promise<T>;
@@ -124,8 +124,6 @@ export const GlobalLoadingProvider: React.FC<{ children: React.ReactNode }> = ({
         // Set authentication based on Clerk state
         setIsAuthenticated(!!isSignedIn);
 
-        // Wait to ensure everything is loaded
-
         //check for password reset flag during initialization
         const resetFlag = await AsyncStorage.getItem("password_recently_reset");
         if (resetFlag === "true") {
@@ -152,9 +150,7 @@ export const GlobalLoadingProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [userLoaded, authLoaded, isSignedIn]);
 
   // CRITICAL FIX: Remove the automatic router.replace to Loading
-  // This was causing an infinite loop
 
-  // Объединенное состояние для показа загрузки
   const shouldShowLoading = isGloballyLoading || manualLoading;
 
   const contextValue = {

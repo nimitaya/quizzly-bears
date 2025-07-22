@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const ONBOARDING_COMPLETED_KEY = "@onboarding_completed";
@@ -10,7 +16,7 @@ export const shouldShowOnboarding = async (): Promise<boolean> => {
     return completed !== "true";
   } catch (error) {
     console.error("Error checking onboarding state:", error);
-    return true; // Show onboarding by default if there's an error
+    return true;
   }
 };
 
@@ -29,13 +35,17 @@ interface OnboardingContextType {
   markOnboardingCompleted: () => void;
 }
 
-const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
+const OnboardingContext = createContext<OnboardingContextType | undefined>(
+  undefined
+);
 
 interface OnboardingProviderProps {
   children: ReactNode;
 }
 
-export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children }) => {
+export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
+  children,
+}) => {
   const [shouldShow, setShouldShow] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -49,7 +59,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
       setShouldShow(shouldShowOnboardingScreen);
     } catch (error) {
       console.error("Error checking onboarding status:", error);
-      setShouldShow(true); // Show onboarding by default on error
+      setShouldShow(true);
     } finally {
       setIsLoading(false);
     }
@@ -59,10 +69,9 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     try {
       await AsyncStorage.setItem(ONBOARDING_COMPLETED_KEY, "true");
       setShouldShow(false);
-      console.log("Onboarding marked as completed");
     } catch (error) {
       console.error("Error marking onboarding as completed:", error);
-      setShouldShow(false); // Still update state even if AsyncStorage fails
+      setShouldShow(false);
     }
   };
 

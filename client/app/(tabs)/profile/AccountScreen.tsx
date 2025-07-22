@@ -1,8 +1,7 @@
-import { View, TouchableOpacity, StyleSheet, Text } from "react-native";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
 import ClerkSettings, {
   ClerkSettingsRefType,
 } from "@/app/(auth)/ClerkSettings";
-import { useUser } from "@clerk/clerk-expo";
 import IconArrowBack from "@/assets/icons/IconArrowBack";
 import { Logo } from "@/components/Logos";
 import { Gaps } from "@/styles/theme";
@@ -12,7 +11,6 @@ import { useFocusEffect } from "expo-router";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Loading from "@/app/Loading";
-import { navigationState } from "@/utilities/navigationStateManager";
 
 const AccountScreen = () => {
   const router = useRouter();
@@ -25,7 +23,7 @@ const AccountScreen = () => {
   const [passwordResetFlag, setPasswordResetFlag] = useState<string | null>(
     null
   );
-  const { user } = useUser();
+
   // Check for password reset flag on mount and refresh
   useEffect(() => {
     let isMounted = true;
@@ -36,9 +34,7 @@ const AccountScreen = () => {
         if (isMounted) {
           setPasswordResetFlag(resetFlag);
         }
-      } catch (err) {
-        console.log("Error checking password reset flag:", err);
-      }
+      } catch (err) {}
     };
 
     checkPasswordResetFlag();
@@ -80,7 +76,7 @@ const AccountScreen = () => {
     if (hasFocusedRef.current) {
       const timer = setTimeout(() => {
         hasFocusedRef.current = false;
-      }, 5000); // Reset after 5 seconds to allow future focus events
+      }, 5000);
       return () => clearTimeout(timer);
     }
   });
@@ -90,8 +86,6 @@ const AccountScreen = () => {
     useCallback(() => {
       const timer = setTimeout(async () => {
         if (hasFocusedRef.current) return;
-
-        console.log("Profile tab focused - refreshing auth state");
         hasFocusedRef.current = true;
 
         if (isMounted.current) {
@@ -108,19 +102,16 @@ const AccountScreen = () => {
               );
 
               // Delay cleanup to ensure proper detection
-              setTimeout(() => {
-                AsyncStorage.removeItem("password_recently_reset").catch(
-                  (err) =>
-                    console.log("Error clearing password reset flag:", err)
-                );
+              setTimeout(async () => {
+                try {
+                  await AsyncStorage.removeItem("password_recently_reset");
+                } catch {}
               }, 2000);
             }
 
             // Trigger refresh cascade
             setRefreshKey((prev) => prev + 1);
-          } catch (err) {
-            console.log("Error in profile tab focus:", err);
-          }
+          } catch (err) {}
         }
       }, 100);
 

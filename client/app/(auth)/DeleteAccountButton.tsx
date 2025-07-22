@@ -62,9 +62,6 @@ const DeleteAccountButton: React.FC<DeleteAccountButtonProps> = ({
         AsyncStorage.removeItem("auth_token"),
       ]);
 
-      // Set up navigation for AuthNavigationHelper to handle
-      // await AsyncStorage.setItem("auth_navigation_pending", "true");
-
       // Sign out from Clerk
       await signOut();
     } catch (err) {

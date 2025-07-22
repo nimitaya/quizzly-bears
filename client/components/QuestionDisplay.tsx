@@ -1,17 +1,19 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useLanguage } from '@/providers/LanguageContext';
-import { getLocalizedText } from '@/utilities/languageUtils';
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { useLanguage } from "@/providers/LanguageContext";
+import { getLocalizedText } from "@/utilities/languageUtils";
 
 interface QuestionDisplayProps {
   question: any;
-  // otras props necesarias
 }
 
 const QuestionDisplay: React.FC<QuestionDisplayProps> = ({ question }) => {
   const { currentLanguage } = useLanguage();
-  
-  const questionText = getLocalizedText(question.question, currentLanguage.code);
+
+  const questionText = getLocalizedText(
+    question.question,
+    currentLanguage.code
+  );
   const optionAText = getLocalizedText(question.optionA, currentLanguage.code);
   const optionBText = getLocalizedText(question.optionB, currentLanguage.code);
   const optionCText = getLocalizedText(question.optionC, currentLanguage.code);
@@ -36,7 +38,7 @@ const styles = StyleSheet.create({
   },
   questionText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 16,
   },
   optionsContainer: {
@@ -45,7 +47,7 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 16,
     padding: 8,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: "#f0f0f0",
     borderRadius: 8,
   },
 });

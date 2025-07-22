@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, Text, ScrollView, Alert } from "react-native";
+import { View, TouchableOpacity, Text, ScrollView } from "react-native";
 import IconArrowBack from "@/assets/icons/IconArrowBack";
 import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
@@ -46,16 +46,14 @@ const CategoryScreen = () => {
   // ---------- FUNCTIONS ----------
   const sendInformationToCache = async (category: string, topic?: string) => {
     const chosenSpecs: QuizSettings = {
-      quizCategory: category, // Kategorie wird jetzt das Thema sein
+      quizCategory: category,
       quizLevel: selectedLevel,
       quizPlayStyle: playStyle,
-      chosenTopic: topic || category, // User eingegebenes Topic
+      chosenTopic: topic || category,
     };
     try {
       await saveDataToCache(cacheKey, chosenSpecs);
-    } catch (error) {
-      console.error("Failed to save specs:", error);
-    }
+    } catch {}
   };
 
   // Set the selected category, call cache function and navigate accordingly
@@ -68,13 +66,9 @@ const CategoryScreen = () => {
       try {
         finalCategory = await categorizeTopic(selectedTopic);
         specificTopic = selectedTopic;
-        console.log(
-          `Topic "${selectedTopic}" categorized as: ${finalCategory}`
-        );
-      } catch (error) {
-        console.error("Error categorizing topic:", error);
-        finalCategory = "Culture"; // Fallback
-        specificTopic = selectedTopic; // Keep the entered topic even if categorization failed
+      } catch {
+        finalCategory = "Culture";
+        specificTopic = selectedTopic;
       }
     }
 
@@ -98,17 +92,15 @@ const CategoryScreen = () => {
     }
   };
 
-  //vadim: auto analyze wenn user hat aufgehört zu tippen, wichtig JA / NEIN? Mal prüfen
+  //auto categorization of the topic
   useEffect(() => {
     if (selectedTopic.trim().length >= 3) {
       const delayedAnalysis = setTimeout(async () => {
         try {
           const category = await categorizeTopic(selectedTopic);
           setSuggestedCategory(category);
-        } catch (error) {
-          console.error("Error in background analysis:", error);
-        }
-      }, 1000); // nach 1 Sekunde
+        } catch {}
+      }, 1000);
 
       return () => clearTimeout(delayedAnalysis);
     } else {
@@ -135,9 +127,7 @@ const CategoryScreen = () => {
           setIsMultiplayerMode(true);
           setRoomInfo(cachedRoomInfo);
         }
-      } catch (error) {
-        console.error("Failed to load data from cache:", error);
-      }
+      } catch {}
     };
     fetchCachedQuizSpecs();
   }, []);

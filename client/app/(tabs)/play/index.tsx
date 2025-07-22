@@ -1,4 +1,4 @@
-import { ButtonPrimary, ButtonSecondary } from "@/components/Buttons";
+import { ButtonPrimary } from "@/components/Buttons";
 import { Logo } from "@/components/Logos";
 import { Colors, FontSizes, Gaps } from "@/styles/theme";
 import { useRouter } from "expo-router";
@@ -20,10 +20,8 @@ const PlayScreen = () => {
 
   useEffect(() => {
     socketService.on("pointsUpdated", () => {
-      console.log("🔁 pointsUpdated received - outside");
       refetch &&
         refetch.forEach((fn) => {
-          console.log("🔁 pointsUpdated received - inside");
           fn();
         });
     });

@@ -1,10 +1,15 @@
-// ==========Funktion um den aktuellen Sprachcode zu erhalten=========================
+// ==========Funktion for recent language =========================
 
-export const getLocalizedText = (textObject: any, currentLanguageCode: string): string => {
-    if (!textObject || typeof textObject !== 'object') {
-      return textObject || '';
-    }
-    
-    // Priorizieren der Übersetzung in der aktuellen Sprache
-    return textObject[currentLanguageCode] || textObject.en || textObject.de || '';
-  };
+export const getLocalizedText = (
+  textObject: any,
+  currentLanguageCode: string
+): string => {
+  if (!textObject || typeof textObject !== "object") {
+    return textObject || "";
+  }
+
+  // Translate the text based on the current language code
+  return (
+    textObject[currentLanguageCode] || textObject.en || textObject.de || ""
+  );
+};

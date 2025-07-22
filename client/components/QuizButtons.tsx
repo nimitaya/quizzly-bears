@@ -11,7 +11,6 @@ import { Audio } from "expo-av";
 import { Colors, Radius, FontSizes, Gaps } from "../styles/theme";
 import { useSound } from "@/providers/SoundProvider";
 
-
 type QuizButtonProps = {
   text: string;
   selected: boolean;
@@ -36,8 +35,6 @@ export function QuizButton({
   useEffect(() => {
     const loadAuswahlSound = async () => {
       try {
-        //console.log('QuizButton: Loading auswahl sound');
-        
         // Initialize audio mode for mobile devices
         await Audio.setAudioModeAsync({
           allowsRecordingIOS: false,
@@ -48,17 +45,16 @@ export function QuizButton({
         });
 
         const { sound } = await Audio.Sound.createAsync(
-          require('@/assets/Sounds/auswahl.mp3'),
-          { 
+          require("@/assets/Sounds/auswahl.mp3"),
+          {
             volume: 0.7,
-            shouldPlay: false
+            shouldPlay: false,
           }
         );
-        
+
         auswahlSound.current = sound;
-        //console.log('QuizButton: Auswahl sound loaded successfully');
       } catch (error) {
-        console.error('QuizButton: Error loading auswahl sound:', error);
+        console.error("QuizButton: Error loading auswahl sound:", error);
         auswahlSound.current = null;
       }
     };
@@ -78,38 +74,31 @@ export function QuizButton({
   const playAuswahlSound = async () => {
     // DEBUG: Always try to play sound regardless of settings (like TimerBar)
     if (!auswahlSound.current) {
-      //console.log('QuizButton: Cannot play auswahl sound - not loaded');
       return;
     }
-    
+
     try {
-      //console.log('QuizButton: Playing auswahl sound (DEBUG MODE)');
       await auswahlSound.current.setPositionAsync(0);
       await auswahlSound.current.playAsync();
-      //console.log('QuizButton: Auswahl sound played successfully');
     } catch (error) {
-      console.error('QuizButton: Error playing auswahl sound:', error);
+      console.error("QuizButton: Error playing auswahl sound:", error);
     }
   };
 
   // Handle button press with sound
   const handlePress = async () => {
     if (checked) return;
-    
+
     // Play selection sound if enabled
     if (soundEnabled && auswahlSound.current) {
       try {
-        //console.log('QuizButton: Playing auswahl sound');
         await auswahlSound.current.setPositionAsync(0);
         await auswahlSound.current.playAsync();
-        //console.log('QuizButton: Auswahl sound played successfully');
       } catch (error) {
-        console.error('QuizButton: Error playing auswahl sound:', error);
+        console.error("QuizButton: Error playing auswahl sound:", error);
       }
-    } else {
-      console.log('QuizButton: Sound not enabled or not loaded');
     }
-    
+
     onPress();
   };
 

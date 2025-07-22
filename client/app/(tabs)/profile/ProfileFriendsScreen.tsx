@@ -32,7 +32,6 @@ import socketService from "@/utilities/socketService";
 
 const ProfilFriendsScreen = () => {
   const router = useRouter();
-  // Get online friends from context
   const { userData, onlineFriends = [] } = useContext(UserContext);
   const [isLoading, setIsLoading] = useState(false);
   const [searchState, setSearchState] = useState<{
@@ -49,24 +48,6 @@ const ProfilFriendsScreen = () => {
     receivedFriendRequests: { friendRequests: [] },
     sentFriendRequests: { friendRequests: [] },
   });
-
-  useEffect(() => {
-    console.log("ProfileFriendsScreen mounted");
-    return () => console.log("ProfileFriendsScreen unmounted");
-  }, []);
-
-  useEffect(() => {
-    console.log(
-      "userData changed:",
-      userData
-        ? {
-            id: userData._id,
-            clerkId: userData.clerkUserId,
-            email: userData.email,
-          }
-        : "No userData"
-    );
-  }, [userData]);
 
   // =========== Functions ==========
   // Handler Search User
@@ -192,15 +173,10 @@ const ProfilFriendsScreen = () => {
       return;
     }
 
-    console.log(
-      "Fetching friends data with clerkUserId:",
-      userData.clerkUserId
-    );
-
-    // Fetch friends when userData becomes available
+    // Fetch friends when userData
     const fetchFriends = async () => {
       try {
-        setIsLoading(true); // Add loading state
+        setIsLoading(true);
         const clerkUserId = userData.clerkUserId;
 
         const friends = await getFriends(clerkUserId);
@@ -212,11 +188,6 @@ const ProfilFriendsScreen = () => {
           receivedFriendRequests: received,
           sentFriendRequests: sent,
         });
-        console.log("Friends data loaded:", {
-          friendCount: friends.friends.length,
-          receivedCount: received.friendRequests.length,
-          sentCount: sent.friendRequests.length,
-        });
       } catch (error) {
         console.error("Error fetching friends:", error);
       } finally {
@@ -225,27 +196,21 @@ const ProfilFriendsScreen = () => {
     };
 
     fetchFriends();
-  }, [userData?.clerkUserId]); // Add userData as dependency
+  }, [userData?.clerkUserId]);
 
   useEffect(() => {
     if (!userData) return;
 
-    // Function to set up all socket listeners
     const setupSocketListeners = () => {
-      console.log("Setting up friend event listeners...");
-
-      // Clean up existing listeners first to avoid duplicates
       socketService.off("friendRequestSent");
       socketService.off("friendRequestAccepted");
       socketService.off("friendRequestDeclined");
       socketService.off("friendRemoved");
 
-      // Register new listeners
+      // Handle incoming friend request
       socketService.on("friendRequestSent", (data: any) => {
-        console.log("🔔 Friend request SENT event received:", data);
         if (userData) {
           getReceivedFriendRequests(userData.clerkUserId).then((received) => {
-            console.log("Updated received requests:", received);
             setFriendsState((prev) => ({
               ...prev,
               receivedFriendRequests: received,
@@ -254,13 +219,11 @@ const ProfilFriendsScreen = () => {
         }
       });
 
+      // Handle accepted friend request
       socketService.on("friendRequestAccepted", (data: any) => {
-        console.log("Friend request accepted:", data);
-
         if (userData) {
           const clerkUserId = userData.clerkUserId;
 
-          // Update the friends list
           getFriends(clerkUserId).then((friends) => {
             setFriendsState((prev) => ({
               ...prev,
@@ -268,7 +231,6 @@ const ProfilFriendsScreen = () => {
             }));
           });
 
-          // Update the requests list (remove the accepted one)
           getSentFriendRequests(clerkUserId).then((sent) => {
             setFriendsState((prev) => ({
               ...prev,
@@ -278,10 +240,8 @@ const ProfilFriendsScreen = () => {
         }
       });
 
-      socketService.on("friendRequestDeclined", (data: any) => {
-        console.log("Friend request declined:", data);
-
-        // Update the received friend requests list
+      // Handle declined friend request
+      socketService.on("friendRequestDeclined", () => {
         if (userData) {
           getReceivedFriendRequests(userData.clerkUserId).then((received) => {
             setFriendsState((prev) => ({
@@ -298,10 +258,8 @@ const ProfilFriendsScreen = () => {
         }
       });
 
-      socketService.on("friendRemoved", (data: any) => {
-        console.log("Friend removed:", data);
-
-        // Update the friends list
+      // Handle friend removal
+      socketService.on("friendRemoved", () => {
         if (userData) {
           getFriends(userData.clerkUserId).then((friends) => {
             setFriendsState((prev) => ({
@@ -313,17 +271,13 @@ const ProfilFriendsScreen = () => {
       });
     };
 
-    // Set up listeners initially
     setupSocketListeners();
 
-    // Re-register listeners when socket connects
-    socketService.on("connect", () => {
-      console.log("Socket reconnected, re-registering listeners");
-      setupSocketListeners();
-    });
+    // Re-register listeners on socket reconnection
+    socketService.on("connect", setupSocketListeners);
 
+    // Cleanup socket listeners on unmount
     return () => {
-      console.log("Cleaning up socket listeners");
       socketService.off("friendRequestSent");
       socketService.off("friendRequestAccepted");
       socketService.off("friendRequestDeclined");
@@ -335,7 +289,6 @@ const ProfilFriendsScreen = () => {
   // Request friends status when component loads
   useEffect(() => {
     if (userData && friendsState.friendList.friends?.length > 0) {
-      console.log("Requesting online status for friends");
       const friendIds = friendsState.friendList.friends.map(
         (friend) => friend._id
       );
@@ -343,17 +296,16 @@ const ProfilFriendsScreen = () => {
     }
   }, [userData, friendsState.friendList.friends]);
 
-  // Add periodic refresh for online status
+  // periodic refresh for online status
   useEffect(() => {
     if (!userData || !friendsState.friendList.friends?.length) return;
 
     const refreshInterval = setInterval(() => {
-      console.log("Refreshing friend online status");
       const friendIds = friendsState.friendList.friends.map(
         (friend) => friend._id
       );
       socketService.getFriendsStatus(userData._id, friendIds);
-    }, 30000); // Every 30 seconds
+    }, 30000);
 
     return () => clearInterval(refreshInterval);
   }, [userData, friendsState.friendList.friends]);
@@ -498,7 +450,6 @@ const ProfilFriendsScreen = () => {
         <TouchableOpacity
           style={styles.refreshButton}
           onPress={() => {
-            console.log("Manual refresh triggered");
             if (userData?.clerkUserId) {
               const fetchFriends = async () => {
                 try {
@@ -514,9 +465,7 @@ const ProfilFriendsScreen = () => {
                     receivedFriendRequests: received,
                     sentFriendRequests: sent,
                   });
-                  console.log("Friends data refreshed manually");
                 } catch (error) {
-                  console.error("Error refreshing friends:", error);
                 } finally {
                   setIsLoading(false);
                 }
@@ -538,7 +487,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.bgGray,
     paddingTop: Gaps.g80,
-    //maxWidth: 440,
     alignSelf: "center",
     width: "100%",
   },

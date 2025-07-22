@@ -1,7 +1,5 @@
-import { View, StyleSheet, Text, ScrollView } from "react-native";
-import ClerkSettings, {
-  ClerkSettingsRefType,
-} from "@/app/(auth)/ClerkSettings";
+import { View, StyleSheet, ScrollView } from "react-native";
+import { ClerkSettingsRefType } from "@/app/(auth)/ClerkSettings";
 import { useFocusEffect } from "expo-router";
 import React, {
   useRef,
@@ -55,7 +53,6 @@ const ProfileScreen = () => {
 
   //Funktion to handle language change
   const handleLanguageChange = async (language: any) => {
-    console.log("Language changed to:", language);
     await changeLanguage(language);
   };
 
@@ -68,11 +65,8 @@ const ProfileScreen = () => {
         const resetFlag = await AsyncStorage.getItem("password_recently_reset");
         if (isMounted) {
           setPasswordResetFlag(resetFlag);
-          console.log("receivedRequestsCount:", receivedRequestsCount);
         }
-      } catch (err) {
-        console.log("Error checking password reset flag:", err);
-      }
+      } catch (err) {}
     };
 
     checkPasswordResetFlag();
@@ -125,7 +119,6 @@ const ProfileScreen = () => {
       const timer = setTimeout(async () => {
         if (hasFocusedRef.current) return;
 
-        console.log("Profile tab focused - refreshing auth state");
         hasFocusedRef.current = true;
 
         if (isMounted.current) {
@@ -135,32 +128,24 @@ const ProfileScreen = () => {
               "password_recently_reset"
             );
             if (resetFlag === "true") {
-              // Ensure flag persists for ClerkSettings to detect
               await AsyncStorage.setItem(
                 "password_recently_reset_persist",
                 "true"
               );
-
-              // Delay cleanup to ensure proper detection
-              setTimeout(() => {
-                AsyncStorage.removeItem("password_recently_reset").catch(
-                  (err) =>
-                    console.log("Error clearing password reset flag:", err)
-                );
+              setTimeout(async () => {
+                try {
+                  await AsyncStorage.removeItem("password_recently_reset");
+                } catch {}
               }, 2000);
             }
 
-            // Trigger refresh cascade
             setRefreshKey((prev) => prev + 1);
-          } catch (err) {
-            console.log("Error in profile tab focus:", err);
-          }
+          } catch (err) {}
         }
       }, 100);
 
-      // Add this to refresh counts when tab is focused
+      // refresh counts when tab is focused
       if (userData?.clerkUserId) {
-        console.log("Tab focused - refreshing friend request counts");
         getReceivedFriendRequests(userData.clerkUserId).then((received) => {
           const pendingRequests = received.friendRequests.filter(
             (request) => request.status === "pending"
@@ -169,7 +154,7 @@ const ProfileScreen = () => {
         });
       }
 
-      // Add this to also refresh invitation counts when tab is focused
+      //  refresh invitation counts when tab is focused
       if (userData?.clerkUserId) {
         getReceivedInviteRequests(userData.clerkUserId)
           .then((response) => {
@@ -192,8 +177,6 @@ const ProfileScreen = () => {
   useEffect(() => {
     if (userData) {
       const handleFriendRequestSent = (data: any) => {
-        console.log("Friend request sent:", data);
-
         getReceivedFriendRequests(userData.clerkUserId).then((received) => {
           // Only count PENDING requests
           const pendingRequests = received.friendRequests.filter(
@@ -213,7 +196,6 @@ const ProfileScreen = () => {
         getReceivedInviteRequests(userData.clerkUserId)
           .then((response) => {
             if (!response?.inviteRequests) {
-              console.warn("No inviteRequests field in response:", response);
               return;
             }
 
@@ -224,8 +206,7 @@ const ProfileScreen = () => {
 
             if (typeof setReceivedInviteRequests === "function") {
               setReceivedInviteRequests(pendingInvites.length);
-            } else {
-              console.warn("setReceivedInviteRequests is not a function");
+
             }
           })
           .catch((error) => {
@@ -251,7 +232,7 @@ const ProfileScreen = () => {
     }
   }, [userData]);
 
-  // Add this useEffect to load initial counts
+  // initial counts
   useEffect(() => {
     if (!userData?.clerkUserId) return;
 
@@ -273,10 +254,10 @@ const ProfileScreen = () => {
         console.error("❌ Error loading initial friend requests:", error);
       });
 
+
     getReceivedInviteRequests(userData.clerkUserId)
       .then((response) => {
         if (!response?.inviteRequests) {
-          console.warn("⚠️ Invalid invitation response:", response);
           return;
         }
 
@@ -286,13 +267,10 @@ const ProfileScreen = () => {
 
         if (typeof setReceivedInviteRequests === "function") {
           setReceivedInviteRequests(pendingInvites.length);
-        } else {
-          console.warn("⚠️ setReceivedInviteRequests is not a function");
+
         }
       })
-      .catch((error) => {
-        console.error("❌ Error loading initial invitations:", error);
-      });
+      .catch((error) => {});
   }, [userData?.clerkUserId]);
 
   return (

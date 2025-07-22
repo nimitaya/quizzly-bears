@@ -9,10 +9,10 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Colors, FontSizes, FontWeights, Gaps, Radius } from "@/styles/theme";
+import { Colors, FontSizes, FontWeights, Gaps } from "@/styles/theme";
 import IconArrowBack from "@/assets/icons/IconArrowBack";
 import { Logo } from "@/components/Logos";
-import { ButtonSecondary, ButtonPrimary } from "@/components/Buttons";
+import { ButtonSecondary } from "@/components/Buttons";
 
 interface GameCardProps {
   title: string;
@@ -36,7 +36,6 @@ const MiniGamesScreen = () => {
   const cardHeight = Math.min(cardWidth, 160); // Square cards
 
   const handleGamePress = (gameName: string) => {
-    console.log(`Starting ${gameName}`);
     if (gameName === "Connect Four") {
       router.push("/(tabs)/play/ConnectFourScreen");
     } else if (gameName === "Space Invaders") {
@@ -46,8 +45,6 @@ const MiniGamesScreen = () => {
     } else if (gameName === "Snake") {
       router.push("/(tabs)/play/SnakeScreen");
     }
-    // Other games can be started here later
-    // router.push(`/games/${gameName.toLowerCase()}`);
   };
 
   return (

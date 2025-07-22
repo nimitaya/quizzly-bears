@@ -76,25 +76,19 @@ export const cachePoints = async ({
   };
   try {
     await saveDataToCache(cacheKey, gameInformation);
-    console.log("Answers Info:", gameInformation);
-  } catch (error) {
-    console.error("Failed to save points:", error);
-  }
+  } catch {}
 };
 
 // ---------- CLEAR cache for game Data ----------
 export const clearCachePoints = async () => {
   try {
     await clearCacheData(cacheKey);
-  } catch (error) {
-    console.error("Failed to clear points:", error);
-  }
+  } catch {}
 };
 
 // ---------- CHECK cache storage for remaining data ----------
 export const checkCache = async (clerkUserId: string) => {
   if (!clerkUserId) {
-    console.log("Cannot save points for guests");
     return;
   }
   try {
@@ -114,13 +108,11 @@ export const checkCache = async (clerkUserId: string) => {
       await clearCachePoints();
     }
   } catch (error) {
-    console.error("Failed to read cache:", error);
     return null;
   }
 };
 
 // ---------- SEND cached data TO DATABASE ----------
-// Fixed version - accepts callback for setOnChanges:
 export const sendPointsToDatabase = async (
   clerkUserId: string,
   onSuccess?: () => void
@@ -128,7 +120,6 @@ export const sendPointsToDatabase = async (
   try {
     const finalGameData: GameInformation = await loadCacheData(cacheKey);
     if (!finalGameData) {
-      console.log("No cached data found to send");
       return;
     }
 
@@ -141,14 +132,11 @@ export const sendPointsToDatabase = async (
       category: finalGameData.category,
     });
 
-    console.log("Points successfully sent to database");
-
     // Call the success callback if provided
     if (onSuccess) {
       onSuccess();
     }
   } catch (error) {
-    console.error("Failed to send points to database:", error);
     throw error;
   }
 };

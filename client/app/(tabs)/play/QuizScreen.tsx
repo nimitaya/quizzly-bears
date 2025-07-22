@@ -77,7 +77,6 @@ const QuizLogic = () => {
   useEffect(() => {
     if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
       // Just make sure socket is connected for final results
-      console.log("Ensuring socket connection for multiplayer results...");
       socketService.ensureConnection();
       setIsQuizActive(true);
     } else if (gameState.playStyle === "solo") {
@@ -118,12 +117,8 @@ const QuizLogic = () => {
             }
           );
           router.push("./MultiplayerResultScreen");
-        } else {
-          console.error("Missing room info or user data");
         }
-      } catch (error) {
-        console.error("Error submitting game results:", error);
-      }
+      } catch {}
       return;
     }
     router.push("./CategoryScreen");
@@ -181,9 +176,7 @@ const QuizLogic = () => {
     try {
       if (!userData) return;
       await removeAllInvites(userData.clerkUserId);
-    } catch (error) {
-      console.error("Error removing all invitations:", error);
-    }
+    } catch {}
   };
 
   // ----- Helper function to leave socket room -----
@@ -192,12 +185,9 @@ const QuizLogic = () => {
       try {
         const roomInfo = await loadCacheData(cacheKey.currentRoom);
         if (roomInfo && roomInfo.roomId && userData) {
-          console.log("Leaving socket room:", roomInfo.roomId);
           socketService.leaveRoom(roomInfo.roomId, userData.clerkUserId);
         }
-      } catch (error) {
-        console.error("Error leaving socket room:", error);
-      }
+      } catch {}
     }
   };
 

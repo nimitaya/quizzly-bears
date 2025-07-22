@@ -7,7 +7,6 @@ import {
   FlatList,
   ScrollView,
 } from "react-native";
-// Add these imports for the chat feature
 import { ChatProvider, useChat } from "@/providers/ChatProvider";
 import ChatWindow from "@/components/Chat/ChatWindow";
 import ChatFloatingButton from "@/components/Chat/ChatFloatingButton";
@@ -175,8 +174,7 @@ const MultiplayerLobby = () => {
 
       setSentInvites(sent.inviteRequests || []);
       setAcceptedInvites(accepted.inviteRequests || []);
-    } catch (error) {
-      console.error("Error fetching invites:", error);
+    } catch {
     } finally {
       setIsLoading(false);
     }
@@ -205,14 +203,11 @@ const MultiplayerLobby = () => {
     try {
       if (!userData) return;
       await removeAllInvites(userData.clerkUserId);
-    } catch (error) {
-      console.error("Error removing all invitations:", error);
-    }
+    } catch {}
   };
 
   // ====================== UseEffect =====================
   useEffect(() => {
-    // Only initialize once
     if (!isRejoining) {
       loadRoomInfo();
       setupSocketListeners();
@@ -228,11 +223,6 @@ const MultiplayerLobby = () => {
           updatedRoomInfo.selectedCategory !== roomInfo?.selectedCategory ||
           updatedRoomInfo.selectedTopic !== roomInfo?.selectedTopic
         ) {
-          console.log(
-            "Category/topic updated from cache:",
-            updatedRoomInfo.selectedCategory,
-            updatedRoomInfo.selectedTopic
-          );
           setRoomInfo(updatedRoomInfo);
         }
 
@@ -341,7 +331,7 @@ const MultiplayerLobby = () => {
     }
   }, [currentLanguage, roomInfo, currentRoom]);
 
-  // Add a dedicated useEffect for category changes
+  // category changes
   useEffect(() => {
     if (
       roomInfo?.isAdmin &&
@@ -349,11 +339,6 @@ const MultiplayerLobby = () => {
       roomInfo.roomId &&
       socketService.isConnected()
     ) {
-      console.log(
-        "Admin broadcasting category change to all players:",
-        roomInfo.selectedCategory
-      );
-
       // Add a timestamp to track when we last emitted this event to prevent duplicates
       const now = Date.now();
       const lastEmit = (window as any).lastCategoryChangeEmit || 0;
@@ -422,7 +407,6 @@ const MultiplayerLobby = () => {
             try {
               await socketService.connect();
             } catch (error) {
-              console.error("Failed to connect socket:", error);
               setErrorMessage("Failed to connect to server");
               setShowErrorAlert(true);
               setIsRejoining(false);
@@ -444,7 +428,6 @@ const MultiplayerLobby = () => {
         }
       }
     } catch (error) {
-      console.error("Error loading room info:", error);
       setIsRejoining(false);
     }
   };
@@ -460,8 +443,7 @@ const MultiplayerLobby = () => {
 
       setCurrentRoom(data.room);
       collectAllLanguages(data.room);
-      setIsRejoining(false); // Reset rejoin flag
-
+      setIsRejoining(false);
       // Update room info with latest room data
       if (roomInfo) {
         const updatedRoomInfo = {
@@ -486,9 +468,6 @@ const MultiplayerLobby = () => {
       "categoryChanged",
       (data: { roomId: string; newCategory: string; newTopic?: string }) => {
         if (!roomInfo) {
-          console.log(
-            "[CATEGORY DEBUG] No roomInfo available when category event received"
-          );
           return;
         }
 
@@ -567,13 +546,11 @@ const MultiplayerLobby = () => {
     });
 
     socketService.onPlayerJoined((data) => {
-      console.log("Player joined:", data.player.name);
       setCurrentRoom(data.room);
       collectAllLanguages(data.room);
 
       // If we're the host/admin and have selected a category, share it with the new player
       if (roomInfo?.isAdmin && roomInfo.selectedCategory && roomInfo.roomId) {
-        console.log("Admin sharing category info with new player");
         socketService.emit("categoryChanged", {
           roomId: roomInfo.roomId,
           newCategory: roomInfo.selectedCategory,
@@ -586,13 +563,11 @@ const MultiplayerLobby = () => {
     });
 
     socketService.onPlayerRejoined((data) => {
-      console.log("Player rejoined:", data.player.name);
       setCurrentRoom(data.room);
       collectAllLanguages(data.room);
 
       // If we're the host/admin and have selected a category, share it with the rejoined player
       if (roomInfo?.isAdmin && roomInfo.selectedCategory && roomInfo.roomId) {
-        console.log("Admin sharing category info with rejoined player");
         socketService.emit("categoryChanged", {
           roomId: roomInfo.roomId,
           newCategory: roomInfo.selectedCategory,
@@ -605,7 +580,6 @@ const MultiplayerLobby = () => {
     });
 
     socketService.onPlayerLeft((data) => {
-      console.log("Player left:", data.playerName);
       setCurrentRoom(data.room);
       collectAllLanguages(data.room);
       // Refresh invites when a player leaves
@@ -613,8 +587,7 @@ const MultiplayerLobby = () => {
     });
 
     socketService.onGameStarted(async (data) => {
-      console.log("Game started!");
-      setGameStarted(true); // Stop room refresh when game starts
+      setGameStarted(true);
 
       // Mark the room as started in the socket service to prevent further room state requests
       if (roomInfo?.roomId) {
@@ -624,14 +597,14 @@ const MultiplayerLobby = () => {
       // If we received questions from the server, cache them locally
       if (data.questions && data.questions.length > 0) {
         // Determine available languages from the room data if available
-        let availableLanguages: string[] = ["en"]; // Always include English as default
+        let availableLanguages: string[] = ["en"];
 
         // Extract languages from the room data if available
         if (data.room && data.room.players) {
           const languagesFromRoom = data.room.players
             .map((player) => player.language)
             .filter((lang): lang is string => !!lang)
-            .filter((lang, index, arr) => arr.indexOf(lang) === index); // Remove duplicates
+            .filter((lang, index, arr) => arr.indexOf(lang) === index);
 
           if (languagesFromRoom.length > 0) {
             // Add any languages from the room that aren't already in our array
@@ -649,7 +622,7 @@ const MultiplayerLobby = () => {
 
           // Add all detected languages with the content
           availableLanguages.forEach((lang) => {
-            fields[lang] = content; // Using the same content for all languages as fallback
+            fields[lang] = content;
           });
 
           return fields;
@@ -723,26 +696,16 @@ const MultiplayerLobby = () => {
     });
 
     socketService.onShowStartQuiz((data) => {
-      console.log("Admin selected topic, showing StartQuizScreen");
-      // Check if we already have the category information in roomInfo
-      if (roomInfo?.selectedCategory) {
-        console.log(
-          "Already have category information:",
-          roomInfo.selectedCategory
-        );
-      }
       // Go to StartQuizScreen
       router.push("/(tabs)/play/StartQuizScreen");
     });
 
     socketService.onHostChanged((data) => {
-      console.log("Host changed to:", data.newHost.name);
       setNewHostName(data.newHost.name);
       setShowNewHostAlert(true);
     });
 
     socketService.onError((error) => {
-      console.error("Socket error:", error);
       setErrorMessage(error.message);
       setShowErrorAlert(true);
 
@@ -752,33 +715,22 @@ const MultiplayerLobby = () => {
         (window as any).rejoinTimeout = null;
       }
 
-      setIsRejoining(false); // Reset rejoin flag on error
+      setIsRejoining(false);
     });
 
     // Listen for quiz settings from host
     socketService.onQuizSettingsSync(async (data) => {
       if (data.quizSettings && !roomInfo?.isHost) {
-        console.log("Received quiz settings from host:", data.quizSettings);
         await saveDataToCache(CACHE_KEY.quizSettings, data.quizSettings);
-        console.log("Quiz settings saved to cache");
       }
     });
 
     socketService.onRoomDeleted((data) => {
       if (roomInfo && data.roomId === roomInfo.roomId) {
-        console.log(
-          `Room ${roomInfo.roomId} was deleted, cleaning up chat data`
-        );
         socketService
           .deleteRoomChat(roomInfo.roomId)
-          .then(() =>
-            console.log(
-              `Chat data cleaned up for deleted room ${roomInfo.roomId}`
-            )
-          )
-          .catch((error) =>
-            console.error(`Error cleaning up chat data: ${error}`)
-          );
+
+          .catch(() => {});
       }
     });
   };
@@ -787,7 +739,6 @@ const MultiplayerLobby = () => {
   const startGame = async () => {
     if (roomInfo && currentRoom && roomInfo.selectedCategory) {
       try {
-        console.log("Starting quiz generation...");
         setIsGeneratingQuestions(true);
         setShowLocalLoader(true);
 
@@ -829,7 +780,7 @@ const MultiplayerLobby = () => {
         const fetchedQuestions = await generateMultiplayerQuestions(
           cachedQuizSpecs.chosenTopic || cachedQuizSpecs.quizCategory,
           cachedQuizSpecs.quizLevel,
-          10, // question count
+          10,
           allLanguages
         );
 
@@ -857,7 +808,7 @@ const MultiplayerLobby = () => {
 
         setShowLocalLoader(false);
         setIsGeneratingQuestions(false);
-        setGameStarted(true); // Stop room refresh when game starts
+        setGameStarted(true);
 
         // Mark the room as started in the socket service to prevent further room state requests
         if (roomInfo?.roomId) {
@@ -884,7 +835,6 @@ const MultiplayerLobby = () => {
           });
         }
       } catch (error) {
-        console.error("Error starting game:", error);
         setErrorMessage("Failed to start the game");
         setShowErrorAlert(true);
         setShowLocalLoader(false);
@@ -919,7 +869,6 @@ const MultiplayerLobby = () => {
       const socketQuestions = transformQuestionsForSocket(questionsData);
       socketService.startGame(roomInfo.roomId, socketQuestions);
     } else {
-      console.error("Room info is not available to start the game");
       setErrorMessage("Failed to start the game - room info missing");
       setShowErrorAlert(true);
     }
@@ -928,7 +877,6 @@ const MultiplayerLobby = () => {
   // ----- Sync quiz settings with other players -----
   const syncQuizSettings = async (roomId: string) => {
     try {
-      console.log("Syncing quiz settings with other players...");
       const { loadCacheData } = await import("@/utilities/cacheUtils");
       const quizSettings = await loadCacheData(CACHE_KEY.quizSettings);
 
@@ -937,15 +885,8 @@ const MultiplayerLobby = () => {
           roomId: roomId,
           quizSettings: quizSettings,
         });
-        console.log("Quiz settings sent to other players");
-      } else {
-        console.warn(
-          "Failed to sync quiz settings: settings not found or socket not connected"
-        );
       }
-    } catch (error) {
-      console.error("Error syncing quiz settings:", error);
-    }
+    } catch {}
   };
 
   // ----- Transform questions to socket format -----
@@ -985,7 +926,7 @@ const MultiplayerLobby = () => {
 
       return {
         id: index.toString(),
-        question: q.question, // Send full localized question object
+        question: q.question,
         options: [
           { content: optionA, isCorrect: isCorrectA },
           { content: optionB, isCorrect: isCorrectB },
@@ -1048,16 +989,7 @@ const MultiplayerLobby = () => {
 
       // Delete chat data when canceling room (if admin)
       if (roomInfo.isAdmin) {
-        socketService
-          .deleteRoomChat(roomInfo.roomId)
-          .then(() =>
-            console.log(
-              `Chat data deleted for canceled room ${roomInfo.roomId}`
-            )
-          )
-          .catch((error) =>
-            console.error(`Error deleting chat data: ${error}`)
-          );
+        socketService.deleteRoomChat(roomInfo.roomId).catch(() => {});
       }
 
       // Continue with existing logic
@@ -1095,16 +1027,7 @@ const MultiplayerLobby = () => {
 
         // If this is the last player, delete the chat data
         if (isLastPlayer) {
-          socketService
-            .deleteRoomChat(roomInfo.roomId)
-            .then(() =>
-              console.log(
-                `Chat data deleted as last player left room ${roomInfo.roomId}`
-              )
-            )
-            .catch((error) =>
-              console.error(`Error deleting chat data: ${error}`)
-            );
+          socketService.deleteRoomChat(roomInfo.roomId).catch(() => {});
         }
 
         // Continue with existing logic
@@ -1239,13 +1162,9 @@ const MultiplayerLobby = () => {
     return (
       <QuizLoader
         key={`ai-questions-loader-${Date.now()}`}
-        onComplete={() => {
-          console.log(
-            "QuizLoader animation cycle completed, but waiting for AI..."
-          );
-        }}
-        minDuration={1000} // Minimum display duration for the loader
-        waitForExternal={true} // Wait for external signal (AI generation completion)
+        onComplete={() => {}}
+        minDuration={1000}
+        waitForExternal={true}
       />
     );
   }
@@ -1309,10 +1228,6 @@ const MultiplayerLobby = () => {
       </ScrollView>
 
       <View style={styles.buttonContainer}>
-        {/* {!roomInfo.isAdmin && (
-<ButtonSecondary text={"Waiting for admin bear..."} disabled />
-)} */}
-
         {roomInfo.isAdmin && !roomInfo.selectedCategory && (
           <>
             <ButtonPrimary text="Go" onPress={goToSelectCategory} />
@@ -1362,7 +1277,6 @@ const MultiplayerLobby = () => {
         noInternet={false}
       />
 
-      {/* Add the chat component wrapped in a ChatProvider */}
       {userData && roomInfo && (
         <ChatProvider roomId={roomInfo.roomId}>
           <LobbyChat

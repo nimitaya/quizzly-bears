@@ -1,28 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Colors, Gaps, FontSizes, FontWeights } from '@/styles/theme';
-import IconArrowBack from '@/assets/icons/IconArrowBack';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  TouchableOpacity,
+  TextInput,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Colors, Gaps, FontSizes, FontWeights } from "@/styles/theme";
+import IconArrowBack from "@/assets/icons/IconArrowBack";
 
 interface GameSettings {
-  side: 'left' | 'right';
-  difficulty: 'easy' | 'medium' | 'hard';
+  side: "left" | "right";
+  difficulty: "easy" | "medium" | "hard";
   maxPoints: number;
-  gameMode: 'standard' | 'survival';
+  gameMode: "standard" | "survival";
 }
 
 const PingPongStartScreen = () => {
   const router = useRouter();
   const [gameSettings, setGameSettings] = useState<GameSettings>({
-    side: 'left',
-    difficulty: 'medium',
+    side: "left",
+    difficulty: "medium",
     maxPoints: 10,
-    gameMode: 'standard',
+    gameMode: "standard",
   });
 
   const updateGameSettings = (setting: keyof GameSettings, value: any) => {
-    setGameSettings(prev => ({ ...prev, [setting]: value }));
+    setGameSettings((prev) => ({ ...prev, [setting]: value }));
   };
 
   const handleBackPress = () => {
@@ -35,8 +41,8 @@ const PingPongStartScreen = () => {
       pathname: "/(tabs)/play/PingPongGameScreen",
       params: {
         settings: JSON.stringify(gameSettings),
-        soundOn: 'true', // Default sound on
-      }
+        soundOn: "true",
+      },
     });
   };
 
@@ -48,35 +54,45 @@ const PingPongStartScreen = () => {
 
       <View style={styles.menuContainer}>
         <Text style={styles.menuTitle}>Ping Pong</Text>
-        
+
         {/* Settings Row - Only Side Selection */}
         <View style={styles.settingsRow}>
           <View style={styles.settingItem}>
             <Text style={styles.settingLabel}>Side:</Text>
             <View style={styles.selectContainer}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
-                  styles.selectOption, 
-                  gameSettings.side === 'left' && styles.selectOptionActive
+                  styles.selectOption,
+                  gameSettings.side === "left" && styles.selectOptionActive,
                 ]}
-                onPress={() => updateGameSettings('side', 'left')}
+                onPress={() => updateGameSettings("side", "left")}
               >
-                <Text style={[
-                  styles.selectOptionText,
-                  gameSettings.side === 'left' && styles.selectOptionTextActive
-                ]}>Left</Text>
+                <Text
+                  style={[
+                    styles.selectOptionText,
+                    gameSettings.side === "left" &&
+                      styles.selectOptionTextActive,
+                  ]}
+                >
+                  Left
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
-                  styles.selectOption, 
-                  gameSettings.side === 'right' && styles.selectOptionActive
+                  styles.selectOption,
+                  gameSettings.side === "right" && styles.selectOptionActive,
                 ]}
-                onPress={() => updateGameSettings('side', 'right')}
+                onPress={() => updateGameSettings("side", "right")}
               >
-                <Text style={[
-                  styles.selectOptionText,
-                  gameSettings.side === 'right' && styles.selectOptionTextActive
-                ]}>Right</Text>
+                <Text
+                  style={[
+                    styles.selectOptionText,
+                    gameSettings.side === "right" &&
+                      styles.selectOptionTextActive,
+                  ]}
+                >
+                  Right
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -86,41 +102,57 @@ const PingPongStartScreen = () => {
         <View style={styles.settingItem}>
           <Text style={styles.settingLabel}>Difficulty:</Text>
           <View style={styles.selectContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
-                styles.selectOption, 
-                gameSettings.difficulty === 'easy' && styles.selectOptionActive
+                styles.selectOption,
+                gameSettings.difficulty === "easy" && styles.selectOptionActive,
               ]}
-              onPress={() => updateGameSettings('difficulty', 'easy')}
+              onPress={() => updateGameSettings("difficulty", "easy")}
             >
-              <Text style={[
-                styles.selectOptionText,
-                gameSettings.difficulty === 'easy' && styles.selectOptionTextActive
-              ]}>Easy</Text>
+              <Text
+                style={[
+                  styles.selectOptionText,
+                  gameSettings.difficulty === "easy" &&
+                    styles.selectOptionTextActive,
+                ]}
+              >
+                Easy
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
-                styles.selectOption, 
-                gameSettings.difficulty === 'medium' && styles.selectOptionActive
+                styles.selectOption,
+                gameSettings.difficulty === "medium" &&
+                  styles.selectOptionActive,
               ]}
-              onPress={() => updateGameSettings('difficulty', 'medium')}
+              onPress={() => updateGameSettings("difficulty", "medium")}
             >
-              <Text style={[
-                styles.selectOptionText,
-                gameSettings.difficulty === 'medium' && styles.selectOptionTextActive
-              ]}>Medium</Text>
+              <Text
+                style={[
+                  styles.selectOptionText,
+                  gameSettings.difficulty === "medium" &&
+                    styles.selectOptionTextActive,
+                ]}
+              >
+                Medium
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
-                styles.selectOption, 
-                gameSettings.difficulty === 'hard' && styles.selectOptionActive
+                styles.selectOption,
+                gameSettings.difficulty === "hard" && styles.selectOptionActive,
               ]}
-              onPress={() => updateGameSettings('difficulty', 'hard')}
+              onPress={() => updateGameSettings("difficulty", "hard")}
             >
-              <Text style={[
-                styles.selectOptionText,
-                gameSettings.difficulty === 'hard' && styles.selectOptionTextActive
-              ]}>Hard</Text>
+              <Text
+                style={[
+                  styles.selectOptionText,
+                  gameSettings.difficulty === "hard" &&
+                    styles.selectOptionTextActive,
+                ]}
+              >
+                Hard
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -132,9 +164,11 @@ const PingPongStartScreen = () => {
             <TextInput
               style={styles.numberInput}
               value={gameSettings.maxPoints.toString()}
-              onChangeText={(text) => updateGameSettings('maxPoints', parseInt(text) || 0)}
+              onChangeText={(text) =>
+                updateGameSettings("maxPoints", parseInt(text) || 0)
+              }
               keyboardType="numeric"
-              editable={gameSettings.gameMode === 'standard'}
+              editable={gameSettings.gameMode === "standard"}
             />
           </View>
         </View>
@@ -143,36 +177,47 @@ const PingPongStartScreen = () => {
         <View style={styles.settingItem}>
           <Text style={styles.settingLabel}>Game Mode:</Text>
           <View style={styles.selectContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
-                styles.selectOption, 
-                gameSettings.gameMode === 'standard' && styles.selectOptionActive
+                styles.selectOption,
+                gameSettings.gameMode === "standard" &&
+                  styles.selectOptionActive,
               ]}
-              onPress={() => updateGameSettings('gameMode', 'standard')}
+              onPress={() => updateGameSettings("gameMode", "standard")}
             >
-              <Text style={[
-                styles.selectOptionText,
-                gameSettings.gameMode === 'standard' && styles.selectOptionTextActive
-              ]}>Standard</Text>
+              <Text
+                style={[
+                  styles.selectOptionText,
+                  gameSettings.gameMode === "standard" &&
+                    styles.selectOptionTextActive,
+                ]}
+              >
+                Standard
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
-                styles.selectOption, 
-                gameSettings.gameMode === 'survival' && styles.selectOptionActive
+                styles.selectOption,
+                gameSettings.gameMode === "survival" &&
+                  styles.selectOptionActive,
               ]}
-              onPress={() => updateGameSettings('gameMode', 'survival')}
+              onPress={() => updateGameSettings("gameMode", "survival")}
             >
-              <Text style={[
-                styles.selectOptionText,
-                gameSettings.gameMode === 'survival' && styles.selectOptionTextActive
-              ]}>Survival</Text>
+              <Text
+                style={[
+                  styles.selectOptionText,
+                  gameSettings.gameMode === "survival" &&
+                    styles.selectOptionTextActive,
+                ]}
+              >
+                Survival
+              </Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.modeDescription}>
-            {gameSettings.gameMode === 'standard' 
-              ? 'Standard: Win by reaching the point limit.'
-              : 'Survival: Max 3 goals conceded. Ball speeds up every 10 seconds.'
-            }
+            {gameSettings.gameMode === "standard"
+              ? "Standard: Win by reaching the point limit."
+              : "Survival: Max 3 goals conceded. Ball speeds up every 10 seconds."}
           </Text>
         </View>
 
@@ -189,11 +234,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.black,
-    alignItems: 'center',
+    alignItems: "center",
     paddingTop: Gaps.g80,
   },
   backButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 72,
     left: 16,
     zIndex: 10,
@@ -207,16 +252,16 @@ const styles = StyleSheet.create({
     fontWeight: FontWeights.H1Fw as any,
     color: Colors.primaryLimo,
     marginBottom: Gaps.g24,
-    textAlign: 'center',
+    textAlign: "center",
   },
   settingsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     marginBottom: Gaps.g16,
   },
   settingItem: {
-    flexDirection: 'column',
-    alignItems: 'center',
+    flexDirection: "column",
+    alignItems: "center",
     marginBottom: Gaps.g16,
   },
   settingLabel: {
@@ -226,7 +271,7 @@ const styles = StyleSheet.create({
     marginBottom: Gaps.g8,
   },
   selectContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Gaps.g8,
   },
   selectOption: {
@@ -248,39 +293,39 @@ const styles = StyleSheet.create({
     fontWeight: FontWeights.SubtitleFw as any,
   },
   inputContainer: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     padding: Gaps.g8,
     borderRadius: 50,
-    alignSelf: 'center',
+    alignSelf: "center",
     minWidth: 60,
   },
   numberInput: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.TextMediumFw as any,
     color: Colors.primaryLimo,
-    textAlign: 'center',
+    textAlign: "center",
   },
   modeDescription: {
     fontSize: FontSizes.TextSmallFs,
     fontWeight: FontWeights.TextMediumFw as any,
     color: Colors.primaryLimo,
     marginTop: Gaps.g8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   menuStartButton: {
     backgroundColor: Colors.primaryLimo,
     paddingHorizontal: Gaps.g16,
     paddingVertical: Gaps.g16,
     borderRadius: 50,
-    alignSelf: 'center',
+    alignSelf: "center",
     minWidth: 120,
   },
   menuStartButtonText: {
     fontSize: FontSizes.TextMediumFs,
     fontWeight: FontWeights.SubtitleFw as any,
     color: Colors.black,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });
 
-export default PingPongStartScreen; 
+export default PingPongStartScreen;

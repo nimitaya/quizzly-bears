@@ -10,12 +10,11 @@ import {
 } from "react-native";
 import React, { useState } from "react";
 import { Colors, FontSizes, Gaps } from "@/styles/theme";
-import { SearchInput } from "@/components/Inputs";
+import { SearchInput, PasswordInput } from "@/components/Inputs";
 import { ButtonPrimary, ButtonSkip } from "@/components/Buttons";
 import CustomAlert from "@/components/CustomAlert";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
-import { PasswordInput } from "@/components/Inputs";
 
 export default function LogIn() {
   const { signIn, setActive, isLoaded } = useSignIn();
@@ -90,7 +89,7 @@ export default function LogIn() {
         setError("Sign in failed. Please check your email and password.");
       }
     } catch (err: any) {
-      if (err.errors && err.errors.length > 0) {
+      if (err.errors?.length > 0) {
         if (
           err.errors.some(
             (e: any) =>
