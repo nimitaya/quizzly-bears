@@ -19,6 +19,7 @@
       "edgeToEdgeEnabled": true,
       "package": "com.quizzlybears.quizzlybears"
     },
+    "assetBundlePatterns": ["**/*"],
     "web": {
       "bundler": "metro",
       "output": "static",
