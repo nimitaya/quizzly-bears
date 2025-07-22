@@ -96,13 +96,6 @@ const MiniGamesScreen = () => {
           />
         </View>
       </View>
-
-      <View style={styles.backButtonContainer}>
-        <ButtonSecondary
-          text="Back"
-          onPress={() => router.push("/(tabs)/play/QuizTypeSelectionScreen")}
-        />
-      </View>
     </ScrollView>
   );
 };
