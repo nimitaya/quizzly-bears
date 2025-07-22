@@ -241,6 +241,9 @@ EXAMPLES OF FORBIDDEN DUPLICATES:
   - No additional text, explanations, or comments
   - No markdown formatting or code blocks
   - Maintain consistent structure across all generations
+  - IMPORTANT: NO ❌ repeated answer texts across the entire questionArray. All answers (correct and incorrect) must be unique across all questions.
+- ❌ DO NOT add any text outside the JSON.
+- ❌ DO NOT explain anything.
   
   Session ID: ${uniqueId}`;
 };
