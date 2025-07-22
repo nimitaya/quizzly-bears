@@ -14,6 +14,7 @@ const ChatFloatingButton: React.FC<ChatFloatingButtonProps> = ({
   unreadCount = 0,
   isVisible = true,
 }) => {
+
   if (!isVisible) {
     return null;
   }
@@ -56,6 +57,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+
   badge: {
     position: "absolute",
     top: -8,

@@ -3,19 +3,15 @@ import { User } from "../models/User";
 import { FriendRequest } from "../models/FriendRequest";
 import { InviteRequest } from "../models/InviteRequests";
 import { Webhook } from "svix";
-import { io } from "../server"; // Assuming you have a socket setup file
+import { io } from "../server";
 
 declare global {
-  // Replace 'any' with the actual type of your io instance if known (e.g., Server from socket.io)
-  // import { Server } from "socket.io"; and use Server instead of any
   var io: any;
 }
 
 const router = Router();
 
 router.post("/clerk-webhook", async (req: Request, res: Response) => {
-  console.log("Webhook received:", req.body);
-
   (global as any).io = io;
   const event = req.body;
   const clerkUser = event.data;
@@ -50,18 +46,14 @@ router.post("/clerk-webhook", async (req: Request, res: Response) => {
     }
 
     if (event.type === "user.deleted") {
-      console.log("User deleted:", clerkUser.id);
-
       // First, find the user so we have their MongoDB _id
       const deletedUser = await User.findOne({ clerkUserId: clerkUser.id });
 
       if (!deletedUser) {
-        console.log(`No user found with clerk ID: ${clerkUser.id}`);
         return res.status(200).json({ message: "No user found to delete" });
       }
 
       const userId = deletedUser._id;
-      console.log(`Found user to delete: ${deletedUser.email} (${userId})`);
 
       // Clean up tasks in parallel for better performance
       const cleanupTasks = [
@@ -69,30 +61,20 @@ router.post("/clerk-webhook", async (req: Request, res: Response) => {
         User.updateMany(
           { friends: userId },
           { $pull: { friends: userId } }
-        ).then((result) => {
-          console.log(
-            `Removed user from ${result.modifiedCount} friends lists`
-          );
-        }),
+        ).then((result) => {}),
 
         // 2. Delete all friend requests involving this user
         FriendRequest.deleteMany({
           $or: [{ senderId: userId }, { recipientId: userId }],
-        }).then((result) => {
-          console.log(`Deleted ${result.deletedCount} friend requests`);
-        }),
+        }).then((result) => {}),
 
         // 3. Delete all invite requests involving this user
         InviteRequest.deleteMany({
           $or: [{ senderId: userId }, { recipientId: userId }],
-        }).then((result: { deletedCount?: number }) => {
-          console.log(`Deleted ${result.deletedCount} invite requests`);
-        }),
+        }).then((result: { deletedCount?: number }) => {}),
 
         // 5. Finally delete the user
-        User.findByIdAndDelete(userId).then(() => {
-          console.log(`User ${deletedUser.email} deleted from database`);
-        }),
+        User.findByIdAndDelete(userId).then(() => {}),
       ];
 
       // Wait for all cleanup tasks to complete
@@ -104,7 +86,6 @@ router.post("/clerk-webhook", async (req: Request, res: Response) => {
           userId: userId.toString(),
           clerkUserId: clerkUser.id,
         });
-        console.log("Emitted user-deleted socket event");
       }
 
       return res.status(200).json({

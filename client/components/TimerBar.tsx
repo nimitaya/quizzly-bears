@@ -5,12 +5,15 @@ import { Audio } from "expo-av";
 import { useSound } from "@/providers/SoundProvider";
 
 interface TimerBarProps {
-  duration?: number;
-  delay?: number;
-  onTimeUp?: () => void;
-  width?: number;
-  height?: number;
-  isPaused?: boolean;
+
+  duration?: number; // Total duration in seconds
+  delay?: number; // Delay before start in seconds
+  onTimeUp?: () => void; // Callback when time is up
+  width?: number; // Width of the bar
+  height?: number; // Height of the bar
+  isPaused?: boolean; // Pauses the animation
+  isGameEnded?: boolean; // Signals that the game has ended
+
 }
 
 const TimerBar: React.FC<TimerBarProps> = ({
@@ -20,6 +23,7 @@ const TimerBar: React.FC<TimerBarProps> = ({
   width = 300,
   height = 10,
   isPaused = false,
+  isGameEnded = false,
 }) => {
   const progressAnimation = useRef(new Animated.Value(0)).current;
   const timerSound = useRef<Audio.Sound | null>(null);
@@ -134,6 +138,16 @@ const TimerBar: React.FC<TimerBarProps> = ({
       stopTimerSound();
     }
   }, [isPaused]);
+
+  // Stop sounds when game ends
+  useEffect(() => {
+    console.log('TimerBar: Game end effect triggered, isGameEnded:', isGameEnded);
+    if (isGameEnded) {
+      progressAnimation.stopAnimation();
+      // Stop timer sound when game ends
+      stopTimerSound();
+    }
+  }, [isGameEnded]);
 
   return (
     <View

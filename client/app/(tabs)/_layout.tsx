@@ -1,6 +1,9 @@
 import { Tabs, router } from "expo-router";
-import { View, StyleSheet } from "react-native";
-import React, { useContext, useEffect } from "react";
+
+import { Text, View, StyleSheet } from "react-native";
+import React, { useContext, useEffect, useState } from "react";
+import { useQuizContext } from "@/providers/QuizProvider";
+
 import IconBearTab from "@/assets/icons/IconBearTab";
 import IconBearTabAktiv from "@/assets/icons/IconBearTabAktiv";
 import IconStatisticsTab from "@/assets/icons/IconStatisticsTab";
@@ -29,6 +32,7 @@ const _Layout = () => {
     setReceivedInviteRequests,
     receivedInviteRequests,
   } = useContext(UserContext);
+  const { isQuizActive } = useQuizContext();
 
   useEffect(() => {
     if (userData) {
@@ -160,6 +164,10 @@ const _Layout = () => {
           name="statistics"
           listeners={{
             tabPress: (e) => {
+              if (isQuizActive) {
+                e.preventDefault();
+                return;
+              }
               e.preventDefault();
               router.navigate("/(tabs)/statistics");
             },
@@ -181,6 +189,10 @@ const _Layout = () => {
           name="play"
           listeners={{
             tabPress: (e) => {
+              if (isQuizActive) {
+                e.preventDefault();
+                return;
+              }
               e.preventDefault();
               router.navigate("/(tabs)/play");
             },
@@ -200,6 +212,10 @@ const _Layout = () => {
           name="profile"
           listeners={{
             tabPress: (e) => {
+              if (isQuizActive) {
+                e.preventDefault();
+                return;
+              }
               e.preventDefault();
               router.navigate("/(tabs)/profile");
             },

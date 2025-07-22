@@ -33,7 +33,6 @@ export function useQuizLogic() {
   const nextQuestionTimeout = useRef<number | null>(null);
   // Ref to store current points data between state updates
   const currentPointsRef = useRef({ total: 0, chosenCorrect: 0 });
-  // Track if a question transition is already scheduled for multiplayer
   const isTransitionScheduled = useRef<boolean>(false);
 
   // Audio refs for feedback sounds
@@ -48,6 +47,7 @@ export function useQuizLogic() {
   const [currentQuestionData, setCurrentQuestionData] =
     useState<QuestionStructure | null>(null);
   const [currQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
+  const [gameInfoLoaded, setGameInfoLoaded] = useState<boolean>(false);
   const [gameState, setGameState] = useState<GameState>({
     difficulty: "medium",
     category: "",
@@ -106,7 +106,9 @@ export function useQuizLogic() {
           }
         );
         errorSound.current = errorSnd;
+
       } catch {
+
         correctSound.current = null;
         errorSound.current = null;
       }
@@ -143,7 +145,9 @@ export function useQuizLogic() {
     try {
       await soundToPlay.setPositionAsync(0);
       await soundToPlay.playAsync();
+
     } catch {}
+
   };
 
   // ========================================================== FUNCTIONS ==========================================================
@@ -165,14 +169,24 @@ export function useQuizLogic() {
     try {
       const cachedInfo = await loadCacheData(key.quizSettings);
       if (cachedInfo) {
-        setGameState((prev) => ({
-          ...prev,
-          difficulty: cachedInfo.quizLevel,
-          category: cachedInfo.quizCategory,
-          playStyle: cachedInfo.quizPlayStyle,
-        }));
-      }
-    } catch {}
+
+        setGameState((prev) => {
+          const newGameState = {
+            ...prev,
+            difficulty: cachedInfo.quizLevel,
+            category: cachedInfo.quizCategory,
+            playStyle: cachedInfo.quizPlayStyle,
+          };
+          return newGameState;
+        });
+      } 
+      // Mark game info as loaded
+      setGameInfoLoaded(true);
+    } catch {
+            // Even on error, mark as loaded to prevent infinite waiting
+      setGameInfoLoaded(true);
+    }
+
   };
 
   // ----- fetch Data and set all Questions Array -----
@@ -192,7 +206,9 @@ export function useQuizLogic() {
       // fetch questions from cache
       let questions = await fetchFromCache(key.aiQuestions);
       if (!questions) {
-        // Fallback to dummy data if cache is empty TODO delete later
+
+        // Fallback to dummy data if cache is empty
+
         questions = aiQuestions;
         setCurrQuestionsArray(questions.questionArray);
       } else {
@@ -256,7 +272,9 @@ export function useQuizLogic() {
                 currQuestionIndex
               );
             }
+
           } catch {
+
             // Fallback: If we can't communicate with server, proceed locally
             if (!isTransitionScheduled.current) {
               isTransitionScheduled.current = true;
@@ -265,15 +283,7 @@ export function useQuizLogic() {
               }, NEXT_QUESTION_DELAY);
             }
           }
-        } else if (
-          gameState.playStyle === "solo" &&
-          !isTransitionScheduled.current
-        ) {
-          // Solo mode: move to next question after delay
-          isTransitionScheduled.current = true;
-          nextQuestionTimeout.current = setTimeout(() => {
-            handleNextQuestion();
-          }, NEXT_QUESTION_DELAY);
+
         }
       }, ANSWER_TIMER_DURATION);
     }, READ_TIMER_DURATION);
@@ -392,7 +402,6 @@ export function useQuizLogic() {
   // ----- Handle ANSWER CHECK -----
   const handleAnswerCheck = (): void => {
     const isCorrect = getIsCorrect();
-
     // Play feedback sound based on answer correctness
     playFeedbackSound(isCorrect);
 
@@ -461,12 +470,49 @@ export function useQuizLogic() {
         readTimeout.current = null;
       }
     }
+
+    // IMPORTANT new
+    if (!isCorrect) {
+    const newTotal = pointsState.total + 0;
+    setPointsState((prevPoints) => {
+      const updatedState = {
+        ...prevPoints,
+        score: prevPoints.score + 0,
+        timePoints: prevPoints.timePoints + 0,
+        perfectGame: prevPoints.perfectGame + 0,
+        total: newTotal,
+        chosenCorrect: pointsState.chosenCorrect + 0,
+      };
+
+      // Update ref with current data
+      currentPointsRef.current = {
+        total: updatedState.total,
+        chosenCorrect: updatedState.chosenCorrect,
+      };
+
+      // IMPORTANT new
+      // Logic for Multiplayer Play
+      if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
+        // Clear any existing timers
+        if (answerTimeout.current) {
+          clearTimeout(answerTimeout.current);
+          answerTimeout.current = null;
+        }
+
+        // Schedule the next question after the fixed delay
+        isTransitionScheduled.current = true;
+        nextQuestionTimeout.current = setTimeout(() => {
+          handleNextQuestion();
+        }, NEXT_QUESTION_DELAY);
+      }
+      return updatedState;
+    });
+    }
   };
 
   // ----- Handle NEXT QUESTION -----
   const handleNextQuestion = (): void => {
     const newTotalAnswers = pointsState.totalAnswers + 1;
-
     // Fix Race Condition: use current data from ref
     setPointsState((prevPoints) => {
       const updatedPoints = {
@@ -528,6 +574,22 @@ export function useQuizLogic() {
   };
 
   const endGame = async () => {
+    // Stop all feedback sounds when game ends
+    if (correctSound.current) {
+      try {
+        await correctSound.current.stopAsync();
+      } catch (error) {
+        console.error("Error stopping correct sound:", error);
+      }
+    }
+    if (errorSound.current) {
+      try {
+        await errorSound.current.stopAsync();
+      } catch (error) {
+        console.error("Error stopping error sound:", error);
+      }
+    }
+
     // Fixed version - pass callback for setOnChanges:
     if (user?.id) {
       await sendPointsToDatabase(user.id, () => {});
@@ -554,18 +616,27 @@ export function useQuizLogic() {
   // ========================================================== USE EFFECTS ==========================================================
   // ----- START check and loading
   useEffect(() => {
-    // check if points need to be uploaded to DB
-    if (user?.id) {
-      checkCache(user.id);
-    }
-    // get Game Settings
-    fetchGameInfo();
-    fetchAiData();
+    const initialize = async () => {
+      // check if points need to be uploaded to DB
+      if (user?.id) {
+        checkCache(user.id);
+      }
+      // get Game Settings FIRST
+      await fetchGameInfo();
+      // then get AI data
+      await fetchAiData();
+    };
+
+    initialize();
   }, []);
 
   // ----- INITIALIZE questions loading on mount and when currQuestionIndex changes -----
   useEffect(() => {
-    loadQuestions();
+    // Only load questions after game info has been loaded
+    if (gameInfoLoaded) {
+      loadQuestions();
+    }
+
     // clear the timeout if the component unmounts or new question is loaded
     return () => {
       if (answerTimeout.current) {
@@ -583,7 +654,9 @@ export function useQuizLogic() {
       // Reset the transition flag
       isTransitionScheduled.current = false;
     };
-  }, [currQuestionIndex]);
+
+  }, [currQuestionIndex, gameInfoLoaded]);
+
 
   // ----- Setup for multiplayer mode -----
   useEffect(() => {

@@ -65,7 +65,7 @@ const LanguageDropdown = ({ onLanguageChange }: LanguageDropdownProps) => {
         style={styles.selector}
         onPress={() => setIsDropdownOpen(true)}
       >
-        <Text style={styles.languageText}>Language </Text>
+        <Text style={styles.languageText}>Quiz language </Text>
         <View style={styles.flagContainer}>
           <SingleFlag id={currentLanguage.flagId} size={0.2} />
         </View>

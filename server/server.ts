@@ -15,8 +15,6 @@ import {
   ChatMessage,
   SendChatMessageData,
   PlayerTypingData,
-  ChatMessageReceivedData,
-  PlayerTypingStatusData,
   QuizRoom,
   Player,
 } from "./types/socket";
@@ -48,7 +46,7 @@ app.get("/", (req, res) => {
 });
 // ======Socket.IO Server Setup======
 
-// Room storage (in production, better to use Redis)
+// Room storage
 const quizRooms = new Map<string, QuizRoom>();
 
 // Track player answers for each room and question
@@ -64,10 +62,6 @@ io.on("connection", (socket) => {
   // User online status
   socket.on("user-online", (data: { userId: string; clerkUserId: string }) => {
     try {
-      console.log(
-        `User ${data.userId} (clerk: ${data.clerkUserId}) is online with socket ${socket.id}`
-      );
-
       // Store both IDs for flexibility
       if (data.userId) onlineUsers.set(data.userId, socket.id);
       if (data.clerkUserId) onlineUsers.set(data.clerkUserId, socket.id);
@@ -81,16 +75,11 @@ io.on("connection", (socket) => {
     "get-friends-status",
     async (data: { userId: string; friendIds: string[] }) => {
       try {
-        console.log(
-          `User ${data.userId} requesting status for ${data.friendIds.length} friends`
-        );
-
         // Filter for online friends
         const onlineFriends = data.friendIds.filter((id) =>
           onlineUsers.has(id)
         );
 
-        console.log(`Found ${onlineFriends.length} online friends`);
         socket.emit("friends-status", { onlineFriends });
       } catch (error) {
         console.error("Error in get-friends-status handler:", error);
@@ -137,7 +126,6 @@ io.on("connection", (socket) => {
       socket.join(roomId);
 
       socket.emit("room-created", { roomId, room });
-      console.log(`Room created: ${roomId} by host ${data.hostName}`);
     }
   );
 
@@ -193,15 +181,13 @@ io.on("connection", (socket) => {
       });
 
       socket.emit("room-joined", { room });
-      console.log(`${data.playerName} joined room ${data.roomId}`);
 
       // If the room has category information, also emit the categoryChanged event
       if (room.selectedCategory) {
-        console.log(`Sending category information to new player: ${room.selectedCategory}`);
         socket.emit("categoryChanged", {
           roomId: data.roomId,
           newCategory: room.selectedCategory,
-          newTopic: room.selectedTopic || room.selectedCategory
+          newTopic: room.selectedTopic || room.selectedCategory,
         });
       }
     }
@@ -216,32 +202,16 @@ io.on("connection", (socket) => {
       playerName: string;
       language?: string;
     }) => {
-      console.log(
-        `Rejoin room request: ${data.playerId} wants to rejoin ${data.roomId}`
-      );
       const room = quizRooms.get(data.roomId);
 
       if (!room) {
-        console.log(`Room ${data.roomId} not found for rejoin`);
         socket.emit("error", { message: "Room not found" });
         return;
       }
 
-      console.log(
-        `Room ${data.roomId} current players:`,
-        room.players.map((p) => ({
-          id: p.id,
-          name: p.name,
-          language: p.language,
-        }))
-      );
-
       // Check if player is already in the room
       const existingPlayer = room.players.find((p) => p.id === data.playerId);
       if (existingPlayer) {
-        console.log(
-          `Player ${data.playerId} found in room, updating socket ID and language`
-        );
         // Update the socket ID and language for the existing player
         existingPlayer.socketId = socket.id;
         if (data.language) {
@@ -253,31 +223,20 @@ io.on("connection", (socket) => {
 
         // Update host socket ID if this player is the host
         if (room.host === data.playerId) {
-          console.log(`Updating host socket ID for ${data.playerId}`);
           room.hostSocketId = socket.id;
         }
 
-        console.log(
-          `Sending room state to rejoining player. Room has ${room.players.length} players`
-        );
-        room.players.forEach((p, index) => {
-          console.log(
-            `Player ${index + 1}: ${p.name}, Language: ${p.language}, ID: ${
-              p.id
-            }`
-          );
-        });
+        room.players.forEach((p, index) => {});
 
         // Send current room state to rejoining player
         socket.emit("room-joined", { room });
-        
+
         // If the room has category information, also emit the categoryChanged event
         if (room.selectedCategory) {
-          console.log(`Sending category information to player (via rejoin): ${room.selectedCategory}`);
           socket.emit("categoryChanged", {
             roomId: data.roomId,
             newCategory: room.selectedCategory,
-            newTopic: room.selectedTopic || room.selectedCategory
+            newTopic: room.selectedTopic || room.selectedCategory,
           });
         }
       } else {
@@ -311,9 +270,6 @@ io.on("connection", (socket) => {
         });
 
         socket.emit("room-joined", { room });
-        console.log(
-          `${data.playerName} joined room ${data.roomId} (via rejoin)`
-        );
       }
     }
   );
@@ -330,37 +286,21 @@ io.on("connection", (socket) => {
       const room = quizRooms.get(data.roomId);
 
       if (!room) {
-        console.log(
-          `Room ${data.roomId} not found. Available rooms: ${[
-            ...quizRooms.keys(),
-          ]}`
-        );
         socket.emit("error", { message: "Room not found" });
         return;
       }
 
-      console.log(
-        `Sending room state for ${data.roomId} with ${room.players.length} players`
-      );
-      room.players.forEach((p: any, index: number) => {
-        console.log(
-          `Player ${index + 1}: ${p.name}, Language: ${p.language}, ID: ${p.id}`
-        );
-      });
-
       // Send current room state
       socket.emit("room-state-updated", { room });
-      
+
       // If the room has category information, also emit the categoryChanged event
       if (room.selectedCategory) {
         socket.emit("categoryChanged", {
           roomId: data.roomId,
           newCategory: room.selectedCategory,
-          newTopic: room.selectedTopic || room.selectedCategory
+          newTopic: room.selectedTopic || room.selectedCategory,
         });
       }
-      
-      console.log(`Room state sent to socket ${socket.id}`);
     } catch (err) {
       console.error("Error handling get-room-state event:", err);
       socket.emit("error", { message: "Server error processing room state" });
@@ -385,24 +325,14 @@ io.on("connection", (socket) => {
 
   // Start game (only host can start)
   socket.on("start-game", (data: { roomId: string; questions: any[] }) => {
-    console.log(
-      `Start game request for room ${data.roomId} from socket ${socket.id}`
-    );
     const room = quizRooms.get(data.roomId);
 
     if (!room) {
-      console.log(`Room ${data.roomId} not found`);
       socket.emit("error", { message: "Room not found" });
       return;
     }
 
-    console.log(
-      `Room host: ${room.hostSocketId}, requesting socket: ${socket.id}`
-    );
     if (room.hostSocketId !== socket.id) {
-      console.log(
-        `Only host can start game. Host: ${room.hostSocketId}, Socket: ${socket.id}`
-      );
       socket.emit("error", { message: "Only host can start game" });
       return;
     }
@@ -411,14 +341,10 @@ io.on("connection", (socket) => {
     room.currentQuestion = 0;
     room.questions = data.questions;
 
-    console.log(
-      `Emitting game-started to room ${data.roomId} with ${room.players.length} players`
-    );
     io.to(data.roomId).emit("game-started", {
       room,
       questions: data.questions,
     });
-    console.log(`Game started in room ${data.roomId}`);
   });
 
   // Admin selected topic and questions are ready
@@ -428,9 +354,6 @@ io.on("connection", (socket) => {
 
     // Notify all players that admin has selected topic and they should see StartQuizScreen
     io.to(data.roomId).emit("show-start-quiz", { room });
-    console.log(
-      `Questions ready in room ${data.roomId}, showing StartQuizScreen to all players`
-    );
   });
 
   // Sync quiz settings from host to all players
@@ -447,16 +370,13 @@ io.on("connection", (socket) => {
     }
   );
 
-// Handle category change event
+  // Handle category change event
   socket.on(
     "categoryChanged",
     (data: { roomId: string; newCategory: string; newTopic?: string }) => {
       try {
-        console.log(`Category change request for room ${data.roomId}:`, data);
-
         const room = quizRooms.get(data.roomId);
         if (!room) {
-          console.log(`Room ${data.roomId} not found for category change`);
           socket.emit("error", { message: "Room not found" });
           return;
         }
@@ -465,20 +385,20 @@ io.on("connection", (socket) => {
         room.selectedCategory = data.newCategory;
         room.selectedTopic = data.newTopic || data.newCategory;
 
-        console.log(`Updated room ${data.roomId} with category:`, data.newCategory);
-
         // Broadcast the category change to all players in the room
         io.to(data.roomId).emit("categoryChanged", {
           roomId: data.roomId,
           newCategory: data.newCategory,
-          newTopic: data.newTopic || data.newCategory
+          newTopic: data.newTopic || data.newCategory,
         });
 
         // Also update all clients with the updated room state
         io.to(data.roomId).emit("room-state-updated", { room });
       } catch (err) {
         console.error("Error handling categoryChanged event:", err);
-        socket.emit("error", { message: "Server error processing category change" });
+        socket.emit("error", {
+          message: "Server error processing category change",
+        });
       }
     }
   );
@@ -514,35 +434,20 @@ io.on("connection", (socket) => {
   socket.on("next-question", (data: { roomId: string }) => {
     const room = quizRooms.get(data.roomId);
     if (!room) {
-      console.log(`Room ${data.roomId} not found`);
       return;
     }
-
     // Allow any player to request next question (not just host)
-    console.log(`Next question request received for room ${data.roomId}`);
-
     if (!room.questions || room.currentQuestion === undefined) {
-      console.log(
-        `Room ${data.roomId} has no questions or currentQuestion is undefined`
-      );
       return;
     }
-
     // We always proceed to next question regardless of answers
     // This ensures that even if there's any issue with tracking answers, the game will still progress when a player requests the next question
-    console.log(
-      `Current question: ${room.currentQuestion}, Total questions: ${room.questions.length}`
-    );
-
     if (room.currentQuestion < room.questions.length - 1) {
       // Increment the question index
       const nextQuestionIndex = room.currentQuestion + 1;
       room.currentQuestion = nextQuestionIndex;
 
       const question = room.questions[nextQuestionIndex];
-      console.log(
-        `Sending question ${nextQuestionIndex + 1} to room ${data.roomId}`
-      );
 
       // First emit the next-question event to signal clients to prepare
       io.to(data.roomId).emit("next-question");
@@ -554,8 +459,6 @@ io.on("connection", (socket) => {
         totalQuestions: room.questions.length,
       });
     } else if (room.currentQuestion === room.questions.length - 1) {
-      // This was the last question, game ended
-      console.log(`Game ended in room ${data.roomId}`);
       // Send initial results that will be updated as players submit their final scores
       io.to(data.roomId).emit("game-results", {
         finalScores: room.players.sort((a, b) => b.score - a.score),
@@ -624,10 +527,6 @@ io.on("connection", (socket) => {
         room.currentQuestion < room.questions.length - 1
       ) {
         setTimeout(() => {
-          console.log(
-            `All players answered in room ${data.roomId}, auto-advancing to next question`
-          );
-
           // Reuse the next-question event handler logic to avoid duplication
           // The server handles moving to the next question through this event
           socket.emit("next-question", { roomId: data.roomId });
@@ -750,10 +649,6 @@ io.on("connection", (socket) => {
       message: chatMessage.message,
       timestamp: chatMessage.timestamp,
     });
-
-    console.log(
-      `Chat message from ${player.name} in room ${data.roomId}: ${data.message}`
-    );
   });
 
   // Player typing status
@@ -789,12 +684,6 @@ io.on("connection", (socket) => {
       playerName: player.name,
       isTyping: data.isTyping,
     });
-
-    console.log(
-      `${player.name} is ${
-        data.isTyping ? "typing" : "stopped typing"
-      } in room ${data.roomId}`
-    );
   });
 
   // ========== END CHAT FUNCTIONALITY ==========
@@ -807,7 +696,6 @@ io.on("connection", (socket) => {
       // Remove from online users map
       for (const [userId, socketId] of onlineUsers.entries()) {
         if (socketId === socket.id) {
-          console.log(`Removing user ${userId} from online users`);
           onlineUsers.delete(userId);
         }
       }
@@ -878,15 +766,12 @@ function leaveRoom(socket: any, roomId: string, playerId: string) {
       room: room,
     });
   }
-
-  console.log(`${player.name} left room ${roomId}`);
 }
 
 // ==========Database Setup========
 const startDatabase = async () => {
   try {
     await connectDB();
-    console.log("Database connected successfully");
   } catch (error) {
     console.error("Failed to connect to the database:", error);
     process.exit(1);
@@ -907,9 +792,6 @@ const startSocketServer = async () => {
 
       server.on("error", (err: any) => {
         if (err.code === "EADDRINUSE") {
-          console.log(
-            `Port ${port} is busy, trying port ${Number(port) + 1}...`
-          );
           const newPort = Number(port) + 1;
           httpServer.listen(newPort, () => {
             console.log("Socket.IO Server running on port:", newPort);

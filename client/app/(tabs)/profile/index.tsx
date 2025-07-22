@@ -51,7 +51,7 @@ const ProfileScreen = () => {
     setReceivedInviteRequests,
   } = useContext(UserContext);
 
-  //========= Funktion to handle language change=========
+  //Funktion to handle language change
   const handleLanguageChange = async (language: any) => {
     await changeLanguage(language);
   };
@@ -206,6 +206,7 @@ const ProfileScreen = () => {
 
             if (typeof setReceivedInviteRequests === "function") {
               setReceivedInviteRequests(pendingInvites.length);
+
             }
           })
           .catch((error) => {
@@ -253,11 +254,10 @@ const ProfileScreen = () => {
         console.error("❌ Error loading initial friend requests:", error);
       });
 
-    // Load initial invitation count
+
     getReceivedInviteRequests(userData.clerkUserId)
       .then((response) => {
         if (!response?.inviteRequests) {
-          console.warn("⚠️ Invalid invitation response:", response);
           return;
         }
 
@@ -267,6 +267,7 @@ const ProfileScreen = () => {
 
         if (typeof setReceivedInviteRequests === "function") {
           setReceivedInviteRequests(pendingInvites.length);
+
         }
       })
       .catch((error) => {});

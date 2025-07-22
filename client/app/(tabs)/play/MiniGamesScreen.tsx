@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     justifyContent: "center",
-    marginBottom: Gaps.g16,
+    marginBottom: Gaps.g8,
   },
   gameCard: {
     backgroundColor: Colors.primaryLimo,
@@ -149,11 +149,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 160,
     height: 160,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   gameImage: {
     width: 80,

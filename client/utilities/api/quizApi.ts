@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Category, Difficulty } from "../types";
 import { QuestionStructure, AiQuestions } from "@/utilities/quiz-logic/data";
 import { LANGUAGES } from "../languages";
+import {jsonrepair} from "jsonrepair";
 
 // ==================== API CONFIGURATION =============================================
 const GROQ_API_URL =
@@ -211,7 +212,12 @@ EXAMPLES OF FORBIDDEN DUPLICATES:
   - No additional text, explanations, or comments
   - No markdown formatting or code blocks
   - Maintain consistent structure across all generations
-  
+- IMPORTANT: NO ❌ repeated answer texts across the entire questionArray. All answers (correct and incorrect) must be unique across all questions.
+- ❌ DO NOT add any text outside the JSON.
+- ❌ DO NOT explain anything.
+- Respond ONLY with valid JSON. NO markdown. NO extra comments.
+
+
   Session ID: ${uniqueId}`;
 };
 

@@ -1,4 +1,5 @@
 import React, { useState, useContext, useEffect } from "react";
+import { useQuizContext } from "@/providers/QuizProvider";
 import {
   ScrollView,
   View,
@@ -69,6 +70,7 @@ const QuizLogic = () => {
   };
 
   const { userData } = useContext(UserContext);
+  const { isQuizActive, setIsQuizActive } = useQuizContext();
   const [showAlert, setShowAlert] = useState(false);
 
   // ~~~~~~~ Effect to ensure socket connection for final results ~~~~~~~
@@ -76,12 +78,14 @@ const QuizLogic = () => {
     if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
       // Just make sure socket is connected for final results
       socketService.ensureConnection();
+      setIsQuizActive(true);
+    } else if (gameState.playStyle === "solo") {
+      setIsQuizActive(true);
     }
-
     return () => {
-      // Nothing to clean up
+      setIsQuizActive(false);
     };
-  }, [gameState.playStyle]);
+  }, [gameState.playStyle, setIsQuizActive]);
 
   // ----- Handler Play again -----
   const handleRoundAgain = async () => {
@@ -89,10 +93,12 @@ const QuizLogic = () => {
     clearCacheData(cacheKey.points);
     if (gameState.playStyle === "solo") {
       clearCacheData(cacheKey.settings);
+      setIsQuizActive(false);
     }
 
     // in Multiplayer send gameState and pointsState to socket server
     if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
+      setIsQuizActive(false);
       try {
         const roomInfo = await loadCacheData(cacheKey.currentRoom);
         if (roomInfo && roomInfo.roomId && userData) {
@@ -123,6 +129,9 @@ const QuizLogic = () => {
     clearCacheData(cacheKey.questions);
     clearCacheData(cacheKey.points);
     clearCacheData(cacheKey.settings);
+    if (gameState.playStyle === "solo" || gameState.playStyle === "group" || gameState.playStyle === "duel") {
+      setIsQuizActive(false);
+    }
     // Leave socket room if in multiplayer mode
     if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
       await leaveSocketRoom();
@@ -150,14 +159,15 @@ const QuizLogic = () => {
     clearCacheData(cacheKey.questions);
     clearCacheData(cacheKey.points);
     clearCacheData(cacheKey.settings);
-
+    if (gameState.playStyle === "solo" || gameState.playStyle === "group" || gameState.playStyle === "duel") {
+      setIsQuizActive(false);
+    }
     // Leave socket room if in multiplayer mode
     if (gameState.playStyle === "group" || gameState.playStyle === "duel") {
       await leaveSocketRoom();
       clearCacheData(cacheKey.currentRoom);
       handleRemoveAllInvites();
     }
-
     router.push("./");
   };
 
@@ -301,8 +311,11 @@ const QuizLogic = () => {
                   key={`timer-${currQuestionIndex}`}
                   duration={30}
                   delay={0}
-                  width={timerBarWidth}
+                  width={timerBarWidth} // Gleiche Breite wie die Antworten
+
                   isPaused={answerState.isSubmitted}
+                  isGameEnded={showResult}
+
                 />
               </View>
               <View style={styles.questionAnswerContainer}>

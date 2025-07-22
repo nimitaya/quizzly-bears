@@ -2,8 +2,6 @@ import { Router } from "express";
 
 const router = Router();
 
-// Since we don't have direct access to quizRooms,
-// we will pass a reference to the Map through a function parameter
 let roomsRef: Map<string, any> | null = null;
 
 export const setRoomsReference = (rooms: Map<string, any>) => {

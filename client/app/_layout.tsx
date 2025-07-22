@@ -16,6 +16,7 @@ import { SoundProvider } from "@/providers/SoundProvider";
 import { OnboardingProvider } from "@/providers/OnboardingProvider";
 import { LanguageProvider } from "@/providers/LanguageContext";
 import { SocketProvider } from "@/providers/SocketProvider";
+import { QuizProvider } from "@/providers/QuizProvider";
 
 // ========== Override system fonts globally ==========
 const overrideDefaultFont = () => {
@@ -59,12 +60,14 @@ export default function RootLayout() {
                   <SafeAreaProvider>
                     <MusicProvider>
                       <SoundProvider>
-                        <View
-                          style={{ flex: 1, backgroundColor: Colors.bgGray }}
-                        >
-                          <AuthNavigationHelper />
-                          <Slot />
-                        </View>
+                        <QuizProvider>
+                          <View
+                            style={{ flex: 1, backgroundColor: Colors.bgGray }}
+                          >
+                            <AuthNavigationHelper />
+                            <Slot />
+                          </View>
+                        </QuizProvider>
                       </SoundProvider>
                     </MusicProvider>
                   </SafeAreaProvider>

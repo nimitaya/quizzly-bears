@@ -9,7 +9,6 @@ export const searchUser = async (
   res: Response
 ): Promise<void> => {
   try {
-    // we need the user input email and the current userId
     const { email, clerkUserId } = req.query;
 
     if (!email || !clerkUserId) {
@@ -19,7 +18,6 @@ export const searchUser = async (
       return;
     }
 
-    // Find the requesting user
     const requestingUser = (await User.findOne({ clerkUserId })) as IUser;
     if (!requestingUser) {
       res.status(404).json({ error: "Requesting user not found" });
@@ -327,8 +325,6 @@ export const acceptRequest = async (
       to: friendRequest.to,
     });
 
-    // TODO: Send push notification to the requester?
-
     // ----- Response -----
     res.json({ message: "Friend request accepted successfully" });
   } catch (error) {
@@ -511,24 +507,24 @@ export const searchEmailsAutocomplete = async (
     // Search for users with emails that start with the query
     // Exclude the requesting user and limit to 5 results
     const users = await User.find({
-      email: { 
-        $regex: `^${query.toString().toLowerCase()}`, 
-        $options: 'i' 
+      email: {
+        $regex: `^${query.toString().toLowerCase()}`,
+        $options: "i",
       },
       _id: { $ne: requestingUser._id },
     })
-    .select("email")
-    .limit(5);
+      .select("email")
+      .limit(5);
 
     // Filter out users who are already friends or have pending requests
     const filteredUsers = [];
-    
+
     for (const user of users) {
       // Check if already friends
       const isAlreadyFriend = requestingUser.friends.some(
         (friendId) => friendId.toString() === user._id.toString()
       );
-      
+
       if (!isAlreadyFriend) {
         // Check if friend request already exists
         const existingRequest = await FriendRequest.findOne({
@@ -538,7 +534,7 @@ export const searchEmailsAutocomplete = async (
           ],
           status: "pending",
         });
-        
+
         if (!existingRequest) {
           filteredUsers.push({
             _id: user._id,
