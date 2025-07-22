@@ -9,13 +9,14 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { useClerk, useAuth } from "@clerk/clerk-expo";
+import { useClerk } from "@clerk/clerk-expo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ButtonPrimary, ButtonSkip } from "@/components/Buttons";
 import { SearchInput, PasswordInput } from "@/components/Inputs";
 import { Colors, FontSizes, Gaps } from "@/styles/theme";
 import { Logo } from "@/components/Logos";
 import IconArrowBack from "@/assets/icons/IconArrowBack";
+
 // Email validation regex
 const validateEmail = (email: string) => {
   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -25,7 +26,6 @@ const validateEmail = (email: string) => {
 export default function ForgotPassword() {
   const params = useLocalSearchParams();
   const initialEmail = typeof params.email === "string" ? params.email : "";
-
   const { client } = useClerk();
 
   const [emailAddress, setEmailAddress] = useState(initialEmail);

@@ -1,26 +1,34 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions, Alert, Keyboard, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Colors, Gaps, FontSizes, FontWeights } from '@/styles/theme';
-import IconArrowBack from '@/assets/icons/IconArrowBack';
-import IconVolume from '@/assets/icons/IconVolume';
-import IconVolumeOff from '@/assets/icons/IconVolumeOff';
-import IconMusic from '@/assets/icons/IconMusic';
-import IconMusicOff from '@/assets/icons/IconMusicOff';
-import IconPlay from '@/assets/icons/IconPlay';
-import IconPause from '@/assets/icons/IconPause';
-import Svg, { Rect, Circle } from 'react-native-svg';
-import { Audio } from 'expo-av';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState, useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  TouchableOpacity,
+  Dimensions,
+  ScrollView,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Colors, Gaps, FontSizes, FontWeights } from "@/styles/theme";
+import IconArrowBack from "@/assets/icons/IconArrowBack";
+import IconVolume from "@/assets/icons/IconVolume";
+import IconVolumeOff from "@/assets/icons/IconVolumeOff";
+import IconMusic from "@/assets/icons/IconMusic";
+import IconMusicOff from "@/assets/icons/IconMusicOff";
+import IconPlay from "@/assets/icons/IconPlay";
+import IconPause from "@/assets/icons/IconPause";
+import Svg, { Rect } from "react-native-svg";
+import { Audio } from "expo-av";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 const GAME_WIDTH = Math.min(screenWidth - 32, 350);
-const GAME_HEIGHT = 420; // Increased from 400 to 420 (20 pixels longer)
+const GAME_HEIGHT = 420;
 const PIXEL = 3;
 
 // Sprites
-const PLAYER_SPRITE = ['0011100', '0111110', '1111111', '1111111', '0111110'];
-const ENEMY_SPRITE = ['00100', '01110', '11111', '10101', '01010'];
+const PLAYER_SPRITE = ["0011100", "0111110", "1111111", "1111111", "0111110"];
+const ENEMY_SPRITE = ["00100", "01110", "11111", "10101", "01010"];
 
 // Game constants
 const PLAYER_WIDTH = PLAYER_SPRITE[0].length * PIXEL;
@@ -59,7 +67,10 @@ const SpaceInvadersScreen = () => {
   const router = useRouter();
   const animationRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [gameState, setGameState] = useState({
-    player: { x: GAME_WIDTH / 2 - PLAYER_WIDTH / 2, y: GAME_HEIGHT - PLAYER_HEIGHT - 10 },
+    player: {
+      x: GAME_WIDTH / 2 - PLAYER_WIDTH / 2,
+      y: GAME_HEIGHT - PLAYER_HEIGHT - 10,
+    },
     bullets: [] as Bullet[],
     enemyBullets: [] as Bullet[],
     enemies: [] as Enemy[],
@@ -81,11 +92,12 @@ const SpaceInvadersScreen = () => {
   const [soundOn, setSoundOn] = useState(true);
   const [musicOn, setMusicOn] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [sounds, setSounds] = useState<{[key: string]: Audio.Sound | null}>({});
+  const [sounds, setSounds] = useState<{ [key: string]: Audio.Sound | null }>(
+    {}
+  );
   const [bgMusic, setBgMusic] = useState<Audio.Sound | null>(null);
-  const [highscore, setHighscore] = useState(0);
   const [showWaveMessage, setShowWaveMessage] = useState(false);
-  const [waveMessage, setWaveMessage] = useState('');
+  const [waveMessage, setWaveMessage] = useState("");
   const [audioInitialized, setAudioInitialized] = useState(false);
 
   // Load sounds and initialize
@@ -99,7 +111,7 @@ const SpaceInvadersScreen = () => {
         bgMusic.stopAsync().catch(() => {});
         bgMusic.unloadAsync().catch(() => {});
       }
-      Object.values(sounds).forEach(sound => {
+      Object.values(sounds).forEach((sound) => {
         if (sound) {
           sound.stopAsync().catch(() => {});
           sound.unloadAsync().catch(() => {});
@@ -113,24 +125,23 @@ const SpaceInvadersScreen = () => {
 
   const loadHighscore = async () => {
     try {
-      const highscore = await AsyncStorage.getItem('spaceinvaders_highscore');
+      const highscore = await AsyncStorage.getItem("spaceinvaders_highscore");
       if (highscore) {
-        setGameState(prev => ({ ...prev, highscore: parseInt(highscore) }));
+        setGameState((prev) => ({ ...prev, highscore: parseInt(highscore) }));
       }
-    } catch (error) {
-      console.log('Error loading highscore:', error);
-    }
+    } catch {}
   };
 
   const saveHighscore = async () => {
     try {
       if (gameState.score > gameState.highscore) {
-        await AsyncStorage.setItem('spaceinvaders_highscore', gameState.score.toString());
-        setGameState(prev => ({ ...prev, highscore: prev.score }));
+        await AsyncStorage.setItem(
+          "spaceinvaders_highscore",
+          gameState.score.toString()
+        );
+        setGameState((prev) => ({ ...prev, highscore: prev.score }));
       }
-    } catch (error) {
-      console.log('Error saving highscore:', error);
-    }
+    } catch {}
   };
 
   const loadSounds = async () => {
@@ -146,16 +157,16 @@ const SpaceInvadersScreen = () => {
 
       // Load sounds from the Sounds directory
       const { sound: shootSound } = await Audio.Sound.createAsync(
-        require('@/assets/Sounds/laser.mp3')
+        require("@/assets/Sounds/laser.mp3")
       );
       const { sound: explosionSound } = await Audio.Sound.createAsync(
-        require('@/assets/Sounds/richtig.mp3')
+        require("@/assets/Sounds/richtig.mp3")
       );
       const { sound: playerHitSound } = await Audio.Sound.createAsync(
-        require('@/assets/Sounds/error.mp3')
+        require("@/assets/Sounds/error.mp3")
       );
       const { sound: enemyShootSound } = await Audio.Sound.createAsync(
-        require('@/assets/Sounds/laser-alien.mp3')
+        require("@/assets/Sounds/laser-alien.mp3")
       );
 
       setSounds({
@@ -167,12 +178,11 @@ const SpaceInvadersScreen = () => {
 
       // Load background music
       const { sound: bgMusicSound } = await Audio.Sound.createAsync(
-        require('@/assets/Sounds/8-bit.mp3'),
+        require("@/assets/Sounds/8-bit.mp3"),
         { isLooping: true, volume: 0.3 }
       );
       setBgMusic(bgMusicSound);
-    } catch (error) {
-      console.log('Error loading sounds:', error);
+    } catch {
       // Set empty sounds object to prevent further errors
       setSounds({
         shoot: null,
@@ -186,7 +196,7 @@ const SpaceInvadersScreen = () => {
 
   const playSound = async (type: string) => {
     if (!soundOn || !sounds[type] || gameState.paused) return;
-    
+
     try {
       const sound = sounds[type];
       if (sound) {
@@ -201,21 +211,22 @@ const SpaceInvadersScreen = () => {
           });
           setAudioInitialized(true);
         }
-        
+
         await sound.setPositionAsync(0);
         // Set volume to 50%
         await sound.setVolumeAsync(0.5);
         await sound.playAsync();
       }
-    } catch (error) {
-      console.log('Error playing sound:', error);
-    }
+    } catch {}
   };
 
   const init = () => {
-    setGameState(prev => ({
+    setGameState((prev) => ({
       ...prev,
-      player: { x: GAME_WIDTH / 2 - PLAYER_WIDTH / 2, y: GAME_HEIGHT - PLAYER_HEIGHT - 10 },
+      player: {
+        x: GAME_WIDTH / 2 - PLAYER_WIDTH / 2,
+        y: GAME_HEIGHT - PLAYER_HEIGHT - 10,
+      },
       bullets: [],
       enemyBullets: [],
       enemies: [],
@@ -236,9 +247,9 @@ const SpaceInvadersScreen = () => {
   };
 
   const spawnWave = () => {
-    setGameState(prev => {
+    setGameState((prev) => {
       const rows = ENEMY_ROWS_BASE + Math.floor(prev.level / 3);
-      // Verlangsame die Aliens um 50% für bessere Spielbarkeit auf dem Handy
+      //Speed limit for smartphones
       const speed = (ENEMY_SPEED_X_BASE + (prev.level - 1) * 0.3) * 0.5;
       const shoot = ENEMY_SHOOT_CHANCE_BASE * (1 + (prev.level - 1) * 0.4);
 
@@ -248,7 +259,7 @@ const SpaceInvadersScreen = () => {
           newEnemies.push({
             x: 40 + c * (ENEMY_WIDTH + ENEMY_H_SPACING),
             y: ENEMY_START_Y + r * (ENEMY_HEIGHT + ENEMY_V_SPACING),
-            alive: true
+            alive: true,
           });
         }
       }
@@ -262,67 +273,65 @@ const SpaceInvadersScreen = () => {
       };
     });
 
-    // Wave-Ankündigung anzeigen
     setWaveMessage(`WAVE ${gameState.level}`);
     setShowWaveMessage(true);
     setTimeout(() => setShowWaveMessage(false), 1200);
 
-    // 2-Sekunden-Schonfrist
     setTimeout(() => {
-      setGameState(prev => ({ ...prev, enemyCanFire: true }));
+      setGameState((prev) => ({ ...prev, enemyCanFire: true }));
     }, 2000);
   };
 
   const fireBullet = () => {
-    if (gameState.bullets.length < 3) { // Limit bullets
+    if (gameState.bullets.length < 3) {
       const newBullet: Bullet = {
         x: gameState.player.x + PLAYER_WIDTH / 2 - BULLET_WIDTH / 2,
         y: gameState.player.y - BULLET_HEIGHT,
       };
-      setGameState(prev => ({
+      setGameState((prev) => ({
         ...prev,
         bullets: [...prev.bullets, newBullet],
       }));
-      playSound('shoot');
+      playSound("shoot");
     }
   };
 
   const movePlayer = () => {
-    setGameState(prev => {
+    setGameState((prev) => {
       let newX = prev.player.x;
-      if (prev.keys['ArrowLeft']) newX -= PLAYER_SPEED;
-      if (prev.keys['ArrowRight']) newX += PLAYER_SPEED;
+      if (prev.keys["ArrowLeft"]) newX -= PLAYER_SPEED;
+      if (prev.keys["ArrowRight"]) newX += PLAYER_SPEED;
       newX = Math.max(0, Math.min(GAME_WIDTH - PLAYER_WIDTH, newX));
-      
+
       return {
         ...prev,
-        player: { ...prev.player, x: newX }
+        player: { ...prev.player, x: newX },
       };
     });
   };
 
   const moveBullets = () => {
-    setGameState(prev => {
+    setGameState((prev) => {
       const newBullets = prev.bullets
-        .map(b => ({ ...b, y: b.y - BULLET_SPEED }))
-        .filter(b => b.y + BULLET_HEIGHT > 0);
+        .map((b) => ({ ...b, y: b.y - BULLET_SPEED }))
+        .filter((b) => b.y + BULLET_HEIGHT > 0);
 
       const newEnemyBullets = prev.enemyBullets
-        .map(b => ({ ...b, y: b.y + ENEMY_BULLET_SPEED }))
-        .filter(b => b.y < GAME_HEIGHT);
+        .map((b) => ({ ...b, y: b.y + ENEMY_BULLET_SPEED }))
+        .filter((b) => b.y < GAME_HEIGHT);
 
       return {
         ...prev,
         bullets: newBullets,
-        enemyBullets: newEnemyBullets
+        enemyBullets: newEnemyBullets,
       };
     });
   };
 
   const moveEnemies = () => {
-    setGameState(prev => {
+    setGameState((prev) => {
       let edge = false;
-      const newEnemies = prev.enemies.map(e => {
+      const newEnemies = prev.enemies.map((e) => {
         if (!e.alive) return e;
         const newX = e.x + prev.enemySpeedX;
         if (newX <= 0 || newX + ENEMY_WIDTH >= GAME_WIDTH) edge = true;
@@ -330,7 +339,7 @@ const SpaceInvadersScreen = () => {
       });
 
       if (edge) {
-        const updatedEnemies = newEnemies.map(e => {
+        const updatedEnemies = newEnemies.map((e) => {
           if (!e.alive) return e;
           const newY = e.y + ENEMY_STEP_DOWN;
           if (newY + ENEMY_HEIGHT >= prev.player.y) {
@@ -339,52 +348,57 @@ const SpaceInvadersScreen = () => {
           return { ...e, y: newY };
         });
 
-        const gameOver = updatedEnemies.some(e => (e as any).gameOver);
+        const gameOver = updatedEnemies.some((e) => (e as any).gameOver);
 
         return {
           ...prev,
           enemies: updatedEnemies,
           enemySpeedX: -prev.enemySpeedX,
-          gameOver: gameOver
+          gameOver: gameOver,
         };
       }
 
       return {
         ...prev,
-        enemies: newEnemies
+        enemies: newEnemies,
       };
     });
   };
 
   const enemyActions = () => {
-    setGameState(prev => {
+    setGameState((prev) => {
       if (!prev.enemyCanFire) return prev;
 
       const newEnemyBullets = [...prev.enemyBullets];
       let shouldPlayEnemyShoot = false;
-      
-      prev.enemies.forEach(e => {
+
+      prev.enemies.forEach((e) => {
         if (!e.alive) return;
         if (Math.random() < prev.enemyShootChance) {
           newEnemyBullets.push({
             x: e.x + ENEMY_WIDTH / 2 - BULLET_WIDTH / 2,
-            y: e.y + ENEMY_HEIGHT
+            y: e.y + ENEMY_HEIGHT,
           });
           shouldPlayEnemyShoot = true;
         }
       });
 
       // Play sound immediately if not paused
-      if (shouldPlayEnemyShoot && !prev.paused && soundOn && sounds.enemyShoot) {
+      if (
+        shouldPlayEnemyShoot &&
+        !prev.paused &&
+        soundOn &&
+        sounds.enemyShoot
+      ) {
         // Use setTimeout to avoid blocking the state update
         setTimeout(() => {
-          playSound('enemyShoot');
+          playSound("enemyShoot");
         }, 0);
       }
 
       return {
         ...prev,
-        enemyBullets: newEnemyBullets
+        enemyBullets: newEnemyBullets,
       };
     });
   };
@@ -392,8 +406,8 @@ const SpaceInvadersScreen = () => {
   const collisions = () => {
     let shouldPlayExplosion = false;
     let shouldPlayPlayerHit = false;
-    
-    setGameState(prev => {
+
+    setGameState((prev) => {
       const newBullets = [...prev.bullets];
       const newEnemyBullets = [...prev.enemyBullets];
       let newScore = prev.score;
@@ -402,13 +416,15 @@ const SpaceInvadersScreen = () => {
       let newHitFlash = prev.hitFlash;
 
       // Player bullets vs enemies
-      newBullets.forEach(bullet => {
-        prev.enemies.forEach(enemy => {
-          if (enemy.alive && 
-              bullet.x < enemy.x + ENEMY_WIDTH &&
-              bullet.x + BULLET_WIDTH > enemy.x &&
-              bullet.y < enemy.y + ENEMY_HEIGHT &&
-              bullet.y + BULLET_HEIGHT > enemy.y) {
+      newBullets.forEach((bullet) => {
+        prev.enemies.forEach((enemy) => {
+          if (
+            enemy.alive &&
+            bullet.x < enemy.x + ENEMY_WIDTH &&
+            bullet.x + BULLET_WIDTH > enemy.x &&
+            bullet.y < enemy.y + ENEMY_HEIGHT &&
+            bullet.y + BULLET_HEIGHT > enemy.y
+          ) {
             enemy.alive = false;
             bullet.hit = true;
             newScore += 100;
@@ -419,11 +435,13 @@ const SpaceInvadersScreen = () => {
 
       // Enemy bullets vs player
       if (!prev.invincible) {
-        newEnemyBullets.forEach(bullet => {
-          if (bullet.x < prev.player.x + PLAYER_WIDTH &&
-              bullet.x + BULLET_WIDTH > prev.player.x &&
-              bullet.y < prev.player.y + PLAYER_HEIGHT &&
-              bullet.y + BULLET_HEIGHT > prev.player.y) {
+        newEnemyBullets.forEach((bullet) => {
+          if (
+            bullet.x < prev.player.x + PLAYER_WIDTH &&
+            bullet.x + BULLET_WIDTH > prev.player.x &&
+            bullet.y < prev.player.y + PLAYER_HEIGHT &&
+            bullet.y + BULLET_HEIGHT > prev.player.y
+          ) {
             bullet.hit = true;
             newLives--;
             newInvincible = true;
@@ -432,13 +450,13 @@ const SpaceInvadersScreen = () => {
             if (newLives <= 0) {
               return {
                 ...prev,
-                bullets: newBullets.filter(b => !b.hit),
-                enemyBullets: newEnemyBullets.filter(b => !b.hit),
+                bullets: newBullets.filter((b) => !b.hit),
+                enemyBullets: newEnemyBullets.filter((b) => !b.hit),
                 score: newScore,
                 lives: newLives,
                 invincible: newInvincible,
                 hitFlash: newHitFlash,
-                gameOver: true
+                gameOver: true,
               };
             }
           }
@@ -447,33 +465,33 @@ const SpaceInvadersScreen = () => {
 
       return {
         ...prev,
-        bullets: newBullets.filter(b => !b.hit),
-        enemyBullets: newEnemyBullets.filter(b => !b.hit),
+        bullets: newBullets.filter((b) => !b.hit),
+        enemyBullets: newEnemyBullets.filter((b) => !b.hit),
         score: newScore,
         lives: newLives,
         invincible: newInvincible,
         hitFlash: newHitFlash,
-        gameOver: newLives <= 0
+        gameOver: newLives <= 0,
       };
     });
-    
+
     // Play sounds outside of setState
     if (shouldPlayExplosion && !gameState.paused) {
-      playSound('explosion');
+      playSound("explosion");
     }
     if (shouldPlayPlayerHit && !gameState.paused) {
-      playSound('playerHit');
+      playSound("playerHit");
     }
   };
 
   const handleBlink = () => {
-    setGameState(prev => {
+    setGameState((prev) => {
       if (prev.invincible && prev.hitFlash > 0) {
         const newHitFlash = prev.hitFlash - 1;
         return {
           ...prev,
           hitFlash: newHitFlash,
-          invincible: newHitFlash > 0
+          invincible: newHitFlash > 0,
         };
       }
       return prev;
@@ -481,27 +499,26 @@ const SpaceInvadersScreen = () => {
   };
 
   const checkWaveClear = () => {
-    setGameState(prev => {
-      // Verhindere mehrfache Aufrufe während einer Wave-Clear-Operation
+    setGameState((prev) => {
       if (prev.waveClearing) {
         return prev;
       }
-      
-      if (prev.enemies.every(e => !e.alive)) {
+
+      if (prev.enemies.every((e) => !e.alive)) {
         if (prev.level >= 26) {
           return { ...prev, gameOver: true };
         }
         const newLevel = prev.level + 1;
         // Spawn new wave immediately
         setTimeout(() => {
-          setGameState(current => ({ ...current, waveClearing: false }));
+          setGameState((current) => ({ ...current, waveClearing: false }));
           spawnWave();
-        }, 1000); // 1 second delay before next wave
+        }, 1000);
         return {
           ...prev,
           level: newLevel,
           gameOver: false,
-          waveClearing: true // Set flag to prevent multiple calls
+          waveClearing: true,
         };
       }
       return prev;
@@ -545,20 +562,18 @@ const SpaceInvadersScreen = () => {
   const togglePause = async () => {
     const newPausedState = !gameState.paused;
     setPaused(newPausedState);
-    setGameState(prev => ({ ...prev, paused: newPausedState }));
-    
+    setGameState((prev) => ({ ...prev, paused: newPausedState }));
+
     if (newPausedState) {
       // Stop all sounds when pausing
       if (bgMusic) {
         try {
           await bgMusic.stopAsync();
-        } catch (error) {
-          console.log('Error stopping background music:', error);
-        }
+        } catch {}
       }
-      
+
       // Stop all sound effects
-      Object.values(sounds).forEach(sound => {
+      Object.values(sounds).forEach((sound) => {
         if (sound) {
           sound.stopAsync().catch(() => {});
         }
@@ -568,9 +583,7 @@ const SpaceInvadersScreen = () => {
       if (bgMusic && musicOn) {
         try {
           await bgMusic.playAsync();
-        } catch (error) {
-          console.log('Error resuming background music:', error);
-        }
+        } catch {}
       }
     }
   };
@@ -579,7 +592,7 @@ const SpaceInvadersScreen = () => {
     const elements: React.ReactElement[] = [];
     sprite.forEach((row, rowIndex) => {
       [...row].forEach((pixel, colIndex) => {
-        if (pixel === '1') {
+        if (pixel === "1") {
           elements.push(
             <Rect
               key={`${rowIndex}-${colIndex}`}
@@ -605,15 +618,13 @@ const SpaceInvadersScreen = () => {
 
   const renderEnemies = () => {
     return gameState.enemies
-      .filter(e => e.alive)
-      .map((enemy, index) => 
-        renderSprite(ENEMY_SPRITE, enemy.x, enemy.y)
-      );
+      .filter((e) => e.alive)
+      .map((enemy, index) => renderSprite(ENEMY_SPRITE, enemy.x, enemy.y));
   };
 
   const renderBullets = () => {
     const elements: React.ReactElement[] = [];
-    
+
     // Player bullets
     gameState.bullets.forEach((bullet, index) => {
       elements.push(
@@ -645,9 +656,9 @@ const SpaceInvadersScreen = () => {
     return elements;
   };
 
-  const handleTouch = (direction: 'left' | 'right' | 'fire') => {
+  const handleTouch = (direction: "left" | "right" | "fire") => {
     if (gameState.paused || gameState.gameOver) return;
-    
+
     // Initialize audio on first interaction
     if (!audioInitialized) {
       Audio.setAudioModeAsync({
@@ -656,40 +667,40 @@ const SpaceInvadersScreen = () => {
         playsInSilentModeIOS: true,
         shouldDuckAndroid: true,
         playThroughEarpieceAndroid: false,
-      }).then(() => setAudioInitialized(true)).catch(error => {
-        console.log('Error initializing audio:', error);
-      });
+      })
+        .then(() => setAudioInitialized(true))
+        .catch();
     }
-    
-    if (direction === 'fire') {
+
+    if (direction === "fire") {
       fireBullet();
-      return; // Don't change movement keys when firing
+      return;
     }
-    
+
     // Setze nur die entsprechende Richtung, ohne andere zu beeinflussen
-    setGameState(prev => ({
+    setGameState((prev) => ({
       ...prev,
       keys: {
         ...prev.keys,
-        [direction === 'left' ? 'ArrowLeft' : 'ArrowRight']: true,
-      }
+        [direction === "left" ? "ArrowLeft" : "ArrowRight"]: true,
+      },
     }));
   };
 
-  const handleTouchEnd = (direction: 'left' | 'right') => {
-    setGameState(prev => ({
+  const handleTouchEnd = (direction: "left" | "right") => {
+    setGameState((prev) => ({
       ...prev,
       keys: {
         ...prev.keys,
-        [direction === 'left' ? 'ArrowLeft' : 'ArrowRight']: false,
-      }
+        [direction === "left" ? "ArrowLeft" : "ArrowRight"]: false,
+      },
     }));
   };
 
   const toggleMusic = async () => {
     const newMusicOn = !musicOn;
     setMusicOn(newMusicOn);
-    
+
     if (bgMusic) {
       try {
         if (newMusicOn && !gameState.paused) {
@@ -697,14 +708,10 @@ const SpaceInvadersScreen = () => {
         } else {
           await bgMusic.stopAsync();
         }
-      } catch (error) {
-        console.log('Error toggling music:', error);
+      } catch {
         // If there's an error, set music to off
         setMusicOn(false);
       }
-    } else {
-      // If no background music is available, just toggle the state
-      console.log('No background music available');
     }
   };
 
@@ -713,13 +720,11 @@ const SpaceInvadersScreen = () => {
     if (bgMusic) {
       try {
         await bgMusic.stopAsync();
-      } catch (error) {
-        console.log('Error stopping background music:', error);
-      }
+      } catch {}
     }
-    
-    // Alle Sounds stoppen
-    Object.values(sounds).forEach(sound => {
+
+    // Stop all sound effects
+    Object.values(sounds).forEach((sound) => {
       if (sound) {
         sound.stopAsync().catch(() => {});
       }
@@ -733,14 +738,11 @@ const SpaceInvadersScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={handleBackPress}
-      >
+      <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
         <IconArrowBack color={Colors.primaryLimo} />
       </TouchableOpacity>
 
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={true}
@@ -777,7 +779,9 @@ const SpaceInvadersScreen = () => {
             <View style={styles.overlay}>
               <View style={styles.overlayContent}>
                 <Text style={styles.gameOverText}>GAME OVER</Text>
-                <Text style={styles.scoreText}>Final Score: {gameState.score}</Text>
+                <Text style={styles.scoreText}>
+                  Final Score: {gameState.score}
+                </Text>
                 <TouchableOpacity style={styles.restartButton} onPress={init}>
                   <Text style={styles.restartButtonText}>Restart</Text>
                 </TouchableOpacity>
@@ -798,26 +802,21 @@ const SpaceInvadersScreen = () => {
           <View style={styles.controls}>
             <TouchableOpacity
               style={styles.controlButton}
-              onPressIn={() => handleTouch('left')}
-              onPressOut={() => handleTouchEnd('left')}
-            >
-
-
-            </TouchableOpacity>
+              onPressIn={() => handleTouch("left")}
+              onPressOut={() => handleTouchEnd("left")}
+            ></TouchableOpacity>
             <TouchableOpacity
               style={styles.controlButton}
-              onPress={() => handleTouch('fire')}
+              onPress={() => handleTouch("fire")}
             >
               <Text style={styles.controlText}>⨀</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.controlButton}
-              onPressIn={() => handleTouch('right')}
-              onPressOut={() => handleTouchEnd('right')}
+              onPressIn={() => handleTouch("right")}
+              onPressOut={() => handleTouchEnd("right")}
             >
-
               <Text style={styles.controlText}>►</Text>
-
             </TouchableOpacity>
           </View>
 
@@ -832,20 +831,14 @@ const SpaceInvadersScreen = () => {
                 <IconVolumeOff size={24} color={Colors.primaryLimo} />
               )}
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.gameButton}
-              onPress={toggleMusic}
-            >
+            <TouchableOpacity style={styles.gameButton} onPress={toggleMusic}>
               {musicOn ? (
                 <IconMusic size={24} color={Colors.primaryLimo} />
               ) : (
                 <IconMusicOff size={24} color={Colors.primaryLimo} />
               )}
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.gameButton}
-              onPress={togglePause}
-            >
+            <TouchableOpacity style={styles.gameButton} onPress={togglePause}>
               {gameState.paused ? (
                 <IconPlay size={24} color={Colors.primaryLimo} />
               ) : (
@@ -863,11 +856,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.black,
-    alignItems: 'center',
+    alignItems: "center",
     paddingTop: Gaps.g80,
   },
   backButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 72,
     left: 16,
     zIndex: 10,
@@ -877,24 +870,24 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    alignItems: 'center',
+    alignItems: "center",
     paddingBottom: Gaps.g80,
-    minHeight: 800, // Ensure content is tall enough to scroll
+    minHeight: 800,
   },
   content: {
-    alignItems: 'center',
-    marginTop: 40, // Added 40px margin to avoid overlap with back button
+    alignItems: "center",
+    marginTop: 40,
   },
   title: {
     fontSize: FontSizes.H1Fs,
     fontWeight: FontWeights.H1Fw as any,
     color: Colors.primaryLimo,
     marginBottom: Gaps.g16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   hud: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     width: GAME_WIDTH,
     marginBottom: Gaps.g8,
   },
@@ -912,21 +905,21 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.black,
   },
   overlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   overlayContent: {
     backgroundColor: Colors.black,
     borderWidth: 1,
     borderColor: Colors.primaryLimo,
     padding: Gaps.g24,
-    alignItems: 'center',
+    alignItems: "center",
   },
   gameOverText: {
     fontSize: FontSizes.H2Fs,
@@ -960,37 +953,37 @@ const styles = StyleSheet.create({
   controls: {
     marginTop: Gaps.g8,
     width: GAME_WIDTH,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     gap: Gaps.g16,
     paddingHorizontal: Gaps.g16,
-    minHeight: 60, // Reduced from 80
+    minHeight: 60,
   },
   controlButton: {
     backgroundColor: Colors.primaryLimo,
-    paddingHorizontal: Gaps.g8, // Reduced from 16
-    paddingVertical: Gaps.g8, // Reduced from 16
-    minWidth: 80, // Reduced from 100
-    alignItems: 'center',
+    paddingHorizontal: Gaps.g8,
+    paddingVertical: Gaps.g8,
+    minWidth: 80,
+    alignItems: "center",
     borderRadius: 12,
     flex: 0,
-    maxWidth: 120, // Reduced from 140
+    maxWidth: 120,
     borderWidth: 2,
     borderColor: Colors.black,
-    minHeight: 50, // Reduced from 60
+    minHeight: 50,
   },
   controlText: {
     color: Colors.black,
-    fontSize: 24, // Reduced from 28
-    fontWeight: 'bold' as any,
+    fontSize: 24,
+    fontWeight: "bold" as any,
   },
   buttonContainer: {
-    marginTop: Gaps.g8, // Reduced from 16
-    flexDirection: 'row',
+    marginTop: Gaps.g8,
+    flexDirection: "row",
     gap: Gaps.g16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     width: GAME_WIDTH,
   },
   gameButton: {
@@ -1000,8 +993,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Gaps.g16,
     paddingVertical: Gaps.g16,
     height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     flex: 1,
     maxWidth: (GAME_WIDTH - 48) / 4,
   },
@@ -1011,14 +1004,14 @@ const styles = StyleSheet.create({
     fontWeight: FontWeights.SubtitleFw as any,
   },
   waveOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   waveMessage: {
     fontSize: FontSizes.H2Fs,
@@ -1027,4 +1020,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SpaceInvadersScreen; 
+export default SpaceInvadersScreen;

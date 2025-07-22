@@ -7,9 +7,9 @@ import {
 } from "react-native";
 import IconArrowBack from "@/assets/icons/IconArrowBack";
 import { Logo } from "@/components/Logos";
-import { FontSizes, Gaps, Colors } from "@/styles/theme";
+import { FontSizes, Gaps } from "@/styles/theme";
 import { useRouter } from "expo-router";
-import { ButtonPrimary, ButtonPrimaryDisabled } from "@/components/Buttons";
+import { ButtonPrimary } from "@/components/Buttons";
 import { useUser } from "@clerk/clerk-expo";
 import { useState, useEffect, useContext } from "react";
 import {
@@ -36,8 +36,7 @@ const ProfilInvitationsScreen = () => {
   const { currentLanguage } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
   const [receivedInvites, setReceivedInvites] = useState<InviteRequest[]>([]);
-  const { userData, receivedInviteRequests, setReceivedInviteRequests } =
-    useContext(UserContext);
+  const { userData, setReceivedInviteRequests } = useContext(UserContext);
 
   // =========== Functions ===========
   // ----- Handler Accept -----
@@ -48,15 +47,14 @@ const ProfilInvitationsScreen = () => {
         console.error("Error: Invite ID is missing");
         return;
       }
-      if (isLoading) return; // Prevent multiple simultaneous calls
+      if (isLoading) return;
 
       setIsLoading(true);
       const clerkUserId = user.id;
 
-      // Accept the invitation on the backend
       await acceptInviteRequest(clerkUserId, inviteId);
 
-      // ADD THIS CODE: Update badge count after accepting
+      // Update badge count after accepting
       if (typeof setReceivedInviteRequests === "function") {
         const received = await getReceivedInviteRequests(clerkUserId);
         const pendingInvites = (received.inviteRequests || []).filter(
@@ -65,36 +63,32 @@ const ProfilInvitationsScreen = () => {
         setReceivedInviteRequests(pendingInvites.length);
       }
 
-      // Connect to socket service if not already connected
       if (!socketService.isConnected()) {
         await socketService.connect();
       }
 
-      // Join the room via socket
+      // Join the room via socket and language setting
       const playerName =
-        user.username || (user.emailAddresses[0]?.emailAddress?.split("@")[0]) || "Player";
-      // Get user's language from context or cache
+        user.username ||
+        user.emailAddresses[0]?.emailAddress?.split("@")[0] ||
+        "Player";
       let userLanguage = currentLanguage?.code;
       if (!userLanguage) {
         const cachedLanguage = await loadCacheData("selected_language");
-        userLanguage = cachedLanguage || "en"; // Default to English
+        userLanguage = cachedLanguage || "en";
       }
       socketService.joinRoom(roomcode, clerkUserId, playerName, userLanguage);
 
-      // Listen for successful room join
       socketService.onRoomJoined((data) => {
-        console.log("Successfully joined room:", data.room);
-
         // Save room info to cache for MultiplayerLobby to use
         const roomInfo = {
           roomId: roomcode,
           room: data.room,
-          isHost: false, // Since we're joining, we're not the host
+          isHost: false,
         };
 
         saveDataToCache(CACHE_KEY.currentRoom, roomInfo);
 
-        // Navigate to MultiplayerLobby
         router.push("../play/MultiplayerLobby");
       });
 
@@ -119,7 +113,7 @@ const ProfilInvitationsScreen = () => {
         console.error("Error: Invite ID is missing");
         return;
       }
-      if (isLoading) return; // Prevent multiple simultaneous calls
+      if (isLoading) return;
 
       setIsLoading(true);
       const clerkUserId = user.id;
@@ -135,7 +129,6 @@ const ProfilInvitationsScreen = () => {
           (invite) => invite.status === "pending"
         );
         setReceivedInviteRequests(pendingInvites.length);
-        console.log("Updated invitation badge count:", pendingInvites.length);
       }
     } catch (error) {
       console.error("Error declining invitation:", error);
@@ -158,7 +151,6 @@ const ProfilInvitationsScreen = () => {
         setReceivedInvites(response.inviteRequests || []);
       } catch (error) {
         console.error("Error fetching received invitations:", error);
-        // Set empty array on error to prevent UI issues
         setReceivedInvites([]);
       } finally {
         setIsLoading(false);
@@ -185,55 +177,41 @@ const ProfilInvitationsScreen = () => {
       await fetchInvitations(clerkUserId);
     };
 
-    // Create a named function for registering event handlers
     const registerSocketListeners = () => {
-      console.log("🔄 Registering invitation socket listeners");
-
-      // Clean up existing listeners first to avoid duplicates
       socketService.off("inviteRequestSent");
       socketService.off("inviteRequestAccepted");
       socketService.off("inviteRequestDeclined");
 
-      // Register the event handlers
       socketService.on("inviteRequestSent", (data: any) => {
-        console.log("📩 Invite request sent:", data);
         fetchAndSetInvites();
       });
 
       socketService.on("inviteRequestAccepted", (data: any) => {
-        console.log("✅ Invite request accepted:", data);
         fetchAndSetInvites();
       });
 
       socketService.on("inviteRequestDeclined", (data: any) => {
-        console.log("❌ Invite request declined:", data);
         fetchAndSetInvites();
       });
     };
 
-    // Initial registration
     registerSocketListeners();
 
-    // Set up listener for reconnection events
     socketService.on("connect", () => {
-      console.log("Socket reconnected, re-registering invitation listeners");
       registerSocketListeners();
     });
 
-    // Cleanup on unmount
     return () => {
-      console.log("Cleaning up invitation socket listeners");
       socketService.off("inviteRequestSent");
       socketService.off("inviteRequestAccepted");
       socketService.off("inviteRequestDeclined");
-      socketService.off("connect"); // Important: Remove the reconnection handler
+      socketService.off("connect");
     };
   }, [user, userData]);
 
   // Fetch both received and sent invitations
   const fetchInvitations = async (clerkUserId: string) => {
     try {
-      console.log("Fetching received and sent invites...");
       const [received] = await Promise.all([
         getReceivedInviteRequests(clerkUserId),
       ]);
@@ -241,16 +219,13 @@ const ProfilInvitationsScreen = () => {
       const allInvites = received.inviteRequests || [];
       setReceivedInvites(allInvites);
 
-      // ADD THIS CODE: Update the global badge count
+      // Update the global badge count
       if (typeof setReceivedInviteRequests === "function") {
         const pendingInvites = allInvites.filter(
           (invite) => invite.status === "pending"
         );
         setReceivedInviteRequests(pendingInvites.length);
-        console.log("Updated invitation badge count:", pendingInvites.length);
       }
-
-      console.log("Updated received invites:", allInvites);
     } catch (error) {
       console.error("Error fetching invitations:", error);
       setReceivedInvites([]);
@@ -307,7 +282,6 @@ const ProfilInvitationsScreen = () => {
                 <View style={styles.actionButtons}>
                   {isLoading ? (
                     <>
-                      {/* Loading spinner here? */}
                       <IconPending />
                     </>
                   ) : (

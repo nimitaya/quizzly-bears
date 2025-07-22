@@ -11,7 +11,6 @@ class NavigationStateManager {
    * to prevent socket disconnection
    */
   startAuthNavigation(): void {
-    console.log("⚡ Starting auth navigation - preserving socket");
     this.isNavigatingToAuth = true;
     this.isAuthNavigationActive = true;
 
@@ -22,7 +21,6 @@ class NavigationStateManager {
 
     // Set a longer safety timeout (5 seconds should cover most navigation cases)
     this.navigationTimeoutId = setTimeout(() => {
-      console.log("⚠️ Auth navigation safety timeout elapsed");
       this.isNavigatingToAuth = false;
     }, 5000);
   }
@@ -38,7 +36,6 @@ class NavigationStateManager {
    * Call this when auth navigation is complete
    */
   endAuthNavigation(): void {
-    console.log("⚡ Auth navigation complete");
     this.isNavigatingToAuth = false;
 
     // Keep the active state for a short period to handle any cleanup operations

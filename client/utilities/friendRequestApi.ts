@@ -166,19 +166,20 @@ export const removeFriend = async (
 
 //================================= Search emails for autocomplete ========================================
 
-
 export const searchEmailsAutocomplete = async (
   query: string,
   clerkUserId: string
 ): Promise<{ users: Array<{ _id: string; email: string }> }> => {
   try {
-    console.log("api url:", `${API_BASE_URL}/friend-request/search-emails`);
-    const response = await axios.get(`${API_BASE_URL}/friend-request/search-emails`, {
-      params: {
-        query,
-        clerkUserId,
-      },
-    });
+    const response = await axios.get(
+      `${API_BASE_URL}/friend-request/search-emails`,
+      {
+        params: {
+          query,
+          clerkUserId,
+        },
+      }
+    );
 
     return response.data;
   } catch (error: any) {

@@ -1,4 +1,4 @@
-import { Text, View, TouchableOpacity, StyleSheet } from "react-native";
+import { Text, View, StyleSheet } from "react-native";
 import GoogleSignInButton from "@/app/(auth)/GoogleSignInButton";
 import FacebookInButton from "@/app/(auth)/FacebookSignInButton";
 import { Gaps, FontSizes, Colors } from "@/styles/theme";
@@ -16,7 +16,6 @@ const LogInScreen = () => {
     navigationState.endAuthNavigation();
   }, []);
 
-  // Navigation handlers
   const EmailLogIn = () => {
     router.push("/(auth)/LogIn");
   };
@@ -63,8 +62,6 @@ const LogInScreen = () => {
   );
 };
 
-export default LogInScreen;
-
 const styles = StyleSheet.create({
   textH1: {
     fontSize: FontSizes.H1Fs,
@@ -78,3 +75,5 @@ const styles = StyleSheet.create({
     marginHorizontal: Gaps.g16,
   },
 });
+
+export default LogInScreen;

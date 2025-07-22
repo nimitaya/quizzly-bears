@@ -26,7 +26,6 @@ const getCurrentLanguage = async (): Promise<string> => {
     const savedLanguage = await AsyncStorage.getItem("selected_language");
     return savedLanguage || "en";
   } catch (error) {
-    console.error("Error getting current language", error);
     return "en";
   }
 };
@@ -41,25 +40,36 @@ const getDifficultyDescription = (difficulty: Difficulty): string => {
   const difficultyLevels = {
     easy: {
       description: "Basic knowledge and common facts",
-      characteristics: "Simple recall, well-known information, straightforward concepts",
-      examples: "What is the capital of France? Which planet is closest to the Sun?",
-      complexity: "Elementary level understanding required"
+      characteristics:
+        "Simple recall, well-known information, straightforward concepts",
+      examples:
+        "What is the capital of France? Which planet is closest to the Sun?",
+      complexity: "Elementary level understanding required",
     },
     medium: {
       description: "Moderate complexity requiring some analysis",
-      characteristics: "Application of knowledge, moderate reasoning, connections between concepts",
-      examples: "Why does water boil at different temperatures at different altitudes? How do photosynthesis and respiration relate?",
-      complexity: "Intermediate level understanding and basic analysis required"
+      characteristics:
+        "Application of knowledge, moderate reasoning, connections between concepts",
+      examples:
+        "Why does water boil at different temperatures at different altitudes? How do photosynthesis and respiration relate?",
+      complexity:
+        "Intermediate level understanding and basic analysis required",
     },
     hard: {
       description: "Advanced knowledge requiring deep understanding",
-      characteristics: "Complex analysis, synthesis of multiple concepts, expert-level knowledge",
-      examples: "What are the implications of quantum entanglement for computing? How do monetary policies affect international trade dynamics?",
-      complexity: "Advanced level critical thinking and specialized knowledge required"
-    }
+      characteristics:
+        "Complex analysis, synthesis of multiple concepts, expert-level knowledge",
+      examples:
+        "What are the implications of quantum entanglement for computing? How do monetary policies affect international trade dynamics?",
+      complexity:
+        "Advanced level critical thinking and specialized knowledge required",
+    },
   };
 
-  return difficultyLevels[difficulty]?.description || difficultyLevels.medium.description;
+  return (
+    difficultyLevels[difficulty]?.description ||
+    difficultyLevels.medium.description
+  );
 };
 
 // ==================== CONSISTENT PROMPT GENERATOR ========================================
@@ -78,7 +88,6 @@ const generatePrompt = (
   const uniqueId = `${topicHash}-${difficulty}-${timestamp}-${randomSeed}-${sessionId}`;
   const difficultySpec = getDifficultyDescription(difficulty);
 
-  
   return `Generate EXACTLY ${questionCount} unique multiple-choice quiz questions about "${topic}" at ${difficulty.toUpperCase()} difficulty level.
 
   DIFFICULTY SPECIFICATIONS FOR ${difficulty.toUpperCase()}:
@@ -93,28 +102,48 @@ const generatePrompt = (
     "questionArray": [
       {
         "question": {
-          "en": "English question text"${currentLanguageCode !== 'en' ? `,
-          "${currentLanguageCode}": "Native ${currentLanguageName} question text"` : ''}
+          "en": "English question text"${
+            currentLanguageCode !== "en"
+              ? `,
+          "${currentLanguageCode}": "Native ${currentLanguageName} question text"`
+              : ""
+          }
         },
         "optionA": {
           "isCorrect": true/false,
-          "en": "English answer"${currentLanguageCode !== 'en' ? `,
-          "${currentLanguageCode}": "Native ${currentLanguageName} answer"` : ''}
+          "en": "English answer"${
+            currentLanguageCode !== "en"
+              ? `,
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"`
+              : ""
+          }
         },
         "optionB": {
           "isCorrect": true/false,
-          "en": "English answer"${currentLanguageCode !== 'en' ? `,
-          "${currentLanguageCode}": "Native ${currentLanguageName} answer"` : ''}
+          "en": "English answer"${
+            currentLanguageCode !== "en"
+              ? `,
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"`
+              : ""
+          }
         },
         "optionC": {
           "isCorrect": true/false,
-          "en": "English answer"${currentLanguageCode !== 'en' ? `,
-          "${currentLanguageCode}": "Native ${currentLanguageName} answer"` : ''}
+          "en": "English answer"${
+            currentLanguageCode !== "en"
+              ? `,
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"`
+              : ""
+          }
         },
         "optionD": {
           "isCorrect": true/false,
-          "en": "English answer"${currentLanguageCode !== 'en' ? `,
-          "${currentLanguageCode}": "Native ${currentLanguageName} answer"` : ''}
+          "en": "English answer"${
+            currentLanguageCode !== "en"
+              ? `,
+          "${currentLanguageCode}": "Native ${currentLanguageName} answer"`
+              : ""
+          }
         }
       }
     ]
@@ -122,7 +151,11 @@ const generatePrompt = (
   
   CONTENT REQUIREMENTS:
   - Create ${questionCount} completely unique questions about different aspects of "${topic}"
-  ${currentLanguageCode !== 'en' ? `- Include questions in both English and ${currentLanguageName} (${currentLanguageCode})` : '- Include questions in English'}
+  ${
+    currentLanguageCode !== "en"
+      ? `- Include questions in both English and ${currentLanguageName} (${currentLanguageCode})`
+      : "- Include questions in English"
+  }
   - Use only factual, verifiable information with specific names, dates, and data
   - Mix question types: factual recall, analysis, comparison, and application
   - IMPORTANt: All questions must match ${difficulty.toUpperCase()} difficulty level: ${difficultySpec}
@@ -180,7 +213,7 @@ EXAMPLES OF FORBIDDEN DUPLICATES:
   - Maintain consistent structure across all generations
   
   Session ID: ${uniqueId}`;
-  };
+};
 
 // ==================== API FUNCTIONS ==================================================
 const apiKeys = [
@@ -193,8 +226,6 @@ const apiKeys = [
 ].filter(Boolean);
 
 const callGroqAPI = async (prompt: string) => {
-  console.log("Calling GROQ API with fallback keys...");
-
   for (const key of apiKeys) {
     try {
       const response = await axios.post(
@@ -216,10 +247,8 @@ const callGroqAPI = async (prompt: string) => {
         }
       );
 
-      console.log(`GROQ API successful`);
       return response.data.choices[0].message.content;
     } catch (error: any) {
-      console.warn(`Groq failed, trying next key...`, error.message || error);
       if (error.response && error.response.status !== 401) {
         throw error;
       }
@@ -232,8 +261,6 @@ const callGroqAPI = async (prompt: string) => {
 };
 
 const callOpenRouterAPI = async (prompt: string) => {
-  console.log("Calling OpenRouter API");
-
   const response = await axios.post(
     OPENROUTER_API_URL,
     {
@@ -255,8 +282,6 @@ const callOpenRouterAPI = async (prompt: string) => {
       },
     }
   );
-
-  console.log("OpenRouter API successful");
   return response.data.choices[0].message.content;
 };
 
@@ -265,16 +290,12 @@ const requestWithFallback = async (prompt: string): Promise<string> => {
   try {
     return await callGroqAPI(prompt);
   } catch (groqError) {
-    console.warn("GROQ API failed:", groqError);
-
     if (axios.isAxiosError(groqError) && groqError.response?.status === 401) {
-      console.log("Authentication error with GROQ, switching to OpenRouter...");
     }
 
     try {
       return await callOpenRouterAPI(prompt);
     } catch (openRouterError) {
-      console.error("Both APIs failed:", openRouterError);
       throw new Error("Both APIs failed. Could not generate questions.");
     }
   }
@@ -287,7 +308,6 @@ const parseQuizResponse = (
   topic: string,
   currentLanguageCode: string
 ): AiQuestions => {
-
   // Clean JSON extraction
   let cleanContent = content.replace(/```json\n?/g, "");
   cleanContent = cleanContent.replace(/```\n?/g, "");
@@ -296,26 +316,21 @@ const parseQuizResponse = (
   // Extract JSON without extra text
   const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    console.error("No valid JSON found:", cleanContent);
     throw new Error(`Invalid response from model: ${cleanContent}`);
   }
 
   const cleanJson = jsonMatch[0].trim();
-  console.log("Clean JSON extracted", cleanJson);
 
   // Parse JSON
   let parsedData;
   try {
     parsedData = JSON.parse(cleanJson);
-  } catch (parseError) {
-    console.error("JSON parsing error:", parseError);
-    console.error("JSON with extra text:", cleanJson);
+  } catch {
     throw new Error("Error parsing AI JSON response");
   }
 
   const questionsData = parsedData.questionArray;
   if (!Array.isArray(questionsData)) {
-    console.error("questionArray is not an array:", questionsData);
     throw new Error("questionArray is not a valid array");
   }
 
@@ -333,7 +348,6 @@ const parseQuizResponse = (
       !questionData.optionC ||
       !questionData.optionD
     ) {
-      console.warn(`Question ${i + 1} has incomplete structure`);
       continue;
     }
 
@@ -345,7 +359,6 @@ const parseQuizResponse = (
       typeof questionData.optionC.en !== "string" ||
       typeof questionData.optionD.en !== "string"
     ) {
-      console.warn(`Question ${i + 1} missing English texts`);
       continue;
     }
 
@@ -357,7 +370,6 @@ const parseQuizResponse = (
       typeof questionData.optionC[currentLanguageCode] !== "string" ||
       typeof questionData.optionD[currentLanguageCode] !== "string"
     ) {
-      console.warn(`Question ${i + 1} missing target language texts`);
       continue;
     }
 
@@ -370,9 +382,6 @@ const parseQuizResponse = (
     ].filter(Boolean).length;
 
     if (correctCount !== 1) {
-      console.warn(
-        `Question ${i + 1} has ${correctCount} correct answers instead of 1`
-      );
       continue;
     }
 
@@ -407,13 +416,12 @@ const parseQuizResponse = (
 
     validatedQuestions.push(question);
   }
-  
+
   if (validatedQuestions.length === 0) {
     throw new Error("No questions could be validated from the response");
   }
 
   const finalQuestions = validatedQuestions.slice(0, questionCount);
-  console.log(`${finalQuestions.length} valid questions generated`);
 
   return {
     category: topic,
@@ -427,10 +435,6 @@ export const generateMultipleQuizQuestions = async (
   difficulty: Difficulty,
   questionCount: number = 10
 ): Promise<AiQuestions> => {
-  console.log(
-    `Starting generation of ${questionCount} questions about: ${topic}`
-  );
-
   // Apply initial delay
   await delay(DELAY_MS);
 
@@ -438,10 +442,6 @@ export const generateMultipleQuizQuestions = async (
     // Get language configuration
     const currentLanguageCode = await getCurrentLanguage();
     const currentLanguageName = getLanguageName(currentLanguageCode);
-
-    console.log(
-      `Generating in: ${currentLanguageName} (${currentLanguageCode})`
-    );
 
     // Generate prompt
     const prompt = generatePrompt(
@@ -463,10 +463,8 @@ export const generateMultipleQuizQuestions = async (
       currentLanguageCode
     );
 
-    console.log(`Generation completed successfully`);
     return result;
-  } catch (error) {
-    console.error("Error in question generation:", error);
+  } catch {
     throw new Error("Questions could not be generated. Please try again.");
   }
 };
@@ -517,9 +515,6 @@ Answer with category name only:`;
 
     return similarCategory || "Culture";
   } catch (error) {
-    console.error("Error in categorization:", error);
     return "Culture";
   }
 };
-
-console.log("QuizAPI with consistent system successfully loaded");

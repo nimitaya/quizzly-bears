@@ -1,6 +1,6 @@
 import { Tabs, router } from "expo-router";
-import { Text, View, StyleSheet } from "react-native";
-import React, { useContext, useEffect, useState } from "react";
+import { View, StyleSheet } from "react-native";
+import React, { useContext, useEffect } from "react";
 import IconBearTab from "@/assets/icons/IconBearTab";
 import IconBearTabAktiv from "@/assets/icons/IconBearTabAktiv";
 import IconStatisticsTab from "@/assets/icons/IconStatisticsTab";
@@ -33,25 +33,19 @@ const _Layout = () => {
   useEffect(() => {
     if (userData) {
       const handleFriendRequestSent = (data: any) => {
-        console.log("Friend request sent:", data);
-
         getReceivedFriendRequests(userData.clerkUserId).then((received) => {
           setReceivedRequestsCount(received.friendRequests.length);
         });
       };
 
       const handleInviteRequestSent = (data: any) => {
-        console.log("📩 Invite request sent:", data);
-
         if (!userData?.clerkUserId) {
-          console.warn("⚠️ clerkUserId is missing");
           return;
         }
 
         getReceivedInviteRequests(userData.clerkUserId)
           .then((response) => {
             if (!response?.inviteRequests) {
-              console.warn("⚠️ No inviteRequests field in response:", response);
               return;
             }
 
@@ -60,25 +54,15 @@ const _Layout = () => {
               (i) => i.status === "pending"
             );
 
-            console.log("📊 Total requests:", allInvites.length);
-            console.log("⏳ Pending:", pendingInvites.length);
-
             if (typeof setReceivedInviteRequests === "function") {
               setReceivedInviteRequests(pendingInvites.length);
-              console.log("✅ State updated");
-            } else {
-              console.warn("⚠️ setReceivedInviteRequests is not a function");
             }
           })
-          .catch((error) => {
-            console.error("❌ getReceivedInviteRequests помилка:", error);
-          });
+          .catch((error) => {});
       };
 
       // Set up reconnection handler
       const handleReconnect = () => {
-        console.log("Socket reconnected in tab layout, refreshing counts");
-
         if (userData?.clerkUserId) {
           // Refresh friend request count
           getReceivedFriendRequests(userData.clerkUserId)
@@ -88,9 +72,7 @@ const _Layout = () => {
               );
               setReceivedRequestsCount(pendingRequests.length);
             })
-            .catch((err) =>
-              console.error("Error refreshing friend requests:", err)
-            );
+            .catch((err) => {});
 
           // Refresh invitation count
           getReceivedInviteRequests(userData.clerkUserId)
@@ -105,9 +87,7 @@ const _Layout = () => {
                 setReceivedInviteRequests(pendingInvites.length);
               }
             })
-            .catch((err) =>
-              console.error("Error refreshing invitations:", err)
-            );
+            .catch((err) => {});
         }
       };
 
@@ -134,8 +114,6 @@ const _Layout = () => {
   useEffect(() => {
     if (!userData?.clerkUserId) return;
 
-    console.log("🔄 Loading initial counts in tab layout");
-
     // Load friend request count
     getReceivedFriendRequests(userData.clerkUserId)
       .then((received) => {
@@ -143,9 +121,8 @@ const _Layout = () => {
           (req) => req.status === "pending"
         );
         setReceivedRequestsCount(pendingRequests.length);
-        console.log("📊 Initial friend requests:", pendingRequests.length);
       })
-      .catch((err) => console.error("Error loading friend requests:", err));
+      .catch(() => {});
 
     // Load invitation count
     getReceivedInviteRequests(userData.clerkUserId)
@@ -158,7 +135,6 @@ const _Layout = () => {
 
         if (typeof setReceivedInviteRequests === "function") {
           setReceivedInviteRequests(pendingInvites.length);
-          console.log("📊 Initial invitations:", pendingInvites.length);
         }
       })
       .catch((err) => console.error("Error loading invitations:", err));

@@ -56,14 +56,12 @@ const MultiplayerResultScreen = () => {
           // Request the current results
           socketService.emit("get-game-results", { roomId: room.roomId });
         } else {
-          console.error("No room information found");
           setIsLoading(false);
         }
         // Load quiz settings from cache
         const settings = await loadCacheData(CACHE_KEY.quizSettings);
         setQuizSettings(settings);
       } catch (error) {
-        console.error("Error loading room information:", error);
         setIsLoading(false);
       }
     };
@@ -93,49 +91,16 @@ const MultiplayerResultScreen = () => {
         for (let i = 0; i < 3 && i < players.length; i++) {
           const player = players[i];
           if (!awarded.has(player.id)) {
-            console.log(
-              `Отправка медали в базу данных: userId=${player.id}, place=${
-                i + 1
-              }, roomId=${roomInfo.roomId}`
-            );
             await sendMedal({
               clerkUserId: player.id,
               place: i + 1,
               roomId: roomInfo.roomId,
             });
-            console.log(
-              `Medal successfully sent: userId=${player.id}, place=${
-                i + 1
-              }, roomId=${roomInfo.roomId}`
-            );
             awarded.add(player.id);
           }
         }
-        console.log("All medals have been sent to the database.");
-      } catch (err) {
-        console.error("Error sending medals:", err);
-      }
+      } catch {}
     }
-    // OLD code
-    // if (!medalsSent && roomInfo && players.length > 0) {
-    //   setMedalsSent(true);
-    //   try {
-    //     const awarded = new Set();
-    //     for (let i = 0; i < 3 && i < players.length; i++) {
-    //       const player = players[i];
-    //       if (!awarded.has(player.id)) {
-    //         await sendMedal({
-    //           clerkUserId: player.id,
-    //           place: i + 1,
-    //           roomId: roomInfo.roomId,
-    //         });
-    //         awarded.add(player.id);
-    //       }
-    //     }
-    //   } catch (err) {
-    //     console.error("Error sending medals:", err);
-    //   }
-    // }
   };
 
   const handlePlayAgain = async () => {
@@ -154,11 +119,6 @@ const MultiplayerResultScreen = () => {
     clearCacheData(CACHE_KEY.quizSettings);
 
     if (roomInfo && userData) {
-      const onRoomLeft = () => {
-        clearCacheData(CACHE_KEY.currentRoom);
-        router.push("./");
-      };
-
       socketService.on("error", (data: { message: string }) => {
         if (data.message === "Room not found") {
           clearCacheData(CACHE_KEY.currentRoom);
@@ -233,7 +193,7 @@ const MultiplayerResultScreen = () => {
                   </Text>
                 </View>
 
-                <View style={styles.scoreDetails}>
+                <View>
                   <View style={styles.pointsRow}>
                     <IconCheckbox />
                     <Text style={styles.pointsText}>
@@ -328,9 +288,6 @@ const styles = StyleSheet.create({
   playerName: {
     fontSize: FontSizes.TextLargeFs,
     flexGrow: 1,
-  },
-  scoreDetails: {
-    // marginLeft: Gaps.g32,
   },
   pointsRow: {
     flexDirection: "row",

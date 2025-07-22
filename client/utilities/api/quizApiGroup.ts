@@ -25,8 +25,7 @@ const getCurrentLanguage = async (): Promise<string> => {
   try {
     const savedLanguage = await AsyncStorage.getItem("selected_language");
     return savedLanguage || "en";
-  } catch (error) {
-    console.error("Error getting current language", error);
+  } catch {
     return "en";
   }
 };
@@ -41,34 +40,46 @@ const getDifficultyDescription = (difficulty: Difficulty): string => {
   const difficultyLevels = {
     easy: {
       description: "Basic knowledge and common facts",
-      characteristics: "Simple recall, well-known information, straightforward concepts",
-      examples: "What is the capital of France? Which planet is closest to the Sun?",
-      complexity: "Elementary level understanding required"
+      characteristics:
+        "Simple recall, well-known information, straightforward concepts",
+      examples:
+        "What is the capital of France? Which planet is closest to the Sun?",
+      complexity: "Elementary level understanding required",
     },
     medium: {
       description: "Moderate complexity requiring some analysis",
-      characteristics: "Application of knowledge, moderate reasoning, connections between concepts",
-      examples: "Why does water boil at different temperatures at different altitudes? How do photosynthesis and respiration relate?",
-      complexity: "Intermediate level understanding and basic analysis required"
+      characteristics:
+        "Application of knowledge, moderate reasoning, connections between concepts",
+      examples:
+        "Why does water boil at different temperatures at different altitudes? How do photosynthesis and respiration relate?",
+      complexity:
+        "Intermediate level understanding and basic analysis required",
     },
     hard: {
       description: "Advanced knowledge requiring deep understanding",
-      characteristics: "Complex analysis, synthesis of multiple concepts, expert-level knowledge",
-      examples: "What are the implications of quantum entanglement for computing? How do monetary policies affect international trade dynamics?",
-      complexity: "Advanced level critical thinking and specialized knowledge required"
-    }
+      characteristics:
+        "Complex analysis, synthesis of multiple concepts, expert-level knowledge",
+      examples:
+        "What are the implications of quantum entanglement for computing? How do monetary policies affect international trade dynamics?",
+      complexity:
+        "Advanced level critical thinking and specialized knowledge required",
+    },
   };
 
-  return difficultyLevels[difficulty]?.description || difficultyLevels.medium.description;
+  return (
+    difficultyLevels[difficulty]?.description ||
+    difficultyLevels.medium.description
+  );
 };
 
 const getDifficultyCharacteristics = (difficulty: Difficulty): string => {
   const difficultyLevels = {
     easy: "Simple recall, well-known information, straightforward concepts",
-    medium: "Application of knowledge, moderate reasoning, connections between concepts",
-    hard: "Complex analysis, synthesis of multiple concepts, expert-level knowledge"
+    medium:
+      "Application of knowledge, moderate reasoning, connections between concepts",
+    hard: "Complex analysis, synthesis of multiple concepts, expert-level knowledge",
   };
-  
+
   return difficultyLevels[difficulty] || difficultyLevels.medium;
 };
 
@@ -76,19 +87,20 @@ const getDifficultyComplexity = (difficulty: Difficulty): string => {
   const difficultyLevels = {
     easy: "Elementary level understanding required",
     medium: "Intermediate level understanding and basic analysis required",
-    hard: "Advanced level critical thinking and specialized knowledge required"
+    hard: "Advanced level critical thinking and specialized knowledge required",
   };
-  
+
   return difficultyLevels[difficulty] || difficultyLevels.medium;
 };
 
 const getDifficultyExamples = (difficulty: Difficulty): string => {
   const difficultyLevels = {
     easy: "What is the capital of France? Which planet is closest to the Sun?",
-    medium: "Why does water boil at different temperatures at different altitudes? How do photosynthesis and respiration relate?",
-    hard: "What are the implications of quantum entanglement for computing? How do monetary policies affect international trade dynamics?"
+    medium:
+      "Why does water boil at different temperatures at different altitudes? How do photosynthesis and respiration relate?",
+    hard: "What are the implications of quantum entanglement for computing? How do monetary policies affect international trade dynamics?",
   };
-  
+
   return difficultyLevels[difficulty] || difficultyLevels.medium;
 };
 
@@ -109,21 +121,21 @@ const generatePrompt = (
 
   // Create language entries for the JSON structure
   const languageEntries = languageCodes
-    .filter(code => code !== 'en') // Exclude English as it's already specified separately
-    .map(code => {
+    .filter((code) => code !== "en")
+    .map((code) => {
       const name = getLanguageName(code);
       return `"${code}": "Native ${name} question text"`;
     })
-    .join(',\n          ');
+    .join(",\n          ");
 
   // Create language entries for answer options
   const optionLanguageEntries = languageCodes
-    .filter(code => code !== 'en') // Exclude English as it's already specified separately
-    .map(code => {
+    .filter((code) => code !== "en")
+    .map((code) => {
       const name = getLanguageName(code);
       return `"${code}": "Native ${name} answer"`;
     })
-    .join(',\n          ');
+    .join(",\n          ");
 
   // Get all difficulty specs
   const difficultyChar = getDifficultyCharacteristics(difficulty);
@@ -244,8 +256,6 @@ const apiKeys = [
 ].filter(Boolean);
 
 const callGroqAPI = async (prompt: string) => {
-  console.log("Calling GROQ API with fallback keys...");
-
   for (const key of apiKeys) {
     try {
       const response = await axios.post(
@@ -267,10 +277,8 @@ const callGroqAPI = async (prompt: string) => {
         }
       );
 
-      console.log(`GROQ API successful`);
       return response.data.choices[0].message.content;
     } catch (error: any) {
-      console.warn(`Groq failed, trying next key...`, error.message || error);
       if (error.response && error.response.status !== 401) {
         throw error;
       }
@@ -283,8 +291,6 @@ const callGroqAPI = async (prompt: string) => {
 };
 
 const callOpenRouterAPI = async (prompt: string) => {
-  console.log("Calling OpenRouter API");
-
   const response = await axios.post(
     OPENROUTER_API_URL,
     {
@@ -307,7 +313,6 @@ const callOpenRouterAPI = async (prompt: string) => {
     }
   );
 
-  console.log("OpenRouter API successful");
   return response.data.choices[0].message.content;
 };
 
@@ -315,17 +320,10 @@ const callOpenRouterAPI = async (prompt: string) => {
 const requestWithFallback = async (prompt: string): Promise<string> => {
   try {
     return await callGroqAPI(prompt);
-  } catch (groqError) {
-    console.warn("GROQ API failed:", groqError);
-
-    if (axios.isAxiosError(groqError) && groqError.response?.status === 401) {
-      console.log("Authentication error with GROQ, switching to OpenRouter...");
-    }
-
+  } catch {
     try {
       return await callOpenRouterAPI(prompt);
     } catch (openRouterError) {
-      console.error("Both APIs failed:", openRouterError);
       throw new Error("Both APIs failed. Could not generate questions.");
     }
   }
@@ -338,7 +336,6 @@ const parseQuizResponse = (
   topic: string,
   languageCodes: string[]
 ): AiQuestions => {
-
   // Clean JSON extraction
   let cleanContent = content.replace(/```json\n?/g, "");
   cleanContent = cleanContent.replace(/```\n?/g, "");
@@ -347,26 +344,21 @@ const parseQuizResponse = (
   // Extract JSON without extra text
   const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    console.error("No valid JSON found:", cleanContent);
     throw new Error(`Invalid response from model: ${cleanContent}`);
   }
 
   const cleanJson = jsonMatch[0].trim();
-  console.log("Clean JSON extracted", cleanJson);
 
   // Parse JSON
   let parsedData;
   try {
     parsedData = JSON.parse(cleanJson);
   } catch (parseError) {
-    console.error("JSON parsing error:", parseError);
-    console.error("JSON with extra text:", cleanJson);
     throw new Error("Error parsing AI JSON response");
   }
 
   const questionsData = parsedData.questionArray;
   if (!Array.isArray(questionsData)) {
-    console.error("questionArray is not an array:", questionsData);
     throw new Error("questionArray is not a valid array");
   }
 
@@ -384,7 +376,6 @@ const parseQuizResponse = (
       !questionData.optionC ||
       !questionData.optionD
     ) {
-      console.warn(`Question ${i + 1} has incomplete structure`);
       continue;
     }
 
@@ -396,18 +387,17 @@ const parseQuizResponse = (
       typeof questionData.optionC.en !== "string" ||
       typeof questionData.optionD.en !== "string"
     ) {
-      console.warn(`Question ${i + 1} missing English texts`);
       continue;
     }
 
     // Requested languages validation
     let missingLanguage = false;
     let missingFields = [];
-    
+
     for (const langCode of languageCodes) {
       // Skip English as it's already validated
-      if (langCode === 'en') continue;
-      
+      if (langCode === "en") continue;
+
       const fieldsToCheck = [
         { name: "question", field: questionData.question[langCode] },
         { name: "optionA", field: questionData.optionA[langCode] },
@@ -415,23 +405,19 @@ const parseQuizResponse = (
         { name: "optionC", field: questionData.optionC[langCode] },
         { name: "optionD", field: questionData.optionD[langCode] },
       ];
-      
+
       const missing = fieldsToCheck
-        .filter(item => typeof item.field !== "string")
-        .map(item => item.name);
-        
+        .filter((item) => typeof item.field !== "string")
+        .map((item) => item.name);
+
       if (missing.length > 0) {
-        console.warn(
-          `Question ${i + 1} missing ${langCode} texts for: ${missing.join(', ')}`
-        );
         missingLanguage = true;
-        missingFields.push(`${langCode}: ${missing.join(', ')}`);
+        missingFields.push(`${langCode}: ${missing.join(", ")}`);
         break;
       }
     }
 
     if (missingLanguage) {
-      console.warn(`Skipping question ${i + 1} due to missing translations: ${missingFields.join('; ')}`);
       continue;
     }
 
@@ -444,19 +430,8 @@ const parseQuizResponse = (
     ].filter(Boolean).length;
 
     if (correctCount !== 1) {
-      console.warn(
-        `Question ${i + 1} has ${correctCount} correct answers instead of 1`
-      );
       continue;
     }
-
-    // Check for duplicate answers
-    const optionTexts = [
-      questionData.optionA.en,
-      questionData.optionB.en,
-      questionData.optionC.en,
-      questionData.optionD.en,
-    ];
 
     // Keep AI response exactly as provided - NO MODIFICATION
     const question: QuestionStructure = {
@@ -481,13 +456,12 @@ const parseQuizResponse = (
 
     validatedQuestions.push(question);
   }
-  
+
   if (validatedQuestions.length === 0) {
     throw new Error("No questions could be validated from the response");
   }
 
   const finalQuestions = validatedQuestions.slice(0, questionCount);
-  console.log(`${finalQuestions.length} valid questions generated`);
 
   return {
     category: topic,
@@ -498,7 +472,7 @@ const parseQuizResponse = (
 // ==================== MAIN FUNCTION ============================================
 /**
  * Generates multiple quiz questions in specified languages using AI
- * 
+ *
  * @param topic - The topic to generate questions about
  * @param difficulty - The difficulty level (easy, medium, hard)
  * @param questionCount - Number of questions to generate (default: 10)
@@ -512,40 +486,34 @@ export const generateMultiplayerQuestions = async (
   questionCount: number = 10,
   languages: string[] = []
 ): Promise<AiQuestions> => {
-  console.log(
-    `Starting generation of ${questionCount} questions about: ${topic}`
-  );
-
   // Apply initial delay
   await delay(DELAY_MS);
 
   try {
     // Get default language if no languages are provided
     let languageCodes = [...languages];
-    
+
     // Always ensure English is included as fallback
-    if (!languageCodes.includes('en')) {
-      languageCodes.push('en');
+    if (!languageCodes.includes("en")) {
+      languageCodes.push("en");
     }
-    
+
     // If no languages were provided, use the current language
-    if (languageCodes.length === 1 && languageCodes[0] === 'en') {
+    if (languageCodes.length === 1 && languageCodes[0] === "en") {
       const currentLanguageCode = await getCurrentLanguage();
-      if (currentLanguageCode !== 'en' && !languageCodes.includes(currentLanguageCode)) {
+      if (
+        currentLanguageCode !== "en" &&
+        !languageCodes.includes(currentLanguageCode)
+      ) {
         languageCodes.push(currentLanguageCode);
-        console.log(`Added current language: ${currentLanguageCode}`);
       }
     }
-    
+
     // Get language names for better logging
-    const languageNames = languageCodes.map(code => {
+    const languageNames = languageCodes.map((code) => {
       const name = getLanguageName(code);
       return `${name} (${code})`;
     });
-    
-    console.log(
-      `Generating in languages: ${languageNames.join(', ')}`
-    );
 
     // Generate prompt
     const prompt = generatePrompt(
@@ -566,22 +534,28 @@ export const generateMultiplayerQuestions = async (
       languageCodes
     );
 
-    console.log(`Generation completed successfully`);
     return result;
   } catch (error: any) {
     // Enhanced error handling with more context
     const errorMsg = error.message || String(error);
-    console.error(`Error in question generation for topic "${topic}":`, errorMsg);
-    
+
     // Provide more specific error message based on what went wrong
     if (errorMsg.includes("API failed") || errorMsg.includes("API key")) {
-      throw new Error("API connection failed. Please check your internet connection and try again.");
+      throw new Error(
+        "API connection failed. Please check your internet connection and try again."
+      );
     } else if (errorMsg.includes("JSON") || errorMsg.includes("parse")) {
-      throw new Error("Error processing AI response. The model returned an invalid format.");
+      throw new Error(
+        "Error processing AI response. The model returned an invalid format."
+      );
     } else if (errorMsg.includes("No questions could be validated")) {
-      throw new Error(`No valid questions could be generated for "${topic}". Please try a different topic or difficulty level.`);
+      throw new Error(
+        `No valid questions could be generated for "${topic}". Please try a different topic or difficulty level.`
+      );
     } else {
-      throw new Error("Questions could not be generated. Please try again later.");
+      throw new Error(
+        "Questions could not be generated. Please try again later."
+      );
     }
   }
 };
@@ -632,9 +606,6 @@ Answer with category name only:`;
 
     return similarCategory || "Culture";
   } catch (error) {
-    console.error("Error in categorization:", error);
     return "Culture";
   }
 };
-
-console.log("QuizAPI with consistent system successfully loaded");

@@ -1,16 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const CACHE_KEY = {
-    aiQuestions: "aiQuestions",
-    quizSettings: "quizSettings",
-    gameData: "currGameData",
-    currentRoom: "currentRoom",
-  }
+  aiQuestions: "aiQuestions",
+  quizSettings: "quizSettings",
+  gameData: "currGameData",
+  currentRoom: "currentRoom",
+};
 
 // ---------- LOAD CACHE DATA ----------
-export const loadCacheData = async <T = any>(
-  key: string
-) => {
+export const loadCacheData = async <T = any>(key: string) => {
   try {
     const storedData = await AsyncStorage.getItem(key);
     if (storedData) {
@@ -19,8 +17,7 @@ export const loadCacheData = async <T = any>(
     } else {
       return null;
     }
-  } catch (error) {
-    console.error("Failed to load data from cache:", error);
+  } catch {
     return null;
   }
 };
@@ -30,17 +27,12 @@ export const loadCacheData = async <T = any>(
 export const saveDataToCache = async <T>(key: string, data: T) => {
   try {
     await AsyncStorage.setItem(key, JSON.stringify(data));
-  } catch (error) {
-    console.error("Failed to save data to cache:", error);
-  }
+  } catch {}
 };
 
 // ---------- CLEAR CACHE DATA ----------
 export const clearCacheData = async (key: string) => {
   try {
     await AsyncStorage.removeItem(key);
-  } catch (error) {
-    console.error("Failed to clear data from cache:", error);
-  }
+  } catch {}
 };
-

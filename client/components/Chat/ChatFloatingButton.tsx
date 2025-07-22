@@ -1,6 +1,6 @@
 import React from "react";
 import { TouchableOpacity, StyleSheet, View, Text } from "react-native";
-import { Colors, FontSizes, Gaps } from "@/styles/theme";
+import { Colors } from "@/styles/theme";
 import IconChat from "@/assets/icons/IconChat";
 
 interface ChatFloatingButtonProps {
@@ -14,18 +14,7 @@ const ChatFloatingButton: React.FC<ChatFloatingButtonProps> = ({
   unreadCount = 0,
   isVisible = true,
 }) => {
-  // Add logging to see what's happening
-  React.useEffect(() => {
-    console.log(
-      "ChatFloatingButton: unreadCount =",
-      unreadCount,
-      "isVisible =",
-      isVisible
-    );
-  }, [unreadCount, isVisible]);
-
   if (!isVisible) {
-    console.log("ChatFloatingButton hidden because isVisible=false");
     return null;
   }
 
@@ -33,7 +22,6 @@ const ChatFloatingButton: React.FC<ChatFloatingButtonProps> = ({
     <TouchableOpacity
       style={styles.floatingButton}
       onPress={() => {
-        console.log("Chat button pressed with unread count:", unreadCount);
         onPress();
       }}
     >
@@ -58,8 +46,6 @@ const styles = StyleSheet.create({
     right: 20,
     width: 56,
     height: 56,
-    // borderRadius: 28,
-    //backgroundColor: Colors.primaryLimo,
     justifyContent: "center",
     alignItems: "center",
     elevation: 8,
@@ -70,10 +56,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  // Commented out since we're using IconChat component now
-  // chatIcon: {
-  // fontSize: 24,
-  // },
   badge: {
     position: "absolute",
     top: -8,

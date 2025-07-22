@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { Logo } from "@/components/Logos";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { FontSizes, Gaps } from "@/styles/theme";
 import IconMedal1PlaceWebp from "@/assets/icons-webp/IconMedal1PlaceWebp";
 import IconMedal2PlaceWebp from "@/assets/icons-webp/IconMedal2PlaceWebp";
@@ -21,10 +21,8 @@ const StatisticsScreen = () => {
 
   useEffect(() => {
     socketService.on("pointsUpdated", () => {
-      console.log("pointsUpdated received - outside");
       refetch &&
         refetch.forEach((fn) => {
-          console.log("pointsUpdated received - inside");
           fn();
         });
     });

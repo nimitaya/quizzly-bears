@@ -1,4 +1,3 @@
-import { ButtonSecondary } from "@/components/Buttons";
 import { Link, Stack } from "expo-router";
 import { StyleSheet, View } from "react-native";
 

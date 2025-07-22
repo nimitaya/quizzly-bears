@@ -17,7 +17,7 @@ export const Fonts = {
   pressStart2P: "NotoSans-Bold",
 };
 
-// Google Fonts Import für Press Start 2P
 export const fontImports = {
-  pressStart2P: "https://fonts.googleapis.com/css2?family=Press+Start+2P:wght@400;700&display=swap",
+  pressStart2P:
+    "https://fonts.googleapis.com/css2?family=Press+Start+2P:wght@400;700&display=swap",
 };

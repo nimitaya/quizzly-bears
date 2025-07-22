@@ -1,4 +1,3 @@
-import { View } from "react-native";
 import { useUser } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
@@ -9,7 +8,8 @@ import PlayScreen from "./(tabs)/play/index";
 export default function WelcomeScreen() {
   const router = useRouter();
   const { isSignedIn } = useUser();
-  const { shouldShowOnboarding: shouldShowOnboardingScreen, isLoading } = useOnboarding();
+  const { shouldShowOnboarding: shouldShowOnboardingScreen, isLoading } =
+    useOnboarding();
 
   // Navigate to onboarding if user hasn't seen it yet
   useEffect(() => {
@@ -22,7 +22,7 @@ export default function WelcomeScreen() {
 
   // Show loading while checking onboarding status
   if (isLoading) {
-    return null; // Or your loading component
+    return null;
   }
 
   // Don't render anything if we're navigating to onboarding

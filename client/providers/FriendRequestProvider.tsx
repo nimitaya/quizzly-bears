@@ -93,7 +93,6 @@ export const FriendRequestProvider = ({
     try {
       setIsLoading(true);
       setSearchState((prev) => ({ ...prev, result: null, error: "" }));
-      console.log("Searching for:", email);
       const result = await searchUserByEmail(email, userData.clerkUserId);
       setSearchState((prev) => ({ ...prev, result: result.user, email: "" }));
     } catch (error: any) {

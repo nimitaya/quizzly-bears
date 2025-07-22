@@ -1,13 +1,11 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
 import { Colors } from "@/styles/theme";
-import { useGlobalLoading } from "@/providers/GlobalLoadingProvider";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import QuizLoader from "@/components/QuizLoader";
 
 const LoadingOverlay = () => {
-  const { isGloballyLoading } = useGlobalLoading();
   const router = useRouter();
   const params = useLocalSearchParams();
   const returnTo = (params.returnTo as string) || null;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -33,7 +33,6 @@ const LanguageDropdown = ({ onLanguageChange }: LanguageDropdownProps) => {
       await changeLanguage(language);
       setIsDropdownOpen(false);
 
-      // Call the callback function if provided
       if (onLanguageChange) {
         onLanguageChange(language);
       }

@@ -6,7 +6,7 @@ const API_BASE_URL =
 
 export interface SendMedalParams {
   clerkUserId: string;
-  place: number; // 1, 2, 3
+  place: number;
   roomId: string;
 }
 

@@ -112,25 +112,19 @@ class SocketService {
     try {
       if (this.socket?.connected) {
         this.socket.emit("user-online", { userId, clerkUserId });
-        console.log("Emitted user-online event");
       } else {
-        console.warn("Socket not connected, storing for reconnection");
         this.pendingUserOnline = { userId, clerkUserId };
       }
-    } catch (error) {
-      console.error("Error in setUserOnline:", error);
-    }
+    } catch {}
   }
 
   getFriendsStatus(userId: string, friendIds: string[]): void {
     try {
       if (!this.socket?.connected) {
-        console.warn("Socket not connected, can't get friend status");
         return;
       }
 
       if (!friendIds || !Array.isArray(friendIds)) {
-        console.warn("Invalid friendIds:", friendIds);
         return;
       }
 
@@ -138,9 +132,7 @@ class SocketService {
         userId,
         friendIds: friendIds.filter((id) => id), // Filter out null/undefined
       });
-    } catch (error) {
-      console.error("Error in getFriendsStatus:", error);
-    }
+    } catch {}
   }
 
   onFriendsStatus(callback: (data: { onlineFriends: string[] }) => void): void {
@@ -166,7 +158,7 @@ class SocketService {
         timeout: 2000,
         reconnection: true,
         reconnectionDelay: 1000,
-        reconnectionAttempts: 2, // Reduced for faster fallback
+        reconnectionAttempts: 2,
         forceNew: true,
       });
 
@@ -180,14 +172,12 @@ class SocketService {
 
       this.socket.on("connect", () => {
         clearTimeout(timeout);
-        console.log(`✅ Connected to Socket.IO server at ${url}`);
         this.connectionRetries = 0;
         resolve();
       });
 
       this.socket.on("connect_error", (error) => {
         clearTimeout(timeout);
-        console.warn(`Socket.IO connection failed for ${url}:`, error.message);
         if (this.socket) {
           this.socket.disconnect();
           this.socket = null;
@@ -195,9 +185,7 @@ class SocketService {
         reject(error);
       });
 
-      this.socket.on("disconnect", () => {
-        console.log("🔌 Disconnected from Socket.IO server");
-      });
+      this.socket.on("disconnect", () => {});
     });
   }
 
@@ -205,11 +193,9 @@ class SocketService {
   async ensureConnection(): Promise<boolean> {
     if (!this.socket || !this.socket.connected) {
       try {
-        console.log("Socket not connected, attempting to reconnect...");
         await this.connect();
         return true;
-      } catch (err) {
-        console.error("Reconnection failed:", err);
+      } catch {
         return false;
       }
     }
@@ -218,12 +204,10 @@ class SocketService {
 
   disconnect() {
     if (navigationState.isInAuthNavigation()) {
-      console.log("⚡ Preventing socket disconnect during auth navigation");
       return; // Don't disconnect during auth navigation
     }
 
     // Otherwise proceed with normal disconnect
-    console.log("🔌 Disconnecting socket");
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
@@ -304,13 +288,10 @@ class SocketService {
     // Make the actual request
     if (this.socket) {
       this.socket.emit("get-room-state", { roomId });
-    } else {
-      console.error("Cannot request room state - socket is null");
     }
 
     // Add a direct error listener to catch any errors
     const errorListener = (error: any) => {
-      console.error("Socket error during room state request:", error);
       this.off("error", errorListener);
     };
     this.on("error", errorListener);
@@ -319,9 +300,6 @@ class SocketService {
 
     // Debug: check if the response is received
     const debugTimeout = setTimeout(() => {
-      console.log(
-        `No room state response received for roomId: ${roomId} after 3 seconds`
-      );
       this.off("error", errorListener);
     }, 3000);
   }
@@ -395,10 +373,7 @@ class SocketService {
   // Universal methods for working with events
   emit(event: string, data?: any) {
     if (this.socket) {
-      console.log(`Emitting event: ${event}`, data);
       this.socket.emit(event, data);
-    } else {
-      console.error(`Cannot emit ${event} - socket is null`);
     }
   }
 
@@ -551,7 +526,6 @@ class SocketService {
 
   // Deprecated - use onGameResults instead
   onGameEnded(callback: (data: { finalScores: Player[] }) => void) {
-    console.warn("onGameEnded is deprecated, use onGameResults instead");
     this.on("game-results", callback);
   }
 
@@ -587,13 +561,11 @@ class SocketService {
   initialize(): Promise<void> {
     // If already connected, return immediately
     if (this.socket?.connected) {
-      console.log("Socket already connected");
       return Promise.resolve();
     }
 
     // If already initializing, don't start another connection attempt
     if (this.isInitializing) {
-      console.log("Socket connection already in progress");
       return new Promise((resolve, reject) => {
         const checkInterval = setInterval(() => {
           if (this.socket?.connected) {
@@ -616,7 +588,6 @@ class SocketService {
     }
 
     this.isInitializing = true;
-    console.log("Initializing socket connection...");
 
     return new Promise((resolve, reject) => {
       try {
@@ -643,12 +614,10 @@ class SocketService {
 
         // Handle connection
         this.socket.on("connect", () => {
-          console.log("✅ Connected to Socket.IO server at", SOCKET_URL);
           this.isInitializing = false;
 
           // Process any pending operations (like user online status)
           if (this.pendingUserOnline) {
-            console.log("Reconnected, re-establishing online status");
             this.setUserOnline(
               this.pendingUserOnline.userId,
               this.pendingUserOnline.clerkUserId
@@ -660,20 +629,16 @@ class SocketService {
 
         // Handle connection error
         this.socket.on("connect_error", (error) => {
-          console.error("❌ Socket connection error:", error.message);
           // Don't reject - socket.io will retry automatically
         });
 
         // Handle disconnection
-        this.socket.on("disconnect", (reason) => {
-          console.log("🔌 Disconnected from Socket.IO server:", reason);
-        });
+        this.socket.on("disconnect", (reason) => {});
 
         // Set a timeout for the initial connection
         const timeout = setTimeout(() => {
           if (!this.socket?.connected) {
             this.isInitializing = false;
-            console.error("❌ Socket connection timed out");
             reject(new Error("Connection timed out"));
           }
         }, 20000);
@@ -684,7 +649,6 @@ class SocketService {
         });
       } catch (error) {
         this.isInitializing = false;
-        console.error("❌ Socket initialization failed:", error);
         reject(error);
       }
     });
@@ -694,7 +658,6 @@ class SocketService {
    * Clears any pending operations (like user online status)
    */
   clearPendingOperations(): void {
-    console.log("Clearing pending socket operations");
     this.pendingUserOnline = null;
     // Add other pending operations here if you have any
   }
@@ -706,8 +669,6 @@ class SocketService {
    * @returns Promise that resolves when deletion is complete
    */
   deleteRoomChat(roomId: string): Promise<void> {
-    console.log(`Deleting Firebase chat data for room: ${roomId}`);
-
     return new Promise((resolve, reject) => {
       try {
         const db = getDatabase();
@@ -716,25 +677,17 @@ class SocketService {
         const chatRef = ref(db, `chats/${roomId}`);
         remove(chatRef)
           .then(() => {
-            console.log(`Deleted chat messages for room ${roomId}`);
-
             // Delete typing indicators
             const typingRef = ref(db, `typing/${roomId}`);
             return remove(typingRef);
           })
           .then(() => {
-            console.log(`Deleted typing indicators for room ${roomId}`);
             resolve();
           })
           .catch((error) => {
-            console.error(
-              `Error deleting chat data for room ${roomId}:`,
-              error
-            );
             reject(error);
           });
       } catch (error) {
-        console.error(`Error accessing Firebase for room ${roomId}:`, error);
         reject(error);
       }
     });

@@ -27,7 +27,7 @@ interface ChatWindowProps {
 }
 
 const { height: screenHeight } = Dimensions.get("window");
-const CHAT_HEIGHT = screenHeight * 0.7; // 70% of screen height
+const CHAT_HEIGHT = screenHeight * 0.7;
 
 const ChatWindow: React.FC<ChatWindowProps> = ({
   isVisible,
@@ -44,30 +44,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   > | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const slideAnim = useRef(new Animated.Value(CHAT_HEIGHT)).current;
-
-  // Debug logs
-  useEffect(() => {
-    console.log("ChatWindow mounted with visible:", isVisible);
-    console.log(`Messages count in window: ${messages.length}`);
-  }, []);
-
-  useEffect(() => {
-    console.log("ChatWindow visibility changed to:", isVisible);
-  }, [isVisible]);
-
-  useEffect(() => {
-    console.log("Messages updated in ChatWindow:", messages.length);
-  }, [messages]);
-
-  // Add inside your ChatWindow component:
-  useEffect(() => {
-    console.log("ChatWindow received messages:", messages);
-    console.log("Messages length:", messages.length);
-
-    if (messages.length === 0) {
-      console.log("No messages to display");
-    }
-  }, [messages]);
 
   // Handle visibility animation
   useEffect(() => {

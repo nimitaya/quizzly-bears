@@ -39,7 +39,6 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!loading && userData?.settings?.music !== undefined) {
         setMusicEnabled(userData.settings.music);
       } else if (!loading && userData) {
-        // Wenn keine Einstellungen vorhanden sind, setze Musik auf false (ausgeschaltet)
         setMusicEnabled(false);
       }
 
@@ -53,8 +52,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({
       window.addEventListener("mousedown", handleInteraction);
       window.addEventListener("touchstart", handleInteraction);
     } else {
-      // Expo / native — we assume initial mount = user interaction
-      handleInteraction(); // Immediately trigger on mount
+      handleInteraction();
     }
 
     return () => {
@@ -74,7 +72,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({
         }
         try {
           const { sound } = await Audio.Sound.createAsync(
-            require('@/assets/Sounds/musik.mp3'),
+            require("@/assets/Sounds/musik.mp3"),
             {
               shouldPlay: true,
               isLooping: true,

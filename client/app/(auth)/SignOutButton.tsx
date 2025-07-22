@@ -16,11 +16,8 @@ const SignOutButton = () => {
     setIsProcessing(true);
 
     try {
-      // Force disconnect and clear pending operations
-      console.log("🔒 Logging out - disconnecting socket");
+      // Disconnect socket and clear pending operations
       socketService.disconnect();
-
-      // Clear socket state (add this method to your socketService)
       socketService.clearPendingOperations();
 
       // Clear auth-related flags
@@ -32,7 +29,7 @@ const SignOutButton = () => {
         AsyncStorage.removeItem("auth_token"),
       ]);
 
-      // Set up navigation for AuthNavigationHelper to handle
+      // Set navigation flags for AuthNavigationHelper
       await AsyncStorage.setItem("auth_navigation_pending", "true");
       await AsyncStorage.setItem(
         "auth_navigation_destination",
@@ -42,10 +39,10 @@ const SignOutButton = () => {
       // Sign out from Clerk
       await signOut();
 
-      // Navigate to login
+      // Navigate to login screen
       router.replace("/(auth)/LogInScreen");
     } catch (err) {
-      console.error(JSON.stringify(err, null, 2));
+      console.error("Error during sign-out:", err);
     } finally {
       setIsProcessing(false);
     }

@@ -6,7 +6,7 @@ import React, {
   useImperativeHandle,
 } from "react";
 import { useUser, useAuth, useClerk } from "@clerk/clerk-expo";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { Text, View, StyleSheet, ActivityIndicator } from "react-native";
 import SignOutButton from "@/app/(auth)/SignOutButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -35,7 +35,7 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
     const forceSignedInRef = useRef(false);
     const { currentUsername } = useStatistics();
 
-    // IMPORTANT: First check for password reset on component mount
+    // Check for password reset on component mount
     useEffect(() => {
       let isMounted = true;
 
@@ -46,13 +46,10 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
               "password_recently_reset"
             );
             if (resetFlag === "true") {
-              console.log("Found recent password reset flag");
               setWasRecentlyReset(true);
               await AsyncStorage.removeItem("password_recently_reset");
             }
-          } catch (err) {
-            console.log("Error checking reset status:", err);
-          }
+          } catch (err) {}
         }
       };
 
@@ -85,13 +82,10 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
             persistResetFlag === "true" ||
             hadResetFlag === "true"
           ) {
-            console.log("Found force signed in flag - forcing signed in view");
             forceSignedInRef.current = true;
             setWasRecentlyReset(true);
           }
-        } catch (err) {
-          console.log("Error checking force signed in flag:", err);
-        }
+        } catch (err) {}
       };
 
       checkForceSignedIn();
@@ -100,13 +94,12 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
       };
     }, []);
 
-    // IMPORTANT: Clean up stale auth flags when definitely not signed in
+    // Clean up stale auth flags when definitely not signed in
     useEffect(() => {
       if (authLoaded && userLoaded && !isSignedIn && !user) {
         const cleanupFlags = async () => {
           try {
             if (!clerk || !clerk.session) {
-              console.log("No clerk session - cleaning up auth flags");
               await Promise.all([
                 AsyncStorage.removeItem("password_recently_reset"),
                 AsyncStorage.removeItem("password_recently_reset_persist"),
@@ -114,9 +107,7 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
                 AsyncStorage.removeItem("had_password_reset"),
               ]);
             }
-          } catch (err) {
-            console.log("Error cleaning up auth flags:", err);
-          }
+          } catch (err) {}
         };
 
         cleanupFlags();
@@ -126,7 +117,6 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
     // Handle refresh key changes - limiting to prevent infinite checks
     useEffect(() => {
       if (refreshKey !== prevRefreshKeyRef.current) {
-        console.log("ClerkSettings refresh key changed:", refreshKey);
         prevRefreshKeyRef.current = refreshKey;
         maxChecksRef.current += 1;
 
@@ -135,8 +125,6 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
           setTimeout(() => {
             setIsCheckingAuth(false);
           }, 2000);
-        } else {
-          console.log("Too many auth checks - skipping");
         }
       }
     }, [refreshKey]);
@@ -147,15 +135,11 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
         const syncSession = async () => {
           try {
             if (clerk.session) {
-              console.log("Found clerk session, attempting to refresh");
-
               if (typeof clerk.session.touch === "function") {
                 await clerk.session.touch();
-                console.log("Touched clerk session");
               }
             }
           } catch (e) {
-            console.log("Error syncing clerk session:", e);
           } finally {
             setTimeout(() => {
               setIsCheckingAuth(false);
@@ -174,7 +158,7 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
       };
     }, []);
 
-    // IMPORTANT: Enhanced manual refresh to handle edge cases
+    // Enhanced manual refresh to handle edge cases
     const manualRefresh = async () => {
       setIsCheckingAuth(true);
 
@@ -252,16 +236,13 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
           const hasValidSession = clerk && clerk.session;
 
           if (resetFlag === "true" || (hasValidSession && !isSignedIn)) {
-            console.log("Force showing signed in view");
             setWasRecentlyReset(true);
 
             if (resetFlag === "true") {
               await AsyncStorage.removeItem("password_recently_reset");
             }
           }
-        } catch (err) {
-          console.log("Error checking force signed in state:", err);
-        }
+        } catch (err) {}
       };
 
       checkForceSignedIn();
@@ -275,7 +256,7 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
       "checking" | "signedIn" | "signedOut"
     >("checking");
 
-    // IMPORTANT: Determine auth state based on multiple signals
+    // Determine auth state based on multiple signals
     const determineAuthState = async () => {
       if (isSignedIn && user) {
         return "signedIn";
@@ -303,9 +284,7 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
         if (clerk && clerk.session) {
           return "signedIn";
         }
-      } catch (err) {
-        console.log("Error in determineAuthState:", err);
-      }
+      } catch (err) {}
 
       return "signedOut";
     };
@@ -323,7 +302,6 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
             setCurrentAuthState(state);
           }
         } catch (err) {
-          console.log("Error checking auth state:", err);
           if (isMounted) {
             setCurrentAuthState("signedOut");
           }
@@ -348,21 +326,16 @@ const ClerkSettings = forwardRef<ClerkSettingsRefType, { refreshKey: number }>(
       );
     }
 
-    // Add this before any navigation to auth screens
     const router = useRouter();
     const handleNavigateToAuth = () => {
       // Signal that we're starting auth navigation
       navigationState.startAuthNavigation();
-
-      // Then navigate to the auth screen
       router.push("/(auth)/LogInScreen");
     };
 
     const handleNavigateToSignUp = () => {
       // Signal that we're starting auth navigation
       navigationState.startAuthNavigation();
-
-      // Then navigate to the auth screen
       router.push("/(auth)/SignUp");
     };
 

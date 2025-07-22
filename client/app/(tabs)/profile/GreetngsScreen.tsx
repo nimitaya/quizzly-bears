@@ -19,12 +19,10 @@ import { useStatistics } from "@/providers/UserProvider";
 import IconEdit from "@/assets/icons/IconEdit";
 import axios from "axios";
 
-// Define the ref type
 export type ClerkSettingsRefType = {
   manualRefresh: () => Promise<void>;
 };
 
-// Component using forwardRef to expose methods to parent
 const GreetingsScreen = forwardRef<
   ClerkSettingsRefType,
   { refreshKey: number }
@@ -35,10 +33,9 @@ const GreetingsScreen = forwardRef<
   const [isCheckingAuth, setIsCheckingAuth] = useState(false);
   const [wasRecentlyReset, setWasRecentlyReset] = useState(false);
   const prevRefreshKeyRef = useRef(refreshKey);
-  const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const maxChecksRef = useRef(0);
   const forceSignedInRef = useRef(false);
-  const { currentUsername, refetch } = useStatistics();
+  const { currentUsername, refetch, triggerUsernameUpdate } = useStatistics();
   const [isEditing, setIsEditing] = useState(false);
   const [editedUsername, setEditedUsername] = useState(currentUsername || "");
 
@@ -53,13 +50,10 @@ const GreetingsScreen = forwardRef<
             "password_recently_reset"
           );
           if (resetFlag === "true") {
-            console.log("Found recent password reset flag");
             setWasRecentlyReset(true);
             await AsyncStorage.removeItem("password_recently_reset");
           }
-        } catch (err) {
-          console.log("Error checking reset status:", err);
-        }
+        } catch (err) {}
       }
     };
 
@@ -90,13 +84,10 @@ const GreetingsScreen = forwardRef<
           persistResetFlag === "true" ||
           hadResetFlag === "true"
         ) {
-          console.log("Found force signed in flag - forcing signed in view");
           forceSignedInRef.current = true;
           setWasRecentlyReset(true);
         }
-      } catch (err) {
-        console.log("Error checking force signed in flag:", err);
-      }
+      } catch (err) {}
     };
 
     checkForceSignedIn();
@@ -111,7 +102,6 @@ const GreetingsScreen = forwardRef<
       const cleanupFlags = async () => {
         try {
           if (!clerk || !clerk.session) {
-            console.log("No clerk session - cleaning up auth flags");
             await Promise.all([
               AsyncStorage.removeItem("password_recently_reset"),
               AsyncStorage.removeItem("password_recently_reset_persist"),
@@ -119,9 +109,7 @@ const GreetingsScreen = forwardRef<
               AsyncStorage.removeItem("had_password_reset"),
             ]);
           }
-        } catch (err) {
-          console.log("Error cleaning up auth flags:", err);
-        }
+        } catch (err) {}
       };
 
       cleanupFlags();
@@ -131,7 +119,6 @@ const GreetingsScreen = forwardRef<
   // Handle refresh key changes - limiting to prevent infinite checks
   useEffect(() => {
     if (refreshKey !== prevRefreshKeyRef.current) {
-      console.log("ClerkSettings refresh key changed:", refreshKey);
       prevRefreshKeyRef.current = refreshKey;
       maxChecksRef.current += 1;
 
@@ -141,7 +128,6 @@ const GreetingsScreen = forwardRef<
           setIsCheckingAuth(false);
         }, 2000);
       } else {
-        console.log("Too many auth checks - skipping");
       }
     }
   }, [refreshKey]);
@@ -152,15 +138,11 @@ const GreetingsScreen = forwardRef<
       const syncSession = async () => {
         try {
           if (clerk.session) {
-            console.log("Found clerk session, attempting to refresh");
-
             if (typeof clerk.session.touch === "function") {
               await clerk.session.touch();
-              console.log("Touched clerk session");
             }
           }
         } catch (e) {
-          console.log("Error syncing clerk session:", e);
         } finally {
           setTimeout(() => {
             setIsCheckingAuth(false);
@@ -184,7 +166,6 @@ const GreetingsScreen = forwardRef<
     setIsCheckingAuth(true);
 
     try {
-      // Direct token check - most reliable method
       const sessionToken = await AsyncStorage.getItem("__clerk_client_jwt");
       if (sessionToken) {
         setWasRecentlyReset(true);
@@ -238,7 +219,6 @@ const GreetingsScreen = forwardRef<
     }
   };
 
-  // Expose methods via ref for parent component access
   useImperativeHandle(ref, () => ({
     manualRefresh,
   }));
@@ -255,16 +235,13 @@ const GreetingsScreen = forwardRef<
         const hasValidSession = clerk && clerk.session;
 
         if (resetFlag === "true" || (hasValidSession && !isSignedIn)) {
-          console.log("Force showing signed in view");
           setWasRecentlyReset(true);
 
           if (resetFlag === "true") {
             await AsyncStorage.removeItem("password_recently_reset");
           }
         }
-      } catch (err) {
-        console.log("Error checking force signed in state:", err);
-      }
+      } catch (err) {}
     };
 
     checkForceSignedIn();
@@ -306,9 +283,7 @@ const GreetingsScreen = forwardRef<
       if (clerk && clerk.session) {
         return "signedIn";
       }
-    } catch (err) {
-      console.log("Error in determineAuthState:", err);
-    }
+    } catch (err) {}
 
     return "signedOut";
   };
@@ -326,7 +301,6 @@ const GreetingsScreen = forwardRef<
           setCurrentAuthState(state);
         }
       } catch (err) {
-        console.log("Error checking auth state:", err);
         if (isMounted) {
           setCurrentAuthState("signedOut");
         }
@@ -339,7 +313,6 @@ const GreetingsScreen = forwardRef<
     };
   }, [isSignedIn, user, clerk, wasRecentlyReset, refreshKey]);
 
-  // Show loading state
   if (isCheckingAuth || currentAuthState === "checking") {
     return (
       <View style={styles.loadingContainer}>
@@ -356,16 +329,20 @@ const GreetingsScreen = forwardRef<
       setIsEditing(false);
       return;
     }
-    const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
     try {
+      const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
       await axios.put(`${API_BASE_URL}/users/${user?.id}`, {
         username: editedUsername,
       });
       setIsEditing(false);
-      refetch[0]();
+
+      // Trigger both refetch and username update
+      await refetch[0]();
+      triggerUsernameUpdate();
     } catch (error) {
-      console.error("Failed to update username", error);
+      setIsEditing(false);
+      setEditedUsername(currentUsername || "");
     }
   };
 
@@ -386,7 +363,8 @@ const GreetingsScreen = forwardRef<
             />
           ) : (
             <Text style={styles.greeting}>
-              {currentUsername ||
+              {editedUsername ||
+                currentUsername ||
                 user?.firstName ||
                 user?.emailAddresses?.[0]?.emailAddress ||
                 "User"}
