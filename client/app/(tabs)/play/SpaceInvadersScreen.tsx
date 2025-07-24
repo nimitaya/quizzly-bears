@@ -716,19 +716,29 @@ const SpaceInvadersScreen = () => {
   };
 
   const stopAllAudio = async () => {
-    // Musik stoppen
+    // Game loop stoppen
+    if (animationRef.current) {
+      clearInterval(animationRef.current);
+      animationRef.current = null;
+    }
+
+    // Musik stoppen und ausladen
     if (bgMusic) {
       try {
         await bgMusic.stopAsync();
+        await bgMusic.unloadAsync();
       } catch {}
     }
 
-    // Stop all sound effects
-    Object.values(sounds).forEach((sound) => {
+    // Alle Soundeffekte stoppen und ausladen
+    for (const [key, sound] of Object.entries(sounds)) {
       if (sound) {
-        sound.stopAsync().catch(() => {});
+        try {
+          await sound.stopAsync();
+          await sound.unloadAsync();
+        } catch {}
       }
-    });
+    }
   };
 
   const handleBackPress = async () => {
@@ -807,7 +817,7 @@ const SpaceInvadersScreen = () => {
               onPressOut={() => handleTouchEnd('left')}
             >
 
-              <Text style={styles.controlText}>◀</Text>
+              <Text style={styles.controlText}>◄</Text>
 
             </TouchableOpacity>
 
@@ -823,7 +833,7 @@ const SpaceInvadersScreen = () => {
               onPressOut={() => handleTouchEnd("right")}
             >
 
-              <Text style={styles.controlText}>▶</Text>
+              <Text style={styles.controlText}>►</Text>
 
             </TouchableOpacity>
           </View>
