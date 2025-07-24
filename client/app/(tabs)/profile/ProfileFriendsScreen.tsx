@@ -320,7 +320,7 @@ const ProfilFriendsScreen = () => {
       <Text style={styles.pageTitle}>Friends</Text>
 
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
+      <View>
         <SearchFriendInput
           placeholder="e-mail..."
           value={searchState.email}
@@ -337,11 +337,19 @@ const ProfilFriendsScreen = () => {
             <Text style={styles.errorText}>{searchState.error}</Text>
           ) : null}
         </View>
+      </View>
 
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        style={[{ zIndex: 1 }]}
+      >
         {/* Search Result */}
         {searchState.result ? (
           <View style={styles.friendRow}>
-            <Text style={styles.friendName}>{searchState.result.email}</Text>
+            <Text style={styles.friendName}>
+              {searchState.result.email ? searchState.result.email.split("@")[0] : "Friend"}
+            </Text>
             <View style={styles.actionButtons}>
               <TouchableOpacity
                 onPress={() =>
@@ -356,17 +364,13 @@ const ProfilFriendsScreen = () => {
             </View>
           </View>
         ) : null}
-      </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        style={[{ zIndex: 1 }]}
-      >
         {/* Friend Requests (incoming) */}
         {friendsState.receivedFriendRequests.friendRequests.map((item) => (
           <View key={item._id} style={[styles.friendRow]}>
-            <Text style={styles.friendName}>{item.from.email}</Text>
+            <Text style={styles.friendName}>
+              {item.from.email ? item.from.email.split("@")[0] : "Friend"}
+            </Text>
             <View style={styles.actionButtons}>
               <TouchableOpacity
                 onPress={() => handleAcceptFriendRequest(item._id)}
@@ -502,9 +506,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: Gaps.g24,
   },
-  searchContainer: {
-    marginBottom: Gaps.g24,
-  },
+
   errorContainer: {
     height: 32,
     justifyContent: "center",
