@@ -41,7 +41,7 @@
     "jsonrepair": "^3.13.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "react-native": "0.79.5",
+    "react-native": "0.80.1",
     "react-native-config": "^1.5.5",
     "react-native-country-flag": "^2.0.2",
     "react-native-gesture-handler": "~2.24.0",
