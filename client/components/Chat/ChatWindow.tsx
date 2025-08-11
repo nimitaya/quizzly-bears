@@ -158,7 +158,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Chat Room 1234</Text>
+        <Text style={styles.headerTitle}>Chat Room</Text>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <IconClose width={24} height={24} />
         </TouchableOpacity>
