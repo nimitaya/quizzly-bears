@@ -14,7 +14,7 @@
   "description": "",
   "dependencies": {
     "@types/socket.io": "^3.0.2",
-    "axios": "^1.10.0",
+    "axios": "^1.13.5",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "express": "^5.1.0",
